@@ -64,6 +64,6 @@ namespace nikfemm {
         printf("%f Find boundary vertices\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start6).count()*1000);
         printf("%f Total time\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count()*1000);
         
-        mesh->plot();
+        // mesh->plot();
     }
 }

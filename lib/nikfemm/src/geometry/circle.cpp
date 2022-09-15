@@ -81,8 +81,6 @@ namespace nikfemm {
         for (auto it = points.begin(); it != points.end(); ) {
             p.push_back(std::move(points.extract(it++).value()));
         }
-
-
         return getMinimumEnclosingCircle(p);
     }
 }

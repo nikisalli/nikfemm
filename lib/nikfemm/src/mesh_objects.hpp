@@ -44,10 +44,6 @@ namespace nikfemm {
 
             bool operator==(const Vertex& v) const;
             bool operator!=(const Vertex& v) const;
-
-            bool compare(Vertex* v) {
-                return *this == *v;
-            }
     };
 
     class Element {
@@ -148,7 +144,11 @@ namespace std {
     template <>
     struct equal_to<nikfemm::Vertex*> {
         inline bool operator()(const nikfemm::Vertex* v1, const nikfemm::Vertex* v2) const {
-            return *v1 == *v2;
+            if (v1 == v2) {
+                return true;
+            } else {
+                return *v1 == *v2;
+            }
         }
     };
 }

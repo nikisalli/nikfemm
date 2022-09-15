@@ -6,6 +6,8 @@
 namespace nikfemm {
     Vertex::Vertex() {
         p = Point(0, 0);
+        // adjvert.reserve(3);  // makes it actually slower
+        // adjele.reserve(3);
     }
 
     Vertex::Vertex(Point p) {
@@ -69,6 +71,8 @@ namespace nikfemm {
     Element::Element() {
         adjele = std::vector<Element*>();
         vertices = std::vector<Vertex*>();
+        // adjele.reserve(3);  // makes it actually slower
+        // vertices.reserve(3);
     }
 
     Element::~Element() {

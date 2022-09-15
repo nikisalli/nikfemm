@@ -1,6 +1,7 @@
 #include <unordered_set>
 #include <set>
 #include <chrono>
+#include <array>
 
 #include <constants.hpp>
 
@@ -92,22 +93,28 @@ namespace nikfemm {
             uint64_t id2;
         };
 
-        std::vector<Point> points;
-        std::vector<TempSegment> temp_segments;
+        in.numberofpoints = segments.size() * 2;
+        in.pointlist = (TRI_REAL*)malloc(in.numberofpoints * 2 * sizeof(TRI_REAL));
+        in.numberofsegments = segments.size();
+        in.segmentlist = (int*)malloc(in.numberofsegments * 2 * sizeof(int));
+
+        uint32_t points_idx = 0;
+        uint32_t segments_idx = 0;
+
         // for each segment, check if one of the endpoints is already in the list, if not, add it
-        printf("segments size: %lu\n", segments.size());
         for (auto s : segments) {
             bool p1_found = false;
             bool p2_found = false;
-            uint64_t p1_id = 0;
-            uint64_t p2_id = 0;
-            uint64_t i = 0;
-            for (uint32_t i = 0; i < points.size(); i++) {
-                if (points[i] == s.p1) {
+            uint32_t p1_id = 0;
+            uint32_t p2_id = 0;
+            uint32_t i = 0;
+            for (uint32_t i = 0; i < points_idx; i++) {
+                // compare using epsilon
+                if (fabs(in.pointlist[i * 2] - s.p1.x) < EPSILON && fabs(in.pointlist[i * 2 + 1] - s.p1.y) < EPSILON) {
                     p1_found = true;
                     p1_id = i;
                 }
-                if (points[i] == s.p2) {
+                if (fabs(in.pointlist[i * 2] - s.p2.x) < EPSILON && fabs(in.pointlist[i * 2 + 1] - s.p2.y) < EPSILON) {
                     p2_found = true;
                     p2_id = i;
                 }
@@ -116,36 +123,31 @@ namespace nikfemm {
                 }
             }
             if (!p1_found) {
-                points.push_back(s.p1);
-                p1_id = points.size() - 1;
+                in.pointlist[points_idx * 2] = s.p1.x;
+                in.pointlist[points_idx * 2 + 1] = s.p1.y;
+                p1_id = points_idx;
+                points_idx++;
             }
             if (!p2_found) {
-                points.push_back(s.p2);
-                p2_id = points.size() - 1;
+                in.pointlist[points_idx * 2] = s.p2.x;
+                in.pointlist[points_idx * 2 + 1] = s.p2.y;
+                p2_id = points_idx;
+                points_idx++;
             }
-            temp_segments.push_back(TempSegment{ p1_id, p2_id });
+            // add the segment
+            in.segmentlist[segments_idx * 2] = p1_id;
+            in.segmentlist[segments_idx * 2 + 1] = p2_id;
+            segments_idx++;
         }
+
+        in.numberofpoints = points_idx + 1;
 
         auto start1 = std::chrono::high_resolution_clock::now();
 
-        in.numberofpoints = points.size();
-        in.pointlist = (TRI_REAL*)malloc(in.numberofpoints * 2 * sizeof(TRI_REAL));
-        for (uint64_t i = 0; i < in.numberofpoints; i++) {
-            in.pointlist[2 * i] = points[i].x;
-            in.pointlist[2 * i + 1] = points[i].y;
-        }
         in.pointmarkerlist = NULL;
         in.numberofpointattributes = 0;
         in.pointattributelist = NULL;
-
-        in.numberofsegments = segments.size();
-        in.segmentlist = (int*)malloc(in.numberofsegments * 2 * sizeof(int));
-        for (uint64_t i = 0; i < in.numberofsegments; i++) {
-            in.segmentlist[2 * i] = temp_segments[i].id1;
-            in.segmentlist[2 * i + 1] = temp_segments[i].id2;
-        }
         in.segmentmarkerlist = NULL;
-
         in.numberofholes = 0;
         in.holelist = NULL;
 
