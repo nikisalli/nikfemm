@@ -164,7 +164,7 @@ namespace nikfemm {
 
         out.pointlist = (TRI_REAL*)NULL;
 
-        char switches[] = "pzqceAa0.01";
+        char switches[] = "pzq20cAa0.0005";
 
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */
@@ -194,40 +194,64 @@ namespace nikfemm {
 
         /* copy the triangles */
         // for each vertex in each triangle, add a point to the list
+        double area1 = 0;
+        double area2 = 0;
+        double area3 = 0;
+        double area4 = 0;
+        double area5 = 0;
+        double area6 = 0;
         auto total_time1 = std::chrono::duration_cast<std::chrono::microseconds>(start1 - start).count();
         for (uint64_t i = 0; i < out.numberoftriangles; i++) {
+            auto astart1 = std::chrono::high_resolution_clock::now();
             uint64_t p1 = out.trianglelist[3 * i];
             uint64_t p2 = out.trianglelist[3 * i + 1];
             uint64_t p3 = out.trianglelist[3 * i + 2];
+            auto astart2 = std::chrono::high_resolution_clock::now();
 
-            Vertex* v1 = new Vertex(out.pointlist[2 * p1], out.pointlist[2 * p1 + 1]);
-            Vertex* v2 = new Vertex(out.pointlist[2 * p2], out.pointlist[2 * p2 + 1]);
-            Vertex* v3 = new Vertex(out.pointlist[2 * p3], out.pointlist[2 * p3 + 1]);
+            TriangleVertex* v1 = new TriangleVertex(out.pointlist[2 * p1], out.pointlist[2 * p1 + 1]);
+            TriangleVertex* v2 = new TriangleVertex(out.pointlist[2 * p2], out.pointlist[2 * p2 + 1]);
+            TriangleVertex* v3 = new TriangleVertex(out.pointlist[2 * p3], out.pointlist[2 * p3 + 1]);
+            auto astart3 = std::chrono::high_resolution_clock::now();
 
-            std::pair<std::unordered_set<Vertex*>::iterator, bool> ret = mesh->vertices.insert(v1);
+            std::pair<std::unordered_set<TriangleVertex*>::iterator, bool> ret = mesh->vertices.insert(v1);
+            if (out.pointmarkerlist[p1] == 1) {
+                mesh->boundary_vertices.insert(v1);
+            }
             if (!ret.second) {
                 delete v1;
                 v1 = *ret.first;
             }
             ret = mesh->vertices.insert(v2);
+            if (out.pointmarkerlist[p2] == 1) {
+                mesh->boundary_vertices.insert(v2);
+            }
             if (!ret.second) {
                 delete v2;
                 v2 = *ret.first;
             }
             ret = mesh->vertices.insert(v3);
+            if (out.pointmarkerlist[p3] == 1) {
+                mesh->boundary_vertices.insert(v3);
+            }
             if (!ret.second) {
                 delete v3;
                 v3 = *ret.first;
             }
 
+            auto astart4 = std::chrono::high_resolution_clock::now();
+
             // add the triangle
-            Element* t = new Element(v1, v2, v3);
+            TriangleElement* t = new TriangleElement(v1, v2, v3);
             mesh->elements.insert(t);
+
+            auto astart5 = std::chrono::high_resolution_clock::now();
 
             // add the triangle as a neighbor of each vertex
             v1->addAdjacentElement(t);
             v2->addAdjacentElement(t);
             v3->addAdjacentElement(t);
+
+            auto astart6 = std::chrono::high_resolution_clock::now();
 
             // add vertices as neighbors of each other if they are not already
             v1->addAdjacentVertex(v2);
@@ -236,73 +260,26 @@ namespace nikfemm {
             v2->addAdjacentVertex(v3);
             v3->addAdjacentVertex(v1);
             v3->addAdjacentVertex(v2);
-        }
-        
-        auto start4 = std::chrono::high_resolution_clock::now();
 
-        // add neighbor elements to each element
-        for (auto elem : mesh->elements) {
-            // for each pair of vertices in the element find the element that shares those vertices
-            uint64_t vert_num = elem->vertices.size();
-            for (uint64_t j = 0; j < vert_num; j++) {
-                for (uint64_t k = j + 1; k < vert_num; k++) {
-                    Vertex* v1 = elem->vertices[j];
-                    Vertex* v2 = elem->vertices[k];
-                    for (uint64_t l = 0; l < v1->adjele.size(); l++) {
-                        for (uint64_t m = 0; m < v2->adjele.size(); m++) {
-                            if (v1->adjele[l] == v2->adjele[m] && v1->adjele[l] != elem) {
-                                elem->addAdjacentElement(v1->adjele[l]);
-                            }
-                        }
-                    }
-                }
-            }
+            auto astart7 = std::chrono::high_resolution_clock::now();
+
+            area1 += std::chrono::duration_cast<std::chrono::microseconds>(astart2 - astart1).count();
+            area2 += std::chrono::duration_cast<std::chrono::microseconds>(astart3 - astart2).count();
+            area3 += std::chrono::duration_cast<std::chrono::microseconds>(astart4 - astart3).count();
+            area4 += std::chrono::duration_cast<std::chrono::microseconds>(astart5 - astart4).count();
+            area5 += std::chrono::duration_cast<std::chrono::microseconds>(astart6 - astart5).count();
+            area6 += std::chrono::duration_cast<std::chrono::microseconds>(astart7 - astart6).count();
         }
 
-        auto start5 = std::chrono::high_resolution_clock::now();
-
-        // find the boundary elements
-        for (auto elem : mesh->elements) {
-            if (elem->adjele.size() < 3) {
-                mesh->boundary_elements.insert(elem);
-            }
-        }
+        printf("area1: %f\narea2: %f\narea3: %f\narea4: %f\narea5: %f\narea6: %f\n", area1 / out.numberoftriangles, area2 / out.numberoftriangles, area3 / out.numberoftriangles, area4 / out.numberoftriangles, area5 / out.numberoftriangles, area6 / out.numberoftriangles);
 
         auto start6 = std::chrono::high_resolution_clock::now();
 
-        // find the boundary vertices
-        for (auto elem : mesh->boundary_elements) {
-            // for each edge in the element find the edge that is not shared by any other element
-            uint64_t vert_num = elem->vertices.size();
-            for (uint64_t j = 0; j < vert_num; j++) {
-                for (uint64_t k = j + 1; k < vert_num; k++) {
-                    Vertex* v1 = elem->vertices[j];
-                    Vertex* v2 = elem->vertices[k];
-                    bool found = false;
-                    for (uint64_t l = 0; l < v1->adjele.size(); l++) {
-                        for (uint64_t m = 0; m < v2->adjele.size(); m++) {
-                            if (v1->adjele[l] == v2->adjele[m] && v1->adjele[l] != elem) {
-                                found = true;
-                            }
-                        }
-                    }
-                    if (!found) {
-                        mesh->boundary_vertices.insert(v1);
-                        mesh->boundary_vertices.insert(v2);
-                    }
-                }
-            }
-        }
-
-        auto start7 = std::chrono::high_resolution_clock::now();
 
         printf("Create temp segments: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start1 - start).count()*1000);
         printf("Fill triangulateio: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start2 - start1).count()*1000);
         printf("Triangulate: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start3 - start2).count()*1000);
-        printf("Fill mesh: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start4 - start3).count()*1000);
-        printf("Find neighbors e-e: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start5 - start4).count()*1000);
-        printf("Find boundary elements: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start6 - start5).count()*1000);
-        printf("Find boundary vertices: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start7 - start6).count()*1000);
+        printf("Find boundary elements: %f\n", std::chrono::duration_cast<std::chrono::duration<double>>(start6 - start3).count()*1000);
 
         return mesh;
     }

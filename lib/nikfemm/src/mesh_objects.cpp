@@ -4,75 +4,73 @@
 #include <mesh_objects.hpp>
 
 namespace nikfemm {
-    Vertex::Vertex() {
-        p = Point(0, 0);
-        // adjvert.reserve(3);  // makes it actually slower
-        // adjele.reserve(3);
-    }
-
-    Vertex::Vertex(Point p) {
-        this->p = p;
-    }
-
-    Vertex::Vertex(double x, double y) {
-        p = Point(x, y);
-    }
-
     Vertex::~Vertex() {
-        
+
     }
 
     void Vertex::addAdjacentVertex(Vertex* v) {
-        // check if v is already in adjvert
-        for (Vertex* vert : adjvert) {
-            if (vert == v) {
-                return;
-            }
-        }
-        adjvert.push_back(v);
-    }
+
+    }    
 
     void Vertex::addAdjacentElement(Element* e) {
-        // check if e is already in adjele
-        for (Element* ele : adjele) {
-            if (ele == e) {
-                return;
-            }
-        }
-        adjele.push_back(e);
+
     }
 
     bool Vertex::operator==(const Vertex& v) const {
-        return p == v.p;
+        return false;
     }
 
     bool Vertex::operator!=(const Vertex& v) const {
+        return false;
+    }
+
+    TriangleVertex::TriangleVertex() {
+
+    }
+
+    TriangleVertex::TriangleVertex(Point p) {
+        p = p;
+    }
+
+    TriangleVertex::TriangleVertex(double x, double y) {
+        p.x = x;
+        p.y = y;
+    }
+
+    TriangleVertex::~TriangleVertex() {
+
+    }
+
+    void TriangleVertex::addAdjacentVertex(Vertex* v) {
+        assert(adjvert_count < 18);
+        // check if vertex is already in list
+        for (int i = 0; i < adjvert_count; i++) {
+            if (*adjvert[i] == *v) {
+                return;
+            }
+        }
+        adjvert[adjvert_count] = v;
+        adjvert_count++;
+    }
+
+    void TriangleVertex::addAdjacentElement(Element* e) {
+        assert(adjele_count < 18);
+        // check if element is already in list
+        for (int i = 0; i < adjele_count; i++) {
+            if (*adjele[i] == *e) {
+                return;
+            }
+        }
+        adjele[adjele_count] = e;
+        adjele_count++;
+    }
+
+    bool TriangleVertex::operator==(const Vertex& v) const {
+        return p == v.p;
+    }
+
+    bool TriangleVertex::operator!=(const Vertex& v) const {
         return p != v.p;
-    }
-
-    Element::Element(Vertex* v1, Vertex* v2, Vertex* v3) {
-        this->vertices.push_back(v1);
-        this->vertices.push_back(v2);
-        this->vertices.push_back(v3);
-    }
-
-    Element::Element(Vertex* v1, Vertex* v2, Vertex* v3, Vertex* v4) {
-        this->vertices.push_back(v1);
-        this->vertices.push_back(v2);
-        this->vertices.push_back(v3);
-        this->vertices.push_back(v4);
-    }
-
-    Element::Element(std::vector<Vertex*> vertices, std::vector<Element*> neighbors) {
-        this->adjele = neighbors;
-        this->vertices = vertices;
-    }
-
-    Element::Element() {
-        adjele = std::vector<Element*>();
-        vertices = std::vector<Vertex*>();
-        // adjele.reserve(3);  // makes it actually slower
-        // vertices.reserve(3);
     }
 
     Element::~Element() {
@@ -80,40 +78,75 @@ namespace nikfemm {
     }
 
     double Element::getArea() {
-        double a = Vertex::distance(*vertices[0], *vertices[1]);
-        double b = Vertex::distance(*vertices[1], *vertices[2]);
-        double c = Vertex::distance(*vertices[2], *vertices[0]);
-
-        double s = (a + b + c) / 2.0;
-        return sqrt(s * (s - a) * (s - b) * (s - c));
-    }
-
-    void Element::addAdjacentVertex(Vertex* v) {
-        // check if v is already in vertices
-        for (Vertex* vert : vertices) {
-            if (vert == v) {
-                return;
-            }
-        }
-        vertices.push_back(v);
-    }
-
-    void Element::addAdjacentElement(Element* e) {
-        // check if e is already in adj
-        for (Element* ele : adjele) {
-            if (ele == e) {
-                return;
-            }
-        }
-        adjele.push_back(e);
+        return 0;
     }
 
     bool Element::operator==(const Element& e) const {
-        return vertices == e.vertices;
+        return false;
     }
 
     bool Element::operator!=(const Element& e) const {
-        return vertices != e.vertices;
+        return true;
+    }
+
+    TriangleElement::TriangleElement(Vertex* v1, Vertex* v2, Vertex* v3) {
+        vertices[0] = v1;
+        vertices[1] = v2;
+        vertices[2] = v3;
+    }
+    
+    TriangleElement::~TriangleElement() {
+        
+    }
+
+    double TriangleElement::getArea() {
+        double a = Point::distance(vertices[0]->p, vertices[1]->p);
+        double b = Point::distance(vertices[1]->p, vertices[2]->p);
+        double c = Point::distance(vertices[2]->p, vertices[0]->p);
+
+        double s = (a + b + c) / 2;
+
+        return sqrt(s * (s - a) * (s - b) * (s - c));
+    }
+
+    Point TriangleElement::getCenter() {
+        double x = (vertices[0]->p.x + vertices[1]->p.x + vertices[2]->p.x) / 3;
+        double y = (vertices[0]->p.y + vertices[1]->p.y + vertices[2]->p.y) / 3;
+
+        return Point(x, y);
+    }
+
+    bool TriangleElement::operator==(const Element& e) const {
+        if (e.type != ELEMENT_TYPE_TRIANGLE) {
+            return false;
+        }
+
+        const TriangleElement& te = static_cast<const TriangleElement&>(e);
+
+        // check same pointer
+        if (this == &te) {
+            return true;
+        }
+
+        // check if all vertices are the same
+        for (Vertex* v : vertices) {
+            bool found = false;
+            for (Vertex* v2 : te.vertices) {
+                if (v == v2) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool TriangleElement::operator!=(const Element& e) const {
+        return !(*this == e);
     }
 
     Edge::Edge(Vertex* v1, Vertex* v2) {

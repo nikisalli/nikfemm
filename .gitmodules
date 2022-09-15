@@ -1,3 +1,3 @@
 [submodule "lib/nikfemm/lib/triangle"]
 	path = lib/nikfemm/lib/triangle
-	url = https://github.com/libigl/triangle.git
+	url = https://github.com/nikisalli/triangle.git

@@ -54,7 +54,7 @@ namespace nikfemm {
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 
-        printf("Number of points: %d\nNumber of triangles: %d\nNumber of boundary vertices: %d\nNumber of boundary elements: %d\n", mesh->vertices.size(), mesh->elements.size(), mesh->boundary_vertices.size(), mesh->boundary_elements.size());
+        printf("Number of points: %d\nNumber of triangles: %d\nNumber of boundary vertices: %d\n", mesh->vertices.size(), mesh->elements.size(), mesh->boundary_vertices.size());
         // get end time
         auto end = std::chrono::high_resolution_clock::now();
         printf("%f Times:\n");
@@ -64,6 +64,6 @@ namespace nikfemm {
         printf("%f Find boundary vertices\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start6).count()*1000);
         printf("%f Total time\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count()*1000);
         
-        // mesh->plot();
+        mesh->plot();
     }
 }

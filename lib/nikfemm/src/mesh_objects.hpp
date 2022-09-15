@@ -23,27 +23,17 @@ namespace nikfemm {
 
     class Vertex {
         public:
-            std::vector<Vertex*> adjvert;  // adjacent vertexes
-            std::vector<Element*> adjele;  // adjacent elements
-
             /* properties */
             Point p;
             double A; // magnetic vector potential
 
-            Vertex();
-            Vertex(Point p);
-            Vertex(double x, double y);
-            ~Vertex();
+            virtual ~Vertex() = 0;
 
-            void addAdjacentVertex(Vertex* v);
-            void addAdjacentElement(Element* e);
+            virtual void addAdjacentVertex(Vertex* v);
+            virtual void addAdjacentElement(Element* e);
 
-            static inline double distance(Vertex n1, Vertex n2) {
-                return Point::distance(n1.p, n2.p);
-            }
-
-            bool operator==(const Vertex& v) const;
-            bool operator!=(const Vertex& v) const;
+            virtual bool operator==(const Vertex& v) const;
+            virtual bool operator!=(const Vertex& v) const;
     };
 
     class Element {
@@ -52,19 +42,48 @@ namespace nikfemm {
 
             ElementType type;
 
-            std::vector<Element*> adjele;  // adjacent elements
-            std::vector<Vertex*> vertices;   // vertices
-        
-            Element(Vertex* v1, Vertex* v2, Vertex* v3);
-            Element(Vertex* v1, Vertex* v2, Vertex* v3, Vertex* v4);
-            Element(std::vector<Vertex*> vertices, std::vector<Element*> neighbors);
-            Element();
-            ~Element();
+            virtual ~Element() = 0;
+
+            virtual double getArea();
+
+            virtual bool operator==(const Element& e) const;
+            virtual bool operator!=(const Element& e) const;
+    };
+
+    class TriangleVertex : public Vertex {
+        public:
+
+            Vertex* adjvert[18];
+            Element* adjele[18];
+
+            uint8_t adjvert_count = 0;
+            uint8_t adjele_count = 0;
+
+            TriangleVertex();
+            TriangleVertex(Point p);
+            TriangleVertex(double x, double y);
+            ~TriangleVertex();
 
             void addAdjacentVertex(Vertex* v);
             void addAdjacentElement(Element* e);
 
+            bool operator==(const Vertex& v) const;
+            bool operator!=(const Vertex& v) const;
+    };
+
+    class TriangleElement : public Element {
+        public:
+            double mu_r;
+
+            ElementType type = ELEMENT_TYPE_TRIANGLE;
+
+            Vertex* vertices[3];
+
+            TriangleElement(Vertex* v1, Vertex* v2, Vertex* v3);
+            ~TriangleElement();
+
             double getArea();
+            Point getCenter();
 
             bool operator==(const Element& e) const;
             bool operator!=(const Element& e) const;
@@ -86,7 +105,7 @@ namespace nikfemm {
             bool hasVertices(Vertex* v1, Vertex* v2);
 
             static inline double length(Edge e) {
-                return Vertex::distance(*e.v1, *e.v2);
+                return Point::distance(e.v1->p, e.v2->p);
             }
 
             bool operator==(const Edge& e) const;
@@ -112,6 +131,20 @@ namespace std {
     };
 
     template <>
+    struct hash<nikfemm::TriangleVertex> {
+        inline std::size_t operator()(const nikfemm::TriangleVertex& v) const {
+            return std::hash<nikfemm::Point>()(v.p);
+        }
+    };
+
+    template <>
+    struct hash<nikfemm::TriangleVertex*> {
+        inline std::size_t operator()(const nikfemm::TriangleVertex* v) const {
+            return std::hash<nikfemm::TriangleVertex>()(*v);
+        }
+    };
+
+    template <>
     struct hash<nikfemm::Edge> {
         inline std::size_t operator()(const nikfemm::Edge& e) const {
             return std::hash<nikfemm::Vertex>()(*e.v1) ^ std::hash<nikfemm::Vertex>()(*e.v2);
@@ -125,25 +158,22 @@ namespace std {
         }
     };
 
-    template <>
-    struct hash<nikfemm::Element> {
-        inline std::size_t operator()(const nikfemm::Element& e) const {
-            return std::hash<nikfemm::Vertex>()(*e.vertices[0]) ^ std::hash<nikfemm::Vertex>()(*e.vertices[1]) ^ std::hash<nikfemm::Vertex>()(*e.vertices[2]);
-        }
-    };
-
-    template <>
-    struct hash<nikfemm::Element*> {
-        inline std::size_t operator()(const nikfemm::Element* e) const {
-            return std::hash<nikfemm::Element>()(*e);
-        }
-    };
-
     /* comparators */
 
     template <>
     struct equal_to<nikfemm::Vertex*> {
         inline bool operator()(const nikfemm::Vertex* v1, const nikfemm::Vertex* v2) const {
+            if (v1 == v2) {
+                return true;
+            } else {
+                return *v1 == *v2;
+            }
+        }
+    };
+
+    template <>
+    struct equal_to<nikfemm::TriangleVertex*> {
+        inline bool operator()(const nikfemm::TriangleVertex* v1, const nikfemm::TriangleVertex* v2) const {
             if (v1 == v2) {
                 return true;
             } else {

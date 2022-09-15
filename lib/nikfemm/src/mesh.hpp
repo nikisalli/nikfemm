@@ -8,11 +8,10 @@
 
 namespace nikfemm {
     struct Mesh {
-        std::unordered_set<Vertex*, std::hash<Vertex*>, std::equal_to<Vertex*>> vertices;
-        std::unordered_set<Element*, std::hash<Element*>, std::equal_to<Element*>> elements;
+        std::unordered_set<TriangleVertex*, std::hash<TriangleVertex*>, std::equal_to<TriangleVertex*>> vertices;
+        std::unordered_set<TriangleElement*, std::hash<TriangleElement*>, std::equal_to<TriangleElement*>> elements;
 
-        std::unordered_set<Vertex*, std::hash<Vertex*>, std::equal_to<Vertex*>> boundary_vertices;
-        std::unordered_set<Element*, std::hash<Element*>, std::equal_to<Element*>> boundary_elements;
+        std::unordered_set<TriangleVertex*, std::hash<TriangleVertex*>, std::equal_to<TriangleVertex*>> boundary_vertices;
 
         Mesh();
         ~Mesh();
