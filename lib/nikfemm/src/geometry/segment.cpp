@@ -1,0 +1,60 @@
+#include <math.h>
+
+#include "segment.hpp"
+#include "vector.hpp"
+
+namespace nikfemm {
+    Segment::Segment(Point p1, Point p2) {
+        this->p1 = p1;
+        this->p2 = p2;
+    }
+
+    double Segment::length() {
+        return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
+    }
+
+    bool Segment::segmentsIntersect(Segment s1, Segment s2) {
+        return segmentsIntersect(s1.p1, s1.p2, s2.p1, s2.p2);
+    }
+
+    bool Segment::pointOnSegment(Point p, Segment s) {
+        return (p.x <= std::max(s.p1.x, s.p2.x) && p.x >= std::min(s.p1.x, s.p2.x) &&
+                p.y <= std::max(s.p1.y, s.p2.y) && p.y >= std::min(s.p1.y, s.p2.y));
+    }
+
+    bool Segment::segmentsIntersect(Point s1p1, Point s1p2, Point s2p1, Point s2p2) {
+        // Find the four orientations needed for general and
+        // special cases
+        Orientation o1 = Point::orientation(s1p1, s1p2, s2p1);
+        Orientation o2 = Point::orientation(s1p1, s1p2, s2p2);
+        Orientation o3 = Point::orientation(s2p1, s2p2, s1p1);
+        Orientation o4 = Point::orientation(s2p1, s2p2, s1p2);
+    
+        // General case
+        if (o1 != o2 && o3 != o4)
+            return true;
+    
+        // Special Cases
+        // s1p1, s1p2 and s2p1 are collinear and s2p1 lies on segment s1p1-s1p2
+        if (o1 == COLLINEAR && pointOnSegment(s2p1, Segment(s1p1, s1p2))) return true;
+    
+        // s1p1, s1p2 and s2p2 are collinear and s2p2 lies on segment s1p1-s1p2
+        if (o2 == COLLINEAR && pointOnSegment(s2p2, Segment(s1p1, s1p2))) return true;
+    
+        // s2p1, s2p2 and s1p1 are collinear and s1p1 lies on segment s2p1-s2p2
+        if (o3 == COLLINEAR && pointOnSegment(s1p1, Segment(s2p1, s2p2))) return true;
+    
+        // s2p1, s2p2 and s1p2 are collinear and s1p2 lies on segment s2p1-s2p2
+        if (o4 == COLLINEAR && pointOnSegment(s1p2, Segment(s2p1, s2p2))) return true;
+    
+        return false; // Doesn't fall in any of the above cases
+    }
+
+    bool Segment::operator==(const Segment& s) const {
+        return (p1 == s.p1 && p2 == s.p2) || (p1 == s.p2 && p2 == s.p1);
+    }
+
+    bool Segment::operator!=(const Segment& s) const {
+        return !(*this == s);
+    }
+}
