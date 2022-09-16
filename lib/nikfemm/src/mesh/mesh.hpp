@@ -2,13 +2,17 @@
 #define NIK_MESH_HPP
 
 #include <unordered_set>
+#include <set>
 
+#include "../drawing.hpp"
 #include "triangle_element.hpp"
 #include "triangle_vertex.hpp"
 
 
 namespace nikfemm {
     struct Mesh {
+        Point center = Point(0, 0);
+
         std::unordered_set<TriangleVertex*, std::hash<TriangleVertex*>, std::equal_to<TriangleVertex*>> vertices;
         std::unordered_set<TriangleElement*, std::hash<TriangleElement*>, std::equal_to<TriangleElement*>> elements;
 
@@ -18,6 +22,7 @@ namespace nikfemm {
         ~Mesh();
 
         void plot();
+        void mesh(Drawing &drawing);
     };
 }
 

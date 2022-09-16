@@ -13,7 +13,6 @@
 #include "drawing_region.hpp"
 #include "geometry/segment.hpp"
 #include "geometry/circle.hpp"
-#include "mesh/mesh.hpp"
 
 #define BOUNDARY_REGION PredefinedRegion(-1)
 
@@ -43,10 +42,8 @@ namespace nikfemm {
             void drawPolyLine(Point* points, uint32_t n_points);  // same as drawPolygon, but doesn't close the figure
             void drawRegion(Point p, uint32_t region_id);
             void drawRegion(Point p, PredefinedRegion region);
-
-        /* meshing */
-        public:
-            Mesh* mesh();
+        
+            void plot();
     };
 }
 

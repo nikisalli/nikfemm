@@ -26,7 +26,6 @@ namespace nikfemm {
 
     void Simulation::generateMesh(Drawing drawing) {
         // get time in milliseconds
-        auto start = std::chrono::high_resolution_clock::now();
 
         std::unordered_set<Point> valid_points;
         for (auto p : drawing.segments) {
@@ -43,16 +42,17 @@ namespace nikfemm {
         // add region near the edge of the circle
         drawing.drawRegion(Point(boundary_circle.center.x + boundary_circle.radius - EPSILON, boundary_circle.center.y), BOUNDARY_REGION);
         // add the boundary 
-
-        mesh = drawing.mesh();
+        // drawing.plot();
+        auto start = std::chrono::high_resolution_clock::now();
+        mesh.mesh(drawing);
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 
-        printf("Number of points: %d\nNumber of triangles: %d\nNumber of boundary vertices: %d\n", mesh->vertices.size(), mesh->elements.size(), mesh->boundary_vertices.size());
+        printf("Number of points: %d\nNumber of triangles: %d\nNumber of boundary vertices: %d\n", mesh.vertices.size(), mesh.elements.size(), mesh.boundary_vertices.size());
         // get end time
         auto end = std::chrono::high_resolution_clock::now();
         printf("%f Total time\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count()*1000);
         
-        mesh->plot();
+        mesh.plot();
     }
 }

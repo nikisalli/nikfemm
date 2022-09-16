@@ -21,7 +21,7 @@
 namespace nikfemm {
     class Simulation {
         protected:
-            Mesh* mesh;
+            Mesh mesh;
         
         public:
             Simulation();
