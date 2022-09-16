@@ -34,8 +34,6 @@ namespace nikfemm {
             valid_points.insert(p.p2);
         }
 
-        auto start2 = std::chrono::high_resolution_clock::now();
-
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
         Circle smallest_circle = Circle::getMinimumEnclosingCircle(valid_points);
@@ -46,22 +44,13 @@ namespace nikfemm {
         drawing.drawRegion(Point(boundary_circle.center.x + boundary_circle.radius - EPSILON, boundary_circle.center.y), BOUNDARY_REGION);
         // add the boundary 
 
-        auto start3 = std::chrono::high_resolution_clock::now();
-
         mesh = drawing.mesh();
-
-        auto start6 = std::chrono::high_resolution_clock::now();
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 
         printf("Number of points: %d\nNumber of triangles: %d\nNumber of boundary vertices: %d\n", mesh->vertices.size(), mesh->elements.size(), mesh->boundary_vertices.size());
         // get end time
         auto end = std::chrono::high_resolution_clock::now();
-        printf("%f Times:\n");
-        printf("%f Drawing segments to Verts and Segs\n", std::chrono::duration_cast<std::chrono::duration<double>>(start2 - start).count()*1000);
-        printf("%f Draw boundary\n", std::chrono::duration_cast<std::chrono::duration<double>>(start3 - start2).count()*1000);
-        printf("%f Triangulate\n", std::chrono::duration_cast<std::chrono::duration<double>>(start6 - start3).count()*1000);
-        printf("%f Find boundary vertices\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start6).count()*1000);
         printf("%f Total time\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count()*1000);
         
         mesh->plot();
