@@ -13,7 +13,7 @@
 #include "drawing_region.hpp"
 #include "geometry/segment.hpp"
 #include "geometry/circle.hpp"
-#include "mesh.hpp"
+#include "mesh/mesh.hpp"
 
 #define BOUNDARY_REGION PredefinedRegion(-1)
 

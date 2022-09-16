@@ -3,7 +3,8 @@
 
 #include <unordered_set>
 
-#include "mesh_objects.hpp"
+#include "triangle_element.hpp"
+#include "triangle_vertex.hpp"
 
 
 namespace nikfemm {

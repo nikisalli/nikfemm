@@ -9,7 +9,7 @@
 #include "triangle/util.h"
 
 #include "drawing.hpp"
-#include "mesh.hpp"
+#include "mesh/mesh.hpp"
 
 namespace nikfemm {
     Drawing::Drawing() {
