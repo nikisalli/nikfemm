@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <iterator>
 
+#include <constants.hpp>
 #include <simulation.hpp>
 #include <drawing_region.hpp>
 #include <drawing.hpp>
@@ -38,7 +39,7 @@ namespace nikfemm {
         Circle smallest_circle = Circle::getMinimumEnclosingCircle(valid_points);
         // make circle double the size of the smallest circle
         Circle boundary_circle = Circle(smallest_circle.center, 2 * smallest_circle.radius);
-        drawing.drawCircle(boundary_circle, 360);
+        drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
         // add region near the edge of the circle
         drawing.drawRegion(Point(boundary_circle.center.x + boundary_circle.radius - EPSILON, boundary_circle.center.y), BOUNDARY_REGION);
         // add the boundary 

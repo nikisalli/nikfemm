@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "SDL2/SDL.h"
 
 #include "../../lib/triangle/triangle.h"
@@ -225,8 +227,9 @@ namespace nikfemm {
             TriangleVertex* v3 = new TriangleVertex(out.pointlist[2 * p3], out.pointlist[2 * p3 + 1]);
 
             std::pair<std::unordered_set<TriangleVertex*>::iterator, bool> ret = vertices.insert(v1);
+            boundary_vertices.reserve(BOUNDARY_VERTICES);
             if (out.pointmarkerlist[p1] == 1) {
-                boundary_vertices.insert(v1);
+                boundary_vertices.push_back(v1);
             }
             if (!ret.second) {
                 delete v1;
@@ -234,7 +237,7 @@ namespace nikfemm {
             }
             ret = vertices.insert(v2);
             if (out.pointmarkerlist[p2] == 1) {
-                boundary_vertices.insert(v2);
+                boundary_vertices.push_back(v2);
             }
             if (!ret.second) {
                 delete v2;
@@ -242,7 +245,7 @@ namespace nikfemm {
             }
             ret = vertices.insert(v3);
             if (out.pointmarkerlist[p3] == 1) {
-                boundary_vertices.insert(v3);
+                boundary_vertices.push_back(v3);
             }
             if (!ret.second) {
                 delete v3;
@@ -267,5 +270,13 @@ namespace nikfemm {
             v3->addAdjacentVertex(v1);
             v3->addAdjacentVertex(v2);
         }
+
+        // sort boundary vertices
+        auto comparator = TriangleVertex::atanCompare(center);
+        std::sort(boundary_vertices.begin(), boundary_vertices.end(), comparator);
+    }
+
+    void Mesh::addKelvinBoundaryConditions() {
+        
     }
 }

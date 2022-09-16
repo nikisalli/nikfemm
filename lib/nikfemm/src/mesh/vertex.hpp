@@ -20,6 +20,18 @@ namespace nikfemm {
 
             virtual bool operator==(const Vertex& v) const;
             virtual bool operator!=(const Vertex& v) const;
+
+            // comparison operator for sorting based on atan2
+            struct atanCompare {
+                atanCompare(Point center) {
+                    this->center = center;
+                }
+
+                Point center;
+                bool operator()(const Vertex* v1, const Vertex* v2) const {
+                    return atan2(v1->p.y - center.y, v1->p.x - center.x) < atan2(v2->p.y - center.y, v2->p.x - center.x);
+                }
+            };
     };
 }
 
