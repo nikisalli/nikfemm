@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <stdexcept>
 
 #include "SDL2/SDL.h"
 
@@ -166,7 +167,7 @@ namespace nikfemm {
 
         out.pointlist = (TRI_REAL*)NULL;
 
-        char switches[] = "pzq20cAQa0.01";
+        char switches[] = "pzq20AQa0.01";
 
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */
@@ -246,6 +247,26 @@ namespace nikfemm {
         std::sort(boundary_vertices.begin(), boundary_vertices.end(), comparator);
     }
 
+    void Mesh::kelvinTransformCentered() {
+        // kelvin transform each vertex in the mesh
+        /*
+
+        x* = (R^2 / |x|^2) * x
+
+        */
+
+        double R_squared = radius * radius;
+        // printf("R^2 = %f\n", R_squared);
+
+        for (auto it = vertices.begin(); it != vertices.end(); it++) {
+            TriangleVertex* v = *it;
+            double mag_squared = v->p.x * v->p.x + v->p.y * v->p.y;
+            double scale = R_squared / mag_squared;
+            // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
+            v->p = v->p * scale;
+        }
+    }
+
     void Mesh::addKelvinBoundaryConditions() {
         Mesh kelvin_mesh;
         Drawing kelvin_drawing;
@@ -255,7 +276,33 @@ namespace nikfemm {
         for (uint64_t i = 0; i < boundary_vertices.size() - 1; i++) {
             kelvin_drawing.drawSegment(*(boundary_vertices.begin() + i), *(boundary_vertices.begin() + i + 1));
         }
+        kelvin_drawing.drawRegion(Point(0, 0), BOUNDARY_REGION);
+        kelvin_drawing.plot();
 
-        // kelvin_mesh.mesh(kelvin_drawing);
+        kelvin_mesh.mesh(kelvin_drawing);
+        kelvin_mesh.radius = radius;
+
+        // merge the kelvin mesh into this mesh
+        if (boundary_vertices.size() != kelvin_mesh.boundary_vertices.size()) {
+            throw std::runtime_error("Kelvin mesh boundary vertices size does not match, cannot merge");
+        }
+        for (uint64_t i = 0; i < boundary_vertices.size(); i++) {
+            // for each vertex in the kelvin mesh, add all adjacent vertices to the corresponding vertex in this mesh
+            for (uint16_t j = 0; j < kelvin_mesh.boundary_vertices[i]->adjvert_count; j++) {
+                boundary_vertices[i]->addAdjacentVertex(kelvin_mesh.boundary_vertices[i]->adjvert[j]);
+            }
+        }
+        // add kelvin mesh vertices to this mesh
+        for (auto it = kelvin_mesh.vertices.begin(); it != kelvin_mesh.vertices.end(); it++) {
+            vertices.insert(*it);
+        }
+        // add kelvin mesh elements to this mesh
+        for (auto it = kelvin_mesh.elements.begin(); it != kelvin_mesh.elements.end(); it++) {
+            elements.insert(*it);
+        }
+
+        kelvin_mesh.kelvinTransformCentered();
+
+        kelvin_mesh.plot();
     }
 }

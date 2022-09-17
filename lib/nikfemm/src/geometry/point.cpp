@@ -27,6 +27,29 @@ namespace nikfemm {
         return !(*this == p);
     }
 
+    bool Point::operator<(const Point& p) const {
+        if (abs(x - p.x) < EPSILON) {
+            return y < p.y;
+        }
+        return x < p.x;
+    }
+
+    Point Point::operator+(const Point& p) const {
+        return Point(x + p.x, y + p.y);
+    }
+
+    Point Point::operator-(const Point& p) const {
+        return Point(x - p.x, y - p.y);
+    }
+
+    Point Point::operator*(const double& d) const {
+        return Point(x * d, y * d);
+    }
+
+    Point Point::operator/(const double& d) const {
+        return Point(x / d, y / d);
+    }
+
     Orientation Point::orientation(Point p1, Point p2, Point p3) {
         double val = (p2.y - p1.y) * (p3.x - p2.x) -
                      (p2.x - p1.x) * (p3.y - p2.y);
