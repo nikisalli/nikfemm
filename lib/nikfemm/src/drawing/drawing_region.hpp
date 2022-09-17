@@ -5,8 +5,8 @@
 #include <vector>
 #include <unordered_set>
 
-#include "geometry/point.hpp"
-#include "geometry/segment.hpp"
+#include "../geometry/point.hpp"
+#include "../geometry/segment.hpp"
 
 namespace nikfemm {
     struct DrawingRegion {

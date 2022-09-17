@@ -12,10 +12,10 @@
 
 #include <constants.hpp>
 
-#include "../src/drawing_region.hpp"
+#include "../src/drawing/drawing_region.hpp"
 #include "../src/geometry/segment.hpp"
 #include "../src/geometry/circle.hpp"
-#include "../src/drawing.hpp"
+#include "../src/drawing/drawing.hpp"
 #include "../src/mesh/mesh.hpp"
 
 namespace nikfemm {

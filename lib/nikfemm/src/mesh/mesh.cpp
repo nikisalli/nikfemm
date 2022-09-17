@@ -302,7 +302,6 @@ namespace nikfemm {
         }
 
         kelvin_mesh.kelvinTransformCentered();
-
         kelvin_mesh.plot();
     }
 }

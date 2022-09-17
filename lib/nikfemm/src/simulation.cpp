@@ -10,9 +10,9 @@
 
 #include <constants.hpp>
 #include <simulation.hpp>
-#include <drawing_region.hpp>
-#include <drawing.hpp>
 
+#include "drawing/drawing_region.hpp"
+#include "drawing/drawing.hpp"
 #include "geometry/segment.hpp"
 #include "geometry/point.hpp"
 

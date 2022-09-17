@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../drawing.hpp"
+#include "../drawing/drawing.hpp"
 #include "triangle_element.hpp"
 #include "triangle_vertex.hpp"
 

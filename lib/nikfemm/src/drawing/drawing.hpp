@@ -8,13 +8,13 @@
 #include <stdlib.h>
 #include <stdexcept>
 
-#include "geometry/point.hpp"
-#include "geometry/segment.hpp"
+#include "../geometry/point.hpp"
+#include "../geometry/segment.hpp"
 #include "drawing_region.hpp"
 #include "drawing_segment.hpp"
-#include "geometry/segment.hpp"
-#include "geometry/circle.hpp"
-#include "mesh/triangle_vertex.hpp"
+#include "../geometry/segment.hpp"
+#include "../geometry/circle.hpp"
+#include "../mesh/triangle_vertex.hpp"
 
 #define BOUNDARY_REGION PredefinedRegion(-1)
 
