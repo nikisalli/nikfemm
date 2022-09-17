@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <constants.hpp>
+
 #include "geometry_common.hpp"
 
 namespace nikfemm {
@@ -38,6 +40,13 @@ namespace std {
     struct hash<nikfemm::Point> {
         inline std::size_t operator()(const nikfemm::Point& p) const {
             return hash<double>()(p.x) ^ hash<double>()(p.y);
+        }
+    };
+
+    template <>
+    struct equal_to<nikfemm::Point> {
+        inline bool operator()(const nikfemm::Point& p1, const nikfemm::Point& p2) const {
+            return (p1.x - p2.x) < EPSILON && (p1.y - p2.y) < EPSILON;
         }
     };
 }

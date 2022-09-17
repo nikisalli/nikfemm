@@ -19,10 +19,10 @@ namespace nikfemm {
     }
 
     void Drawing::drawRectangle(Point p1, Point p2) {
-        segments.insert(Segment(p1, Point(p2.x, p1.y)));
-        segments.insert(Segment(Point(p2.x, p1.y), p2));
-        segments.insert(Segment(p2, Point(p1.x, p2.y)));
-        segments.insert(Segment(Point(p1.x, p2.y), p1));
+        drawSegment(p1, Point(p2.x, p1.y));
+        drawSegment(Point(p2.x, p1.y), p2);
+        drawSegment(p2, Point(p1.x, p2.y));
+        drawSegment(Point(p1.x, p2.y), p1);
     }
 
     void Drawing::drawRectangle(Point p1, double width, double height) {
@@ -37,7 +37,7 @@ namespace nikfemm {
         for (uint32_t i = 0; i < n_segments; i++) {
             angle += angle_step;
             p2 = Point(p.x + radius * cos(angle), p.y + radius * sin(angle));
-            segments.insert(Segment(p1, p2));
+            drawSegment(p1, p2);
             p1 = p2;
         }
     }
@@ -61,14 +61,14 @@ namespace nikfemm {
         }
 
         for (uint32_t i = 0; i < n_points - 1; i++) {
-            segments.insert(Segment(points[i], points[i + 1]));
+            drawSegment(points[i], points[i + 1]);
         }
-        segments.insert(Segment(points[n_points - 1], points[0]));
+        drawSegment(points[n_points - 1], points[0]);
     }
 
     void Drawing::drawPolyLine(Point* points, uint32_t n_points) {
         for (uint32_t i = 0; i < n_points - 1; i++) {
-            segments.insert(Segment(points[i], points[i + 1]));
+            drawSegment(points[i], points[i + 1]);
         }
     }
 
@@ -78,6 +78,50 @@ namespace nikfemm {
 
     void Drawing::drawRegion(Point p, PredefinedRegion region) {
         regions.insert(DrawingRegion(p, region.region_id));
+    }
+
+    void Drawing::drawSegment(Point p1, Point p2) {
+        // check if point is already in points
+        bool p1_found = false;
+        bool p2_found = false;
+        uint64_t p1_id = 0;
+        uint64_t p2_id = 0;
+        for (uint64_t i = 0; i < points.size(); i++) {
+            if (points[i] == p1) {
+                p1_found = true;
+                p1_id = i;
+            }
+            if (points[i] == p2) {
+                p2_found = true;
+                p2_id = i;
+            }
+        }
+        if (!p1_found) {
+            p1_id = points.size();
+            points.push_back(p1);
+        }
+        if (!p2_found) {
+            p2_id = points.size();
+            points.push_back(p2);
+        }
+        
+        segments.insert(DrawingSegment(p1_id, p2_id));
+    }
+
+    void Drawing::drawSegment(Segment s) {
+        drawSegment(s.p1, s.p2);
+    }
+
+    void Drawing::drawSegment(TriangleVertex v1, TriangleVertex v2) {
+        drawSegment(v1.p, v2.p);
+    }
+
+    void Drawing::drawSegment(TriangleVertex& v1, TriangleVertex& v2) {
+        drawSegment(v1.p, v2.p);
+    }
+
+    void Drawing::drawSegment(TriangleVertex* v1, TriangleVertex* v2) {
+        drawSegment(v1->p, v2->p);
     }
 
     void Drawing::plot() {
@@ -101,19 +145,12 @@ namespace nikfemm {
         // clears the window
         SDL_RenderClear(rend);
 
-        std::unordered_set<Point> vertices;
-
-        for (Segment s : segments) {
-            vertices.insert(s.p1);
-            vertices.insert(s.p2);
-        }
-
         // get mesh enclosing rectangle
         double min_x = 1000000;
         double min_y = 1000000;
         double max_x = -1000000;
         double max_y = -1000000;
-        for (auto v : vertices) {
+        for (auto v : points) {
             if (v.x < min_x) {
                 min_x = v.x;
             }
@@ -144,13 +181,14 @@ namespace nikfemm {
 
         while(true){
             // draw the segments
-            for (Segment s : segments) {
-                SDL_RenderDrawLine(rend, x_offset + s.p1.x * x_scale, y_offset + s.p1.y * y_scale, x_offset + s.p2.x * x_scale, y_offset + s.p2.y * y_scale);
+            SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+            for (DrawingSegment s : segments) {
+                SDL_RenderDrawLine(rend, x_scale * points[s.p1].x + x_offset, y_scale * points[s.p1].y + y_offset, x_scale * points[s.p2].x + x_offset, y_scale * points[s.p2].y + y_offset);
             }
     
 
             // draw the points
-            for (auto v : vertices) {
+            for (auto v : points) {
                 SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
                 // draw a square centered at the point
                 SDL_Rect rect;
@@ -161,11 +199,27 @@ namespace nikfemm {
                 SDL_RenderFillRect(rend, &rect);
             }
 
+            // draw the regions
+            for (DrawingRegion r : regions) {
+                SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+                // draw a square centered at the point
+                SDL_Rect rect;
+                rect.x = x_offset + r.p.x * x_scale - 4;
+                rect.y = y_offset + r.p.y * y_scale - 4;
+                rect.w = 8;
+                rect.h = 8;
+                SDL_RenderFillRect(rend, &rect);
+            }
+
             SDL_RenderPresent(rend);
 
             SDL_Event event;
             if (SDL_PollEvent(&event)) {
                 if (event.type == SDL_QUIT) {
+                    // destroy the window
+                    SDL_DestroyWindow(win);
+                    // clean up
+                    SDL_Quit();
                     break;
                 }
             }

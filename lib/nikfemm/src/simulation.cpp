@@ -28,24 +28,20 @@ namespace nikfemm {
     void Simulation::generateMesh(Drawing drawing) {
         // get time in milliseconds
 
-        std::unordered_set<Point> valid_points;
-        for (auto p : drawing.segments) {
-            valid_points.insert(p.p1);
-            valid_points.insert(p.p2);
-        }
-
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
-        Circle smallest_circle = Circle::getMinimumEnclosingCircle(valid_points);
+        Circle smallest_circle = Circle::getMinimumEnclosingCircle(drawing.points);
         // make circle double the size of the smallest circle
         Circle boundary_circle = Circle(smallest_circle.center, 2 * smallest_circle.radius);
         drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
         // add region near the edge of the circle
-        drawing.drawRegion(Point(boundary_circle.center.x + boundary_circle.radius - EPSILON, boundary_circle.center.y), BOUNDARY_REGION);
+        drawing.drawRegion(Point(boundary_circle.center.x + boundary_circle.radius * 0.9, boundary_circle.center.y), BOUNDARY_REGION);
         // add the boundary 
-        // drawing.plot();
+        drawing.plot();
         auto start = std::chrono::high_resolution_clock::now();
         mesh.mesh(drawing);
+        mesh.plot();
+        mesh.addKelvinBoundaryConditions();
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 

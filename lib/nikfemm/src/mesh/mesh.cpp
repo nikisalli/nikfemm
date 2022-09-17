@@ -107,6 +107,10 @@ namespace nikfemm {
             SDL_Event event;
             if (SDL_PollEvent(&event)) {
                 if (event.type == SDL_QUIT) {
+                    // destroy the window
+                    SDL_DestroyWindow(win);
+                    // clean up
+                    SDL_Quit();
                     break;
                 }
             }
@@ -125,54 +129,23 @@ namespace nikfemm {
             uint64_t id2;
         };
 
-        in.numberofpoints = drawing.segments.size() * 2;
+        in.numberofpoints = drawing.points.size();
         in.pointlist = (TRI_REAL*)malloc(in.numberofpoints * 2 * sizeof(TRI_REAL));
         in.numberofsegments = drawing.segments.size();
         in.segmentlist = (int*)malloc(in.numberofsegments * 2 * sizeof(int));
 
-        uint32_t points_idx = 0;
-        uint32_t segments_idx = 0;
-
-        // for each segment, check if one of the endpoints is already in the list, if not, add it
-        for (auto s : drawing.segments) {
-            bool p1_found = false;
-            bool p2_found = false;
-            uint32_t p1_id = 0;
-            uint32_t p2_id = 0;
-            uint32_t i = 0;
-            for (uint32_t i = 0; i < points_idx; i++) {
-                // compare using epsilon
-                if (fabs(in.pointlist[i * 2] - s.p1.x) < EPSILON && fabs(in.pointlist[i * 2 + 1] - s.p1.y) < EPSILON) {
-                    p1_found = true;
-                    p1_id = i;
-                }
-                if (fabs(in.pointlist[i * 2] - s.p2.x) < EPSILON && fabs(in.pointlist[i * 2 + 1] - s.p2.y) < EPSILON) {
-                    p2_found = true;
-                    p2_id = i;
-                }
-                if (p1_found && p2_found) {
-                    break;
-                }
-            }
-            if (!p1_found) {
-                in.pointlist[points_idx * 2] = s.p1.x;
-                in.pointlist[points_idx * 2 + 1] = s.p1.y;
-                p1_id = points_idx;
-                points_idx++;
-            }
-            if (!p2_found) {
-                in.pointlist[points_idx * 2] = s.p2.x;
-                in.pointlist[points_idx * 2 + 1] = s.p2.y;
-                p2_id = points_idx;
-                points_idx++;
-            }
-            // add the segment
-            in.segmentlist[segments_idx * 2] = p1_id;
-            in.segmentlist[segments_idx * 2 + 1] = p2_id;
-            segments_idx++;
+        for (uint64_t i = 0; i < drawing.points.size(); i++) {
+            in.pointlist[2 * i] = drawing.points[i].x;
+            in.pointlist[2 * i + 1] = drawing.points[i].y;
         }
 
-        in.numberofpoints = points_idx + 1;
+        uint64_t i = 0;
+        for (auto s : drawing.segments) {
+            in.segmentlist[2 * i] = s.p1;
+            in.segmentlist[2 * i + 1] = s.p2;
+            i++;
+        }
+
         in.pointmarkerlist = NULL;
         in.numberofpointattributes = 0;
         in.pointattributelist = NULL;
@@ -182,7 +155,7 @@ namespace nikfemm {
 
         in.numberofregions = drawing.regions.size();
         in.regionlist = (TRI_REAL*)malloc(in.numberofregions * 4 * sizeof(TRI_REAL));
-        uint64_t i = 0;
+        i = 0;
         for (auto r : drawing.regions) {
             in.regionlist[4 * i] = r.p.x;
             in.regionlist[4 * i + 1] = r.p.y;
@@ -227,26 +200,16 @@ namespace nikfemm {
             TriangleVertex* v3 = new TriangleVertex(out.pointlist[2 * p3], out.pointlist[2 * p3 + 1]);
 
             std::pair<std::unordered_set<TriangleVertex*>::iterator, bool> ret = vertices.insert(v1);
-            boundary_vertices.reserve(BOUNDARY_VERTICES);
-            if (out.pointmarkerlist[p1] == 1) {
-                boundary_vertices.push_back(v1);
-            }
             if (!ret.second) {
                 delete v1;
                 v1 = *ret.first;
             }
             ret = vertices.insert(v2);
-            if (out.pointmarkerlist[p2] == 1) {
-                boundary_vertices.push_back(v2);
-            }
             if (!ret.second) {
                 delete v2;
                 v2 = *ret.first;
             }
             ret = vertices.insert(v3);
-            if (out.pointmarkerlist[p3] == 1) {
-                boundary_vertices.push_back(v3);
-            }
             if (!ret.second) {
                 delete v3;
                 v3 = *ret.first;
@@ -271,12 +234,28 @@ namespace nikfemm {
             v3->addAdjacentVertex(v2);
         }
 
+        boundary_vertices.reserve(BOUNDARY_VERTICES);
+        for (uint64_t i = 0; i < out.numberofpoints; i++) {
+            if (out.pointmarkerlist[i] == 1) {
+                boundary_vertices.push_back(new TriangleVertex(out.pointlist[2 * i], out.pointlist[2 * i + 1]));
+            }
+        }
+
         // sort boundary vertices
         auto comparator = TriangleVertex::atanCompare(center);
         std::sort(boundary_vertices.begin(), boundary_vertices.end(), comparator);
     }
 
     void Mesh::addKelvinBoundaryConditions() {
-        
+        Mesh kelvin_mesh;
+        Drawing kelvin_drawing;
+
+        // for each consecutive pair of boundary vertices, add a segment
+        kelvin_drawing.drawSegment(*(boundary_vertices.end() - 1), *(boundary_vertices.begin()));
+        for (uint64_t i = 0; i < boundary_vertices.size() - 1; i++) {
+            kelvin_drawing.drawSegment(*(boundary_vertices.begin() + i), *(boundary_vertices.begin() + i + 1));
+        }
+
+        // kelvin_mesh.mesh(kelvin_drawing);
     }
 }
