@@ -3,23 +3,34 @@
 
 #define EMPTY_NODE nullptr
 
+#include <cstdint>
+
 #include "../geometry/point.hpp"
-#include "element.hpp"
 
 namespace nikfemm {
     class Vertex {
         public:
             /* properties */
+            uint64_t id;
+            double mu_r; // relative permeability
             Point p;
-            double A; // magnetic vector potential
 
-            virtual ~Vertex() = 0;
+            Vertex* adjvert[18];
+            double adjmu_r[18];
 
-            virtual void addAdjacentVertex(Vertex* v);
-            virtual void addAdjacentElement(Element* e);
+            uint8_t adjvert_count = 0;
+            uint8_t adjmu_r_count = 0;
 
-            virtual bool operator==(const Vertex& v) const;
-            virtual bool operator!=(const Vertex& v) const;
+            Vertex();
+            Vertex(Point p);
+            Vertex(double x, double y);
+            ~Vertex();
+
+            void addAdjacentVertex(Vertex* v);
+            void addAdjacentMu(double mu);
+
+            bool operator==(const Vertex& v) const;
+            bool operator!=(const Vertex& v) const;
 
             // comparison operator for sorting based on atan2
             struct atanCompare {

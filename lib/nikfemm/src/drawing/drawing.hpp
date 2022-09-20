@@ -14,7 +14,7 @@
 #include "drawing_segment.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/circle.hpp"
-#include "../mesh/triangle_vertex.hpp"
+#include "../mesh/vertex.hpp"
 
 #define BOUNDARY_REGION PredefinedRegion(-1)
 
@@ -47,8 +47,8 @@ namespace nikfemm {
             void drawRegion(Point p, PredefinedRegion region);
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
-            void drawSegment(const TriangleVertex &v1, const TriangleVertex &v2);
-            void drawSegment(const TriangleVertex *v1, const TriangleVertex *v2);
+            void drawSegment(const Vertex &v1, const Vertex &v2);
+            void drawSegment(const Vertex *v1, const Vertex *v2);
         
             void plot();
     };
