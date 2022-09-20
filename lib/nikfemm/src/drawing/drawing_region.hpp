@@ -11,9 +11,9 @@
 namespace nikfemm {
     struct DrawingRegion {
         Point p;
-        uint64_t region_id;
+        uint64_t region_attribute;
 
-        DrawingRegion(Point p, uint64_t region_id);
+        DrawingRegion(Point p, uint64_t region_attribute);
         ~DrawingRegion();
 
         bool operator==(const DrawingRegion& dr) const;
@@ -25,7 +25,7 @@ namespace std {
     template <>
     struct hash<nikfemm::DrawingRegion> {
         std::size_t operator()(const nikfemm::DrawingRegion& dr) const {
-            return hash<nikfemm::Point>()(dr.p) ^ hash<uint64_t>()(dr.region_id);
+            return hash<nikfemm::Point>()(dr.p) ^ hash<uint64_t>()(dr.region_attribute);
         }
     };
 }

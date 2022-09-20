@@ -1,9 +1,9 @@
 #include "drawing_region.hpp"
 
 namespace nikfemm {
-    DrawingRegion::DrawingRegion(Point p, uint64_t region_id) {
+    DrawingRegion::DrawingRegion(Point p, uint64_t region_attribute) {
         this->p = p;
-        this->region_id = region_id;
+        this->region_attribute = region_attribute;
     }
 
     DrawingRegion::~DrawingRegion() {
@@ -11,7 +11,7 @@ namespace nikfemm {
     }
 
     bool DrawingRegion::operator==(const DrawingRegion& dr) const {
-        return this->p == dr.p && this->region_id == dr.region_id;
+        return this->p == dr.p && this->region_attribute == dr.region_attribute;
     }
 
     bool DrawingRegion::operator!=(const DrawingRegion& dr) const {

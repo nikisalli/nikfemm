@@ -16,6 +16,10 @@
 #include "geometry/segment.hpp"
 #include "geometry/point.hpp"
 
+#include "matrix/coo.hpp"
+#include "matrix/csr.hpp"
+#include "matrix/simple_vector.hpp"
+
 namespace nikfemm {
     Simulation::Simulation() {
 
@@ -37,7 +41,7 @@ namespace nikfemm {
         }
         std::unordered_set<DrawingRegion> translated_regions;
         for (DrawingRegion region : drawing.regions) {
-            translated_regions.insert(DrawingRegion(Point(region.p.x - smallest_circle.center.x, region.p.y - smallest_circle.center.y), region.region_id));
+            translated_regions.insert(DrawingRegion(Point(region.p.x - smallest_circle.center.x, region.p.y - smallest_circle.center.y), region.region_attribute));
         }
         drawing.regions = translated_regions;
         // set simulation offset and boundary radius
@@ -56,10 +60,12 @@ namespace nikfemm {
         mesh.plot();
         mesh.addKelvinBoundaryConditions();
         mesh.plot();
+        MatCOO coo;
+        mesh.getFemMatrix(coo);
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 
-        printf("Number of points: %d\nNumber of triangles: %d\nNumber of boundary vertices: %d\n", mesh.vertices.size(), mesh.elements.size(), mesh.boundary_vertices.size());
+        printf("Number of points: %d\nNumber of boundary vertices: %d\n", mesh.vertices.size(), mesh.boundary_vertices.size());
         // get end time
         auto end = std::chrono::high_resolution_clock::now();
         printf("%f Total time\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count()*1000);

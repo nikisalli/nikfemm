@@ -20,10 +20,10 @@
 
 namespace nikfemm {
     struct PredefinedRegion {
-        int64_t region_id;
+        int64_t region_attribute;
 
-        PredefinedRegion(int64_t region_id) {
-            this->region_id = region_id;
+        PredefinedRegion(int64_t region_attribute) {
+            this->region_attribute = region_attribute;
         }
     };
 
@@ -43,13 +43,12 @@ namespace nikfemm {
             void drawCircle(Circle c, uint32_t n_segments);
             void drawPolygon(Point* points, uint32_t n_points);
             void drawPolyLine(Point* points, uint32_t n_points);  // same as drawPolygon, but doesn't close the figure
-            void drawRegion(Point p, uint32_t region_id);
+            void drawRegion(Point p, uint32_t region_attribute);
             void drawRegion(Point p, PredefinedRegion region);
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
-            void drawSegment(TriangleVertex v1, TriangleVertex v2);
-            void drawSegment(TriangleVertex &v1, TriangleVertex &v2);
-            void drawSegment(TriangleVertex *v1, TriangleVertex *v2);
+            void drawSegment(const TriangleVertex &v1, const TriangleVertex &v2);
+            void drawSegment(const TriangleVertex *v1, const TriangleVertex *v2);
         
             void plot();
     };

@@ -72,12 +72,12 @@ namespace nikfemm {
         }
     }
 
-    void Drawing::drawRegion(Point p, uint32_t region_id) {
-        regions.insert(DrawingRegion(p, region_id));
+    void Drawing::drawRegion(Point p, uint32_t region_attribute) {
+        regions.insert(DrawingRegion(p, region_attribute));
     }
 
     void Drawing::drawRegion(Point p, PredefinedRegion region) {
-        regions.insert(DrawingRegion(p, region.region_id));
+        regions.insert(DrawingRegion(p, region.region_attribute));
     }
 
     void Drawing::drawSegment(Point p1, Point p2) {
@@ -112,15 +112,11 @@ namespace nikfemm {
         drawSegment(s.p1, s.p2);
     }
 
-    void Drawing::drawSegment(TriangleVertex v1, TriangleVertex v2) {
+    void Drawing::drawSegment(const TriangleVertex& v1, const TriangleVertex& v2) {
         drawSegment(v1.p, v2.p);
     }
 
-    void Drawing::drawSegment(TriangleVertex& v1, TriangleVertex& v2) {
-        drawSegment(v1.p, v2.p);
-    }
-
-    void Drawing::drawSegment(TriangleVertex* v1, TriangleVertex* v2) {
+    void Drawing::drawSegment(const TriangleVertex* v1, const TriangleVertex* v2) {
         drawSegment(v1->p, v2->p);
     }
 
