@@ -53,15 +53,26 @@ namespace nikfemm {
         // add region near the edge of the circle
         drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), BOUNDARY_REGION);
         // add the boundary 
-        drawing.plot();
+        // drawing.plot();
         mesh.center = boundary_circle.center;
         auto start = std::chrono::high_resolution_clock::now();
         mesh.mesh(drawing);
         mesh.plot();
         mesh.addKelvinBoundaryConditions();
-        mesh.plot();
+        // mesh.plot();
+        mesh.enumerateVertices();
         MatCOO coo;
         mesh.getFemMatrix(coo);
+        printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
+        CV b(mesh.vertices.size());
+        mesh.getCoefficientVector(b);
+        CV x0(mesh.vertices.size());
+        for (uint64_t i = 0; i < mesh.vertices.size(); i++) {
+            x0[i] = 0;
+        }
+        // coo.plot();
+        MatCSR csr(coo);
+        csr.conjugateGradientSolve(b, x0, 1e-6, 100000);
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 

@@ -25,6 +25,7 @@ namespace nikfemm {
         // check if vertex is already in list
         for (int i = 0; i < adjvert_count; i++) {
             if (*adjvert[i] == *v) {
+                adjvert[i] = v;
                 return;
             }
         }

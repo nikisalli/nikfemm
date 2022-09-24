@@ -122,6 +122,7 @@ namespace nikfemm {
             CV::addScaled(r, r, -alpha, Ap);
             double rTrNew = CV::squareSum(r);
             if (rTrNew < maxError * maxError) {
+                printf("converged after %lu iterations\n", i);
                 break;
             }
             double beta = rTrNew / rTr;

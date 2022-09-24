@@ -1,7 +1,9 @@
 #include <algorithm>
 #include <stdexcept>
+#include <chrono>
 
 #include "SDL2/SDL.h"
+#include "opencv2/opencv.hpp"
 
 #include "../../lib/triangle/triangle.h"
 #include "../triangle/util.h"
@@ -75,22 +77,17 @@ namespace nikfemm {
         // render
 
         while(true){
-            // draw the triangles
-            for (auto e : elements) {
-                SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-
-                double p1x = e->vertices[0]->p.x;
-                double p1y = e->vertices[0]->p.y;
-                double p2x = e->vertices[1]->p.x;
-                double p2y = e->vertices[1]->p.y;
-                double p3x = e->vertices[2]->p.x;
-                double p3y = e->vertices[2]->p.y;
-
-                SDL_RenderDrawLine(rend, x_offset + p1x * x_scale, y_offset + p1y * y_scale, x_offset + p2x * x_scale, y_offset + p2y * y_scale);
-                SDL_RenderDrawLine(rend, x_offset + p2x * x_scale, y_offset + p2y * y_scale, x_offset + p3x * x_scale, y_offset + p3y * y_scale);
-                SDL_RenderDrawLine(rend, x_offset + p3x * x_scale, y_offset + p3y * y_scale, x_offset + p1x * x_scale, y_offset + p1y * y_scale);
-            }
-
+            // clears the window
+            SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+            SDL_RenderClear(rend);
+            // draw point at x: -1.389164 y: 0.264997
+            SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
+            SDL_Rect rect;
+            rect.x = x_offset + x_scale * -1.389164;
+            rect.y = y_offset + y_scale * 0.264997;
+            rect.w = 5;
+            rect.h = 5;
+            SDL_RenderFillRect(rend, &rect);
             // draw the points
             for (auto v : vertices) {
                 SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
@@ -101,6 +98,11 @@ namespace nikfemm {
                 rect.w = 4;
                 rect.h = 4;
                 SDL_RenderFillRect(rend, &rect);
+
+                for (uint16_t i = 0; i < v->adjvert_count; i++) {
+                    SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
+                    SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
+                }
             }
 
             SDL_RenderPresent(rend);
@@ -116,8 +118,32 @@ namespace nikfemm {
                 }
             }
 
+            SDL_KeyboardEvent key = event.key;
+            if (key.keysym.sym == SDLK_UP) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_DOWN) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_LEFT) {
+                x_offset += 10;
+            } else if (key.keysym.sym == SDLK_RIGHT) {
+                x_offset -= 10;
+            } else if (key.keysym.sym == SDLK_w) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_s) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_a) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_d) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_q) {
+                x_scale *= 0.9;
+                y_scale *= 0.9;
+            } else if (key.keysym.sym == SDLK_e) {
+                x_scale *= 1.1;
+                y_scale *= 1.1;
+            }
+
             // sleep for 1 second
-            SDL_Delay(10);
         }
     }
 
@@ -160,7 +186,7 @@ namespace nikfemm {
         for (auto r : drawing.regions) {
             in.regionlist[4 * i] = r.p.x;
             in.regionlist[4 * i + 1] = r.p.y;
-            in.regionlist[4 * i + 2] = r.region_id;
+            in.regionlist[4 * i + 2] = r.region_attribute;
             in.regionlist[4 * i + 3] = 0;
             i++;
         }
@@ -189,42 +215,24 @@ namespace nikfemm {
 
         triangulate(switches, &in, &out, NULL);
 
-        /* copy the triangles */
+        vertices.reserve(out.numberofpoints);
+        boundary_vertices.reserve(BOUNDARY_VERTICES);
+        for (uint64_t i = 0; i < out.numberofpoints; i++) {
+            Vertex* v = new Vertex(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
+            vertices.push_back(v);
+            if (out.pointmarkerlist[i] == 1) {
+                boundary_vertices.push_back(v);
+            }
+        }
         // for each vertex in each triangle, add a point to the list
         for (uint64_t i = 0; i < out.numberoftriangles; i++) {
             uint64_t p1 = out.trianglelist[3 * i];
             uint64_t p2 = out.trianglelist[3 * i + 1];
             uint64_t p3 = out.trianglelist[3 * i + 2];
 
-            TriangleVertex* v1 = new TriangleVertex(out.pointlist[2 * p1], out.pointlist[2 * p1 + 1]);
-            TriangleVertex* v2 = new TriangleVertex(out.pointlist[2 * p2], out.pointlist[2 * p2 + 1]);
-            TriangleVertex* v3 = new TriangleVertex(out.pointlist[2 * p3], out.pointlist[2 * p3 + 1]);
-
-            std::pair<std::unordered_set<TriangleVertex*>::iterator, bool> ret = vertices.insert(v1);
-            if (!ret.second) {
-                delete v1;
-                v1 = *ret.first;
-            }
-            ret = vertices.insert(v2);
-            if (!ret.second) {
-                delete v2;
-                v2 = *ret.first;
-            }
-            ret = vertices.insert(v3);
-            if (!ret.second) {
-                delete v3;
-                v3 = *ret.first;
-            }
-
-            // add the triangle
-            TriangleElement* t = new TriangleElement(v1, v2, v3);
-            elements.insert(t);
-
-            // add the triangle as a neighbor of each vertex
-            v1->addAdjacentElement(t);
-            v2->addAdjacentElement(t);
-            v3->addAdjacentElement(t);
-
+            Vertex* v1 = vertices[p1];
+            Vertex* v2 = vertices[p2];
+            Vertex* v3 = vertices[p3];
 
             // add vertices as neighbors of each other if they are not already
             v1->addAdjacentVertex(v2);
@@ -233,18 +241,17 @@ namespace nikfemm {
             v2->addAdjacentVertex(v3);
             v3->addAdjacentVertex(v1);
             v3->addAdjacentVertex(v2);
-        }
 
-        boundary_vertices.reserve(BOUNDARY_VERTICES);
-        for (uint64_t i = 0; i < out.numberofpoints; i++) {
-            if (out.pointmarkerlist[i] == 1) {
-                boundary_vertices.push_back(new TriangleVertex(out.pointlist[2 * i], out.pointlist[2 * i + 1]));
-            }
+            // add mu_r
+            v1->addAdjacentMu(out.triangleattributelist[i]);
+            v2->addAdjacentMu(out.triangleattributelist[i]);
+            v3->addAdjacentMu(out.triangleattributelist[i]);
         }
 
         // sort boundary vertices
-        auto comparator = TriangleVertex::atanCompare(center);
+        auto comparator = Vertex::atanCompare(center);
         std::sort(boundary_vertices.begin(), boundary_vertices.end(), comparator);
+        printf("Number of vertices: %lu, boundary vertices: %lu\n", vertices.size(), boundary_vertices.size());
     }
 
     void Mesh::kelvinTransformCentered() {
@@ -259,7 +266,7 @@ namespace nikfemm {
         // printf("R^2 = %f\n", R_squared);
 
         for (auto it = vertices.begin(); it != vertices.end(); it++) {
-            TriangleVertex* v = *it;
+            Vertex* v = *it;
             double mag_squared = v->p.x * v->p.x + v->p.y * v->p.y;
             double scale = R_squared / mag_squared;
             // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
@@ -268,6 +275,13 @@ namespace nikfemm {
     }
 
     void Mesh::addKelvinBoundaryConditions() {
+        // kelvin mesh = km
+        // this mesh = tm
+        // kelvin mesh boundary vertices = kmb
+        // this mesh boundary vertices = tmb
+        // kelvin mesh vertices = kmv
+        // this mesh vertices = tmv
+
         Mesh kelvin_mesh;
         Drawing kelvin_drawing;
 
@@ -277,31 +291,196 @@ namespace nikfemm {
             kelvin_drawing.drawSegment(*(boundary_vertices.begin() + i), *(boundary_vertices.begin() + i + 1));
         }
         kelvin_drawing.drawRegion(Point(0, 0), BOUNDARY_REGION);
-        kelvin_drawing.plot();
 
         kelvin_mesh.mesh(kelvin_drawing);
+        kelvin_mesh.center = Point(0, 0);
         kelvin_mesh.radius = radius;
 
-        // merge the kelvin mesh into this mesh
+        // merge km into tm
         if (boundary_vertices.size() != kelvin_mesh.boundary_vertices.size()) {
             throw std::runtime_error("Kelvin mesh boundary vertices size does not match, cannot merge");
         }
-        for (uint64_t i = 0; i < boundary_vertices.size(); i++) {
-            // for each vertex in the kelvin mesh, add all adjacent vertices to the corresponding vertex in this mesh
-            for (uint16_t j = 0; j < kelvin_mesh.boundary_vertices[i]->adjvert_count; j++) {
-                boundary_vertices[i]->addAdjacentVertex(kelvin_mesh.boundary_vertices[i]->adjvert[j]);
-            }
-        }
+
+        // transform km
+        kelvin_mesh.kelvinTransformCentered();
+        // kelvin_mesh.plot();
+
         // add kelvin mesh vertices to this mesh
-        for (auto it = kelvin_mesh.vertices.begin(); it != kelvin_mesh.vertices.end(); it++) {
-            vertices.insert(*it);
-        }
-        // add kelvin mesh elements to this mesh
-        for (auto it = kelvin_mesh.elements.begin(); it != kelvin_mesh.elements.end(); it++) {
-            elements.insert(*it);
+        for (uint64 i = 0; i < kelvin_mesh.vertices.size(); i++) {
+            Vertex* kmv = kelvin_mesh.vertices[i];
+            for (uint64_t j = 0; j < boundary_vertices.size(); j++) {
+                Vertex* tmb = boundary_vertices[j];
+                if (kmv->p == tmb->p) {
+                    goto end;
+                }
+            }
+            vertices.push_back(kmv);
+            end:;
         }
 
-        kelvin_mesh.kelvinTransformCentered();
-        kelvin_mesh.plot();
+        // manage neighbors
+        for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
+            Vertex* kmb = kelvin_mesh.boundary_vertices[i];
+            // equivalent mesh boundary vertex
+            Vertex* tmb = boundary_vertices[i];
+            for (uint8_t j = 0; j < kmb->adjvert_count; j++) {
+                // if this adjvert is not a kmb add it to tmb's neighbors
+                Vertex* kmb_adj = kmb->adjvert[j];
+                bool is_kmb = false;
+                for (uint64_t k = 0; k < kelvin_mesh.boundary_vertices.size(); k++) {
+                    if (kmb_adj == kelvin_mesh.boundary_vertices[k]) {
+                        is_kmb = true;
+                        break;
+                    }
+                }
+                if (!is_kmb) {
+                    tmb->addAdjacentVertex(kmb_adj);
+                    kmb_adj->addAdjacentVertex(tmb);
+                }
+            }
+        }
+
+        /* checks */
+        // check kmb in km number
+        uint64 kmb_in_km = 0;
+        for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
+            Vertex* kmb = kelvin_mesh.boundary_vertices[i];
+            bool found = false;
+            for (uint64_t j = 0; j < kelvin_mesh.vertices.size(); j++) {
+                Vertex* kmv = kelvin_mesh.vertices[j];
+                if (kmb == kmv) {
+                    found = true;
+                    kmb_in_km++;
+                    break;
+                }
+            }
+            if (!found) {
+                throw std::runtime_error("Kelvin mesh boundary vertex not found in kelvin mesh");
+            }
+        }
+        printf("Kelvin mesh boundary vertices in kelvin mesh: %lu\n", kmb_in_km);
+
+        // check if every vertex in the kelvin mesh is in this mesh minus the kelvin boundary vertices
+        for (uint64_t i = 0; i < kelvin_mesh.vertices.size(); i++) {
+            Vertex* kmv = kelvin_mesh.vertices[i];
+            bool is_kmb = false;
+            for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
+                if (kmv == kelvin_mesh.boundary_vertices[i]) {
+                    is_kmb = true;
+                    break;
+                }
+            }
+            if (!is_kmb) {
+                bool is_in = false;
+                for (uint64_t i = 0; i < vertices.size(); i++) {
+                    if (kmv == vertices[i]) {
+                        is_in = true;
+                        break;
+                    }
+                }
+                if (!is_in) {
+                    // throw std::runtime_error("Kelvin mesh vertex not in this mesh");
+                }
+            }
+        }
+
+        // check if kelvin boundary vertices are not in this mesh
+        for (auto it = kelvin_mesh.boundary_vertices.begin(); it != kelvin_mesh.boundary_vertices.end(); it++) {
+            Vertex* kmb = *it;
+            for (auto it2 = vertices.begin(); it2 != vertices.end(); it2++) {
+                Vertex* tmv = *it2;
+                if (kmb == tmv) {
+                    throw std::runtime_error("Kelvin boundary vertex found in this mesh");
+                }
+            }
+        }
+
+        // check if every vertex in this mesh has no neighbor in the kelvin mesh boundary
+        for (uint64_t i = 0; i < vertices.size(); i++) {
+            for (uint8_t j = 0; j < vertices[i]->adjvert_count; j++) {
+                Vertex* adj = vertices[i]->adjvert[j];
+                for (uint64_t k = 0; k < kelvin_mesh.boundary_vertices.size(); k++) {
+                    if (adj == kelvin_mesh.boundary_vertices[k]) {
+                        throw std::runtime_error("Vertex in this mesh has neighbor in kelvin mesh boundary");
+                    }
+                }
+            }
+        }
+
+        plot();
+    }
+
+    void Mesh::enumerateVertices() {
+        uint64_t i = 0;
+        for (auto it = vertices.begin(); it != vertices.end(); it++) {
+            (*it)->id = i;
+            i++;
+        }
+        printf("Enumerated %lu vertices\n", i);
+    }
+
+    void Mesh::getFemMatrix(MatCOO &coo) {
+        auto start = std::chrono::high_resolution_clock::now();
+        for (auto v : vertices) {
+            printf("Vertex %lu->", v->id);
+            for (uint8_t i = 0; i < v->adjvert_count; i++) {
+                printf("%lu,", v->adjvert[i]->id);
+            }
+            printf("\n");
+            uint8_t N = v->adjvert_count;
+            cv::Mat S = cv::Mat(N, 5, CV_64F);
+            double xi = v->p.x;
+            double yi = v->p.y;
+            for (uint8_t i = 0; i < N; i++) {
+                double xj = v->adjvert[i]->p.x;
+                double yj = v->adjvert[i]->p.y;
+
+                double xjmxi = xj - xi;
+                double yjmyi = yj - xi;
+
+                S.at<double>(i, 0) = xjmxi;
+                S.at<double>(i, 1) = yjmyi;
+                S.at<double>(i, 2) = xjmxi * yjmyi;
+                S.at<double>(i, 3) = xjmxi * xjmxi * 0.5;
+                S.at<double>(i, 4) = yjmyi * yjmyi * 0.5;
+            }
+            cv::invert(S, S, cv::DECOMP_SVD);
+            // print the matrix
+            double coeff = 0;
+            for (uint8_t i = 0; i < N; i++) {
+                // fi * sum c5j - c4j
+                coeff += S.at<double>(i, 4) - S.at<double>(i, 3);
+            }
+            coo.add_elem(v->id, v->id, coeff);
+            if (v->id > vertices.size()) {
+                printf("Vertex %lu x: %f y: %f\n", v->id, v->p.x, v->p.y);
+                throw std::runtime_error("Vertex id out of bounds");
+            }
+            for (uint8_t i = 0; i < N; i++) {
+                // fj * (c4j - c5j)
+                coo.add_elem(v->id, v->adjvert[i]->id, S.at<double>(i, 3) - S.at<double>(i, 4));
+                if (v->id > vertices.size()) {
+                    printf("Vertex %lu x: %f y: %f\n", v->id, v->p.x, v->p.y);
+                    throw std::runtime_error("Vertex id out of bounds");
+                } else if (v->adjvert[i]->id > vertices.size()) {
+                    printf("Vertex %lu x: %f y: %f\n", v->adjvert[i]->id, v->adjvert[i]->p.x, v->adjvert[i]->p.y);
+                    throw std::runtime_error("Vertex id out of bounds");
+                }
+            }
+        }
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
+    }
+
+    void Mesh::getCoefficientVector(CV &b) {
+        for (auto v : vertices) {
+            uint8_t N = v->adjvert_count;
+            double mu_r;
+            for (uint8_t i = 0; i < N; i++) {
+                mu_r += v->adjmu_r[i];
+            }
+            mu_r /= N;
+            v->mu_r = mu_r;
+        }
     }
 }

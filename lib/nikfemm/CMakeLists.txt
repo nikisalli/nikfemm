@@ -16,7 +16,6 @@ file(GLOB_RECURSE NIKFEMM_SRCS ${NIKFEMM_SOURCE_DIR}/*.cpp ${NIKFEMM_SOURCE_DIR}
 include_directories("${NIKFEMM_SOURCE_DIR}")
 include_directories("${NIKFEMM_INCLUDE_DIR}")
 
-message(STATUS "NIKFEMM_SRCS: ${NIKFEMM_SRCS}")
 add_library(nikfemm SHARED ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 
 find_package(SDL2 REQUIRED)

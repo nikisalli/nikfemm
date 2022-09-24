@@ -26,6 +26,7 @@ namespace nikfemm {
 
         void add_elem(uint64_t m, uint64_t n, double val);
         void add_elem(ElemCOO elem);
+        void plot();
     };
 }
 

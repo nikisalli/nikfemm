@@ -5,8 +5,10 @@
 #include <vector>
 
 #include "../drawing/drawing.hpp"
-#include "triangle_element.hpp"
-#include "triangle_vertex.hpp"
+#include "vertex.hpp"
+#include "../matrix/simple_vector.hpp"
+#include "../matrix/csr.hpp"
+#include "../matrix/coo.hpp"
 
 
 namespace nikfemm {
@@ -14,10 +16,8 @@ namespace nikfemm {
         Point center = Point(0, 0);
         double radius = 0;
 
-        std::unordered_set<TriangleVertex*, std::hash<TriangleVertex*>, std::equal_to<TriangleVertex*>> vertices;
-        std::unordered_set<TriangleElement*, std::hash<TriangleElement*>, std::equal_to<TriangleElement*>> elements;
-
-        std::vector<TriangleVertex*> boundary_vertices;
+        std::vector<Vertex*> vertices;
+        std::vector<Vertex*> boundary_vertices;
 
         Mesh();
         ~Mesh();
@@ -26,6 +26,9 @@ namespace nikfemm {
         void mesh(Drawing &drawing);
         void addKelvinBoundaryConditions();
         void kelvinTransformCentered();
+        void enumerateVertices();
+        void getFemMatrix(MatCOO &coo);
+        void getCoefficientVector(CV &b);
     };
 }
 
