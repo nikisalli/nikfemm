@@ -16,16 +16,15 @@ namespace nikfemm {
         double* A;
 
         uint64_t nnz;
-        uint64_t m, n;  // I, J  // rows,  cols
+        uint64_t m, n;  // I, J  // rows,  columns
 
         MatCSR(MatCOO& coo);
         ~MatCSR();
 
-        void add(uint64_t row, uint64_t col, double val);
         void printCSR();
         void print();
+        void write_to_file(const char *filename);
 
-        double& operator()(uint64_t i, uint64_t j);
         double operator()(uint64_t i, uint64_t j) const;
         MatCSR operator+(const MatCSR& mat) const;
         MatCSR operator-(const MatCSR& mat) const;

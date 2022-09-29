@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <assert.h>
+#include <math.h>
 
 #include "csr.hpp"
 
@@ -58,39 +59,25 @@ namespace nikfemm {
         uint64_t idx = 0;
         for (uint64_t i = 0; i < m; i++) {
             for (uint64_t j = 0; j < n; j++) {
-                if (idx < nnz && JA[idx] == j) {
-                    printf("%.1f ", A[idx]);
-                    idx++;
-                } else {
-                    printf("0 ");
-                }
+                printf("%.1f ", (*this)(i, j));
             }
             printf("\n");
-        }   
-    }
-
-    double& MatCSR::operator()(uint64_t i, uint64_t j) {
-        // iterate over CSR elements
-        uint64_t idx = IA[i];
-        while (idx < IA[i + 1]) {
-            if (JA[idx] == j) {
-                return A[idx];
-            }
-            idx++;
         }
-        throw std::out_of_range("index out of range");
     }
 
     double MatCSR::operator()(uint64_t i, uint64_t j) const {
-        // iterate over CSR elements
-        uint64_t idx = IA[i];
-        while (idx < IA[i + 1]) {
-            if (JA[idx] == j) {
-                return A[idx];
-            }
-            idx++;
+        // bounds check
+        if (i >= m || j >= n) {
+            throw std::out_of_range("MatCSR::operator(): index out of range");
         }
-        throw std::out_of_range("index out of range");
+        uint64_t row_start = IA[i];
+        uint64_t row_end = IA[i + 1];
+        for (uint64_t k = row_start; k < row_end; k++) {
+            if (JA[k] == j) {
+                return A[k];
+            }
+        }
+        return 0;
     }
 
     CV MatCSR::operator*(const CV& cv) const {
@@ -110,24 +97,46 @@ namespace nikfemm {
         CV p(b.m);
         CV Ap(b.m);
         CV::copy(x, x0);
+        printf("x0:\n");
+        x.print();
         CV::mult(r, *this, x);
+        printf("r:\n");
+        r.print();
         CV::sub(r, b, r);
+        printf("r:\n");
+        r.print();
         CV::copy(p, r);
+        printf("p:\n");
+        p.print();
         double rTr = CV::squareSum(r);
+        printf("rTr: %.1f\n", rTr);
 
         for (uint64_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
+            printf("Ap:\n");
+            Ap.print();
             double alpha = rTr / CV::dot(p, Ap);
+            printf("alpha: %.1f\n", alpha);
             CV::addScaled(x, x, alpha, p);
+            printf("x:\n");
+            x.print();
             CV::addScaled(r, r, -alpha, Ap);
+            printf("r:\n");
+            r.print();
             double rTrNew = CV::squareSum(r);
+            printf("rTrNew: %.1f\n", rTrNew);
+            printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
             if (rTrNew < maxError * maxError) {
                 printf("converged after %lu iterations\n", i);
                 break;
             }
             double beta = rTrNew / rTr;
+            printf("beta: %.1f\n", beta);
             CV::addScaled(p, r, beta, p);
+            printf("p:\n");
+            p.print();
             rTr = rTrNew;
+            printf("rTr: %.1f\n", rTr);
         }
         return x;
     }
@@ -152,5 +161,23 @@ namespace nikfemm {
             A[i] = other.A[i];
         }
         return *this;
+    }
+
+    void MatCSR::write_to_file(const char *filename) {
+        FILE *f = fopen(filename, "w");
+        if (f == NULL) {
+            printf("Error opening file!\n");
+            exit(1);
+        }
+
+        // iterate over CSR elements
+        uint64_t idx = 0;
+        for (uint64_t i = 0; i < m; i++) {
+            for (uint64_t j = 0; j < n; j++) {
+                fprintf(f, "%.17g ", (*this)(i, j));
+            }
+            fprintf(f, "\n");
+        }
+        fclose(f);
     }
 }
