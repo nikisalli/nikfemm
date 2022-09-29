@@ -33,3 +33,6 @@ add_subdirectory(lib/triangle)
 target_link_libraries(nikfemm triangle)
 
 target_include_directories (nikfemm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# tests
+add_subdirectory(test)

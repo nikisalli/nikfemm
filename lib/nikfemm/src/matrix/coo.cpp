@@ -32,7 +32,6 @@ namespace nikfemm {
     }
 
     void MatCOO::add_elem(ElemCOO elem) {
-        printf("m: %lu, n: %lu\n", m, n);
         if (elem.m + 1 > m ) {
             m = elem.m + 1;
         }
@@ -76,12 +75,14 @@ namespace nikfemm {
             SDL_RenderClear(rend);
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             for (int i = 0; i < elems.size(); i++) {
-                SDL_Rect rect;
-                rect.x = (elems[i].m * x_scale) + x_offset;
-                rect.y = (elems[i].n * y_scale) + y_offset;
-                rect.w = x_scale;
-                rect.h = y_scale;
-                SDL_RenderFillRect(rend, &rect);
+                if (fabs(elems[i].val) > 0.0000001) {
+                    SDL_Rect rect;
+                    rect.x = (elems[i].m * x_scale) + x_offset;
+                    rect.y = (elems[i].n * y_scale) + y_offset;
+                    rect.w = x_scale;
+                    rect.h = y_scale;
+                    SDL_RenderFillRect(rend, &rect);
+                }
             }
 
             // draw square around the matrix

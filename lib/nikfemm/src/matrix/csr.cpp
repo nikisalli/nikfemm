@@ -141,28 +141,6 @@ namespace nikfemm {
         return x;
     }
 
-    MatCSR MatCSR::operator=(const MatCSR& other) {
-        if (m != other.m || n != other.n || nnz != other.nnz) {
-            free(IA);
-            free(JA);
-            free(A);
-            m = other.m;
-            n = other.n;
-            nnz = other.nnz;
-            IA = (uint64_t*) calloc(m + 1, sizeof(uint64_t));
-            JA = (uint64_t*) calloc(nnz, sizeof(uint64_t));
-            A = (double*) calloc(nnz, sizeof(double));
-        }
-        for (uint64_t i = 0; i < m + 1; i++) {
-            IA[i] = other.IA[i];
-        }
-        for (uint64_t i = 0; i < nnz; i++) {
-            JA[i] = other.JA[i];
-            A[i] = other.A[i];
-        }
-        return *this;
-    }
-
     void MatCSR::write_to_file(const char *filename) {
         FILE *f = fopen(filename, "w");
         if (f == NULL) {

@@ -26,13 +26,6 @@ namespace nikfemm {
         void write_to_file(const char *filename);
 
         double operator()(uint64_t i, uint64_t j) const;
-        MatCSR operator+(const MatCSR& mat) const;
-        MatCSR operator-(const MatCSR& mat) const;
-        MatCSR operator*(double d) const;
-        MatCSR operator/(double d) const;
-        MatCSR operator-(double d) const;
-        MatCSR operator+(double d) const;
-        MatCSR operator=(const MatCSR& mat);
         
         CV operator*(const CV& cv) const;
 
