@@ -9,17 +9,15 @@
 namespace nikfemm {
     struct MatCSR;
 
-    struct RowVector;
-    struct CV;
-
     struct CV {
         double* val;
-        uint64_t m;
+        uint64_t m;  // columns
 
         CV(uint64_t size);
         ~CV();
 
         void print();
+        void write_to_file(const char *filename);
         
         double& operator[](uint64_t i);
         double operator[](uint64_t i) const;

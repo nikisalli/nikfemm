@@ -17,10 +17,18 @@ namespace nikfemm {
     void CV::print() {
         printf("[");
         for (uint64_t i = 0; i < m; i++) {
-            printf("%f\n", val[i]);
+            printf("%f ", val[i]);
         }
         printf("]");
         printf("\n");
+    }
+
+    void CV::write_to_file(const char *filename) {
+        FILE *f = fopen(filename, "w");
+        for (uint64_t i = 0; i < m; i++) {
+            fprintf(f, "%.17g ", val[i]);
+        }
+        fclose(f);
     }
 
     double& CV::operator[](uint64_t i) {
