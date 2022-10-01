@@ -25,6 +25,7 @@ namespace nikfemm {
         void plot();
         void mesh(Drawing &drawing);
         void addKelvinBoundaryConditions();
+        void addDirichletBoundaryConditions(MatCOO &coo, CV &b);
         void kelvinTransformCentered();
         void enumerateVertices();
         void getFemMatrix(MatCOO &coo);

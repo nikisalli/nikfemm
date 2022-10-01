@@ -16,13 +16,13 @@
 #include "../geometry/circle.hpp"
 #include "../mesh/vertex.hpp"
 
-#define BOUNDARY_REGION PredefinedRegion(-1)
+#define BOUNDARY_REGION PredefinedRegion(0)
 
 namespace nikfemm {
     struct PredefinedRegion {
-        int64_t region_attribute;
+        double region_attribute;
 
-        PredefinedRegion(int64_t region_attribute) {
+        PredefinedRegion(double region_attribute) {
             this->region_attribute = region_attribute;
         }
     };

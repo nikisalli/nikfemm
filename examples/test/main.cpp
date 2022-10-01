@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
 
     drawing.drawRectangle(nikfemm::Point(0, 0), nikfemm::Point(1, 1));
     // drawing.drawRectangle(nikfemm::Point(0, 1), nikfemm::Point(1, 2));
-    drawing.drawRegion(nikfemm::Point(0.5, 0.5), 6000);
+    drawing.drawRegion(nikfemm::Point(0.5, 0.5), 1);
 
     simulation.generateMesh(drawing);
 }

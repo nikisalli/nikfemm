@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <chrono>
+#include <math.h>
 
 #include "SDL2/SDL.h"
 #include "opencv2/opencv.hpp"
@@ -11,6 +12,7 @@
 #include <constants.hpp>
 
 #include "mesh.hpp"
+#include "../utils/utils.hpp"
 
 namespace nikfemm {
     Mesh::Mesh() {
@@ -80,14 +82,6 @@ namespace nikfemm {
             // clears the window
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             SDL_RenderClear(rend);
-            // draw point at x: -1.389164 y: 0.264997
-            SDL_SetRenderDrawColor(rend, 0, 255, 0, 255);
-            SDL_Rect rect;
-            rect.x = x_offset + x_scale * -1.389164;
-            rect.y = y_offset + y_scale * 0.264997;
-            rect.w = 5;
-            rect.h = 5;
-            SDL_RenderFillRect(rend, &rect);
             // draw the points
             for (auto v : vertices) {
                 SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
@@ -261,8 +255,9 @@ namespace nikfemm {
         x* = (R^2 / |x|^2) * x
 
         */
-
+        const double max_radius_coeff = 10;
         double R_squared = radius * radius;
+        double max_x = radius / max_radius_coeff;
         // printf("R^2 = %f\n", R_squared);
 
         for (auto it = vertices.begin(); it != vertices.end(); it++) {
@@ -270,7 +265,13 @@ namespace nikfemm {
             double mag_squared = v->p.x * v->p.x + v->p.y * v->p.y;
             double scale = R_squared / mag_squared;
             // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
-            v->p = v->p * scale;
+            double dist = Point::distance(v->p, center);
+            if (dist < max_x) {
+                printf("kelvin transform too large\n");
+                v->p = v->p * ((radius * max_radius_coeff) / dist);
+            } else {
+                v->p = v->p * scale;
+            }
         }
     }
 
@@ -298,7 +299,7 @@ namespace nikfemm {
 
         // merge km into tm
         if (boundary_vertices.size() != kelvin_mesh.boundary_vertices.size()) {
-            throw std::runtime_error("Kelvin mesh boundary vertices size does not match, cannot merge");
+            nexit("Kelvin mesh boundary vertices size does not match, cannot merge");
         }
 
         // transform km
@@ -341,6 +342,7 @@ namespace nikfemm {
         }
 
         /* checks */
+        /*
         // check kmb in km number
         uint64 kmb_in_km = 0;
         for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
@@ -355,7 +357,7 @@ namespace nikfemm {
                 }
             }
             if (!found) {
-                throw std::runtime_error("Kelvin mesh boundary vertex not found in kelvin mesh");
+                nexit("Kelvin mesh boundary vertex not found in kelvin mesh");
             }
         }
         printf("Kelvin mesh boundary vertices in kelvin mesh: %lu\n", kmb_in_km);
@@ -379,7 +381,7 @@ namespace nikfemm {
                     }
                 }
                 if (!is_in) {
-                    // throw std::runtime_error("Kelvin mesh vertex not in this mesh");
+                    nexit("Kelvin mesh vertex not in this mesh");
                 }
             }
         }
@@ -390,7 +392,7 @@ namespace nikfemm {
             for (auto it2 = vertices.begin(); it2 != vertices.end(); it2++) {
                 Vertex* tmv = *it2;
                 if (kmb == tmv) {
-                    throw std::runtime_error("Kelvin boundary vertex found in this mesh");
+                    nexit("Kelvin boundary vertex found in this mesh");
                 }
             }
         }
@@ -401,13 +403,64 @@ namespace nikfemm {
                 Vertex* adj = vertices[i]->adjvert[j];
                 for (uint64_t k = 0; k < kelvin_mesh.boundary_vertices.size(); k++) {
                     if (adj == kelvin_mesh.boundary_vertices[k]) {
-                        throw std::runtime_error("Vertex in this mesh has neighbor in kelvin mesh boundary");
+                        nexit("Vertex in this mesh has neighbor in kelvin mesh boundary");
                     }
                 }
             }
-        }
+        }*/
 
         plot();
+    }
+
+    void Mesh::addDirichletBoundaryConditions(MatCOO &coo, CV &b) {
+        // find the three furthest vertices from the center
+        double dist1, dist2, dist3;
+        uint64_t index1, index2, index3;
+
+        for (uint64_t i = 0; i < vertices.size(); i++) {
+            Vertex* v = vertices[i];
+            double dist = Point::distance(v->p, center);
+            if (dist > dist1) {
+                dist3 = dist2;
+                index3 = index2;
+                dist2 = dist1;
+                index2 = index1;
+                dist1 = dist;
+                index1 = v->id;
+            } else if (dist > dist2 && dist != dist1) {
+                dist3 = dist2;
+                index3 = index2;
+                dist2 = dist;
+                index2 = v->id;
+            } else if (dist > dist3 && dist != dist2) {
+                dist3 = dist;
+                index3 = v->id;
+            }
+        }
+
+        // all the coefficients on the inedxN-th column of the matrix A are set to 0 for dirichlet boundary conditions
+        for (uint64_t i = 0; i < coo.elems.size(); i++) {
+            ElemCOO e = coo.elems[i];
+            if (e.n == index1 || e.n == index2 || e.n == index3 || e.m == index1 || e.m == index2 || e.m == index3) {
+                if (e.n == e.m) {
+                    e.val = 1;
+                    printf("Dirichlet boundary condition on FEM matrix element %lu %lu (element is on the diagonal)\n", e.m, e.n);
+                } else {
+                    e.val = 0;
+                    printf("Dirichlet boundary condition on FEM matrix element %lu %lu\n", e.m, e.n);
+                }
+
+                /*
+                // in this case the dirichlet boundary condition sets the magnetic vector potential A to zero on the boundary so it is
+                // not necessary to subtract the coefficient of the corresponding value multiplied by the dirichlet magnetic vector potential
+                // from the b vector
+                if (e.m == index1 || e.m == index2 || e.m == index3) {
+                    b[e.m] -= e.val * 0;
+                }
+                */
+            }
+            coo.elems[i] = e;
+        }
     }
 
     void Mesh::enumerateVertices() {
@@ -422,51 +475,51 @@ namespace nikfemm {
     void Mesh::getFemMatrix(MatCOO &coo) {
         auto start = std::chrono::high_resolution_clock::now();
         for (auto v : vertices) {
-            printf("Vertex %lu->", v->id);
+            double sum = 0;
             for (uint8_t i = 0; i < v->adjvert_count; i++) {
-                printf("%lu,", v->adjvert[i]->id);
-            }
-            printf("\n");
-            uint8_t N = v->adjvert_count;
-            cv::Mat S = cv::Mat(N, 5, CV_64F);
-            double xi = v->p.x;
-            double yi = v->p.y;
-            for (uint8_t i = 0; i < N; i++) {
-                double xj = v->adjvert[i]->p.x;
-                double yj = v->adjvert[i]->p.y;
-
-                double xjmxi = xj - xi;
-                double yjmyi = yj - xi;
-
-                S.at<double>(i, 0) = xjmxi;
-                S.at<double>(i, 1) = yjmyi;
-                S.at<double>(i, 2) = xjmxi * yjmyi;
-                S.at<double>(i, 3) = xjmxi * xjmxi * 0.5;
-                S.at<double>(i, 4) = yjmyi * yjmyi * 0.5;
-            }
-            cv::invert(S, S, cv::DECOMP_SVD);
-            // print the matrix
-            double coeff = 0;
-            for (uint8_t i = 0; i < N; i++) {
-                // fi * sum c5j - c4j
-                coeff += S.at<double>(i, 4) - S.at<double>(i, 3);
-            }
-            coo.add_elem(v->id, v->id, coeff);
-            if (v->id > vertices.size()) {
-                printf("Vertex %lu x: %f y: %f\n", v->id, v->p.x, v->p.y);
-                throw std::runtime_error("Vertex id out of bounds");
-            }
-            for (uint8_t i = 0; i < N; i++) {
-                // fj * (c4j - c5j)
-                coo.add_elem(v->id, v->adjvert[i]->id, S.at<double>(i, 3) - S.at<double>(i, 4));
-                if (v->id > vertices.size()) {
-                    printf("Vertex %lu x: %f y: %f\n", v->id, v->p.x, v->p.y);
-                    throw std::runtime_error("Vertex id out of bounds");
-                } else if (v->adjvert[i]->id > vertices.size()) {
-                    printf("Vertex %lu x: %f y: %f\n", v->adjvert[i]->id, v->adjvert[i]->p.x, v->adjvert[i]->p.y);
-                    throw std::runtime_error("Vertex id out of bounds");
+                Vertex* adj_v = v->adjvert[i];
+                // find the two opposite vertices relative to the edge between v and adj_v
+                // to do this we find the two vertices that are not v or adj_v and are adjacent to both v and adj_v
+                Vertex* opp_v1 = nullptr;
+                Vertex* opp_v2 = nullptr;
+                for (uint8_t j = 0; j < v->adjvert_count; j++) {
+                    Vertex* v_adj = v->adjvert[j];
+                    if (v_adj != adj_v) {
+                        for (uint8_t k = 0; k < adj_v->adjvert_count; k++) {
+                            Vertex* adj_v_adj = adj_v->adjvert[k];
+                            if (adj_v_adj != v) {
+                                if (v_adj == adj_v_adj) {
+                                    if (opp_v1 == nullptr) {
+                                        opp_v1 = v_adj;
+                                    } else if (opp_v2 == nullptr) {
+                                        opp_v2 = v_adj;
+                                    } else {
+                                        nexit("More than two opposite vertices found");
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
+                if (opp_v1 == nullptr || opp_v2 == nullptr) {
+                    nexit("Less than two opposite vertices found");
+                }
+                // get angle v-opp_v1-adj_v
+                double angle1 = Point::angle(v->p, opp_v1->p, adj_v->p);
+                printf ("angle1 = %f\n", angle1);
+                // get angle v-opp_v2-adj_v
+                double angle2 = Point::angle(v->p, opp_v2->p, adj_v->p);
+                printf ("angle2 = %f\n", angle2);
+                double w = 0.5 * (1 / tan(angle1) + 1 / tan(angle2));
+                printf ("w = %f\n", w);
+                // add the coefficient to the matrix
+                coo.add_elem(v->id, adj_v->id, w);
+                sum += w;
             }
+            printf("sum = %f\n", sum);
+            // add the coefficient to the matrix
+            coo.add_elem(v->id, v->id, sum);
+            printf("------------------------------------------------------------\n");
         }
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
@@ -474,13 +527,18 @@ namespace nikfemm {
 
     void Mesh::getCoefficientVector(CV &b) {
         for (auto v : vertices) {
-            uint8_t N = v->adjvert_count;
-            double mu_r;
+            uint8_t N = v->adjmu_r_count;
+            double mu_r = 0;
             for (uint8_t i = 0; i < N; i++) {
                 mu_r += v->adjmu_r[i];
+                printf("%f ", v->adjmu_r[i]);
             }
             mu_r /= N;
+            printf("\nmu_r = %f\n", mu_r);
             v->mu_r = mu_r;
+            // find area of the cell centered at v
+            double area = v->cellArea();
+            b[v->id] = mu_r * area;
         }
     }
 }

@@ -70,12 +70,17 @@ namespace nikfemm {
         mesh.getFemMatrix(coo);
         mesh.getCoefficientVector(b);
         mesh.addDirichletBoundaryConditions(coo, b);
+
+#ifdef DEBUG_PRINT
         printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
         for (uint64_t i = 0; i < mesh.vertices.size(); i++) {
             x0[i] = 0;
         }
-        // coo.plot();
+#endif
+
         MatCSR csr(coo);
+
+#ifdef DEBUG_PRINT
         csr.write_to_file("A");
         b.write_to_file("b");
         csr.print();
@@ -87,7 +92,9 @@ namespace nikfemm {
         for (uint64_t i = 0; i < coo.elems.size(); i++) {
             printf("coo elem: %lu, %lu, %f\n", coo.elems[i].m, coo.elems[i].n, coo.elems[i].val);
         }
-        // csr.conjugateGradientSolve(b, x0, 1e-6, 100);
+#endif
+
+        csr.conjugateGradientSolve(b, x0, 1e-8, 1000);
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 

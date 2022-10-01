@@ -48,6 +48,7 @@ namespace nikfemm {
         // returns zero on success else non-zero
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
             printf("error initializing SDL: %s\n", SDL_GetError());
+            exit(1);
         }
         SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
                                         SDL_WINDOWPOS_CENTERED,

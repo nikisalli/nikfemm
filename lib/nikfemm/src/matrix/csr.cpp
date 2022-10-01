@@ -5,7 +5,10 @@
 #include <assert.h>
 #include <math.h>
 
+#include <constants.hpp>
+
 #include "csr.hpp"
+#include "../utils/utils.hpp"
 
 namespace nikfemm {
     MatCSR::MatCSR(MatCOO& coo) {
@@ -68,7 +71,7 @@ namespace nikfemm {
     double MatCSR::operator()(uint64_t i, uint64_t j) const {
         // bounds check
         if (i >= m || j >= n) {
-            throw std::out_of_range("MatCSR::operator(): index out of range");
+            nexit("MatCSR::operator(): index out of range");
         }
         uint64_t row_start = IA[i];
         uint64_t row_end = IA[i + 1];
@@ -97,46 +100,51 @@ namespace nikfemm {
         CV p(b.m);
         CV Ap(b.m);
         CV::copy(x, x0);
-        printf("x0:\n");
-        x.print();
+        // printf("x0:\n");
+        // x.print();
         CV::mult(r, *this, x);
-        printf("r:\n");
-        r.print();
+        // printf("r:\n");
+        // r.print();
         CV::sub(r, b, r);
-        printf("r:\n");
-        r.print();
+        // printf("r:\n");
+        // r.print();
         CV::copy(p, r);
-        printf("p:\n");
-        p.print();
+        // printf("p:\n");
+        // p.print();
         double rTr = CV::squareSum(r);
-        printf("rTr: %.1f\n", rTr);
+        // printf("rTr: %.1f\n", rTr);
 
         for (uint64_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
-            printf("Ap:\n");
-            Ap.print();
-            double alpha = rTr / CV::dot(p, Ap);
-            printf("alpha: %.1f\n", alpha);
+            // printf("Ap:\n");
+            // Ap.print();
+            // printf("p.Ap = %f\n", CV::dot(p, Ap));
+            double pAp = CV::dot(p, Ap);
+            if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
+                pAp = std::numeric_limits<double>::epsilon();
+            }
+            double alpha = rTr / pAp;
+            // printf("alpha: %.1f\n", alpha);
             CV::addScaled(x, x, alpha, p);
-            printf("x:\n");
-            x.print();
+            // printf("x:\n");
+            // x.print();
             CV::addScaled(r, r, -alpha, Ap);
-            printf("r:\n");
-            r.print();
+            // printf("r:\n");
+            // r.print();
             double rTrNew = CV::squareSum(r);
-            printf("rTrNew: %.1f\n", rTrNew);
+            // printf("rTrNew: %.1f\n", rTrNew);
             printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
             if (rTrNew < maxError * maxError) {
                 printf("converged after %lu iterations\n", i);
                 break;
             }
             double beta = rTrNew / rTr;
-            printf("beta: %.1f\n", beta);
+            // printf("beta: %.1f\n", beta);
             CV::addScaled(p, r, beta, p);
-            printf("p:\n");
-            p.print();
+            // printf("p:\n");
+            // p.print();
             rTr = rTrNew;
-            printf("rTr: %.1f\n", rTr);
+            // printf("rTr: %.1f\n", rTr);
         }
         return x;
     }

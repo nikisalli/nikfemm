@@ -47,4 +47,13 @@ namespace nikfemm {
     bool Vertex::operator!=(const Vertex& v) const {
         return p != v.p;
     }
+
+    double Vertex::cellArea() {
+        // sum of areas of triangles formed by vertex and adjacent vertices divided by 3
+        double area = 0;
+        for (int i = 0; i < adjvert_count; i++) {
+            area += Point::area(adjvert[i]->p, adjvert[(i + 1) % adjvert_count]->p, p);
+        }
+        return area / 3;
+    }
 }

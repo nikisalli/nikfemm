@@ -8,6 +8,7 @@
 #include <constants.hpp>
 
 #include "drawing.hpp"
+#include "../utils/utils.hpp"
 
 namespace nikfemm {
     Drawing::Drawing() {
@@ -55,7 +56,7 @@ namespace nikfemm {
                 }
                 if (Segment::segmentsIntersect(points[i], points[(i + 1) % n_points], points[j], points[(j + 1) % n_points])) {
                     printf("Error: polygon self-intersects\n");
-                    throw std::invalid_argument("polygon self-intersects");
+                    nexit("Error: polygon self-intersects");
                 }
             }
         }

@@ -28,11 +28,22 @@ namespace nikfemm {
             Point operator*(const double& d) const;
             Point operator/(const double& d) const;
 
-            static double distance(Point p1, Point p2) {
+            static inline double distance(Point p1, Point p2) {
                 return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
             }
-            double distanceFromOrigin() {
+            inline double distanceFromOrigin() {
                 return sqrt(pow(x, 2) + pow(y, 2));
+            }
+            static inline double angle(Point a, Point b, Point c) {
+                // safe angle calculation
+                return fabs(atan2(c.y - b.y, c.x - b.x) - atan2(a.y - b.y, a.x - b.x));
+            }
+            static inline double area(Point a, Point b, Point c) {
+                double ab = distance(a, b);
+                double bc = distance(b, c);
+                double ac = distance(a, c);
+                double s = (ab + bc + ac) / 2;
+                return sqrt(s * (s - ab) * (s - bc) * (s - ac));
             }
             static Orientation orientation(Point p1, Point p2, Point p3);
             std::vector<Point> getWelzlPoints(std::vector<Point> points);

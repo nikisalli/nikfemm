@@ -28,7 +28,6 @@ namespace nikfemm {
             ~Simulation();
 
             /* meshing */
-        public:
             void generateMesh(Drawing drawing);
     };
 }

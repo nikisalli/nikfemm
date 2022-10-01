@@ -32,6 +32,8 @@ namespace nikfemm {
             bool operator==(const Vertex& v) const;
             bool operator!=(const Vertex& v) const;
 
+            double cellArea();
+
             // comparison operator for sorting based on atan2
             struct atanCompare {
                 atanCompare(Point center) {
