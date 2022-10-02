@@ -29,7 +29,7 @@ namespace nikfemm {
         
         CV operator*(const CV& cv) const;
 
-        CV conjugateGradientSolve(CV& b, CV& x0, double maxError, uint64_t maxIterations);
+        void conjugateGradientSolve(CV& b, CV& x0, double maxError, uint64_t maxIterations);
     };
 }
 

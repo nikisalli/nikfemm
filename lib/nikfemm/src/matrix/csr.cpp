@@ -94,12 +94,10 @@ namespace nikfemm {
         return cv2;
     }
 
-    CV MatCSR::conjugateGradientSolve(CV& b, CV& x0, double maxError, uint64_t maxIterations) {
-        CV x(x0.m);
+    void MatCSR::conjugateGradientSolve(CV& b, CV& x, double maxError, uint64_t maxIterations) {
         CV r(b.m);
         CV p(b.m);
         CV Ap(b.m);
-        CV::copy(x, x0);
         // printf("x0:\n");
         // x.print();
         CV::mult(r, *this, x);
@@ -136,6 +134,8 @@ namespace nikfemm {
             printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
             if (rTrNew < maxError * maxError) {
                 printf("converged after %lu iterations\n", i);
+                printf("x:\n");
+                x.print();
                 break;
             }
             double beta = rTrNew / rTr;
@@ -146,14 +146,12 @@ namespace nikfemm {
             rTr = rTrNew;
             // printf("rTr: %.1f\n", rTr);
         }
-        return x;
     }
 
     void MatCSR::write_to_file(const char *filename) {
         FILE *f = fopen(filename, "w");
         if (f == NULL) {
-            printf("Error opening file!\n");
-            exit(1);
+            nexit("Error opening file!\n");
         }
 
         // iterate over CSR elements

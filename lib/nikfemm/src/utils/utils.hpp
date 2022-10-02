@@ -5,6 +5,14 @@
 #include <iostream>
 
 namespace nikfemm {
+    struct vec2 {
+        double x, y;
+    };
+
+    struct vec3 {
+        double x, y, z;
+    };
+
     void nexit(std::string message);
 }
 

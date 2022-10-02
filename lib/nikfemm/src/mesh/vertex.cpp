@@ -1,6 +1,7 @@
 #include <assert.h>
 
 #include "vertex.hpp"
+#include "../geometry/geometry_common.hpp"
 
 namespace nikfemm {
     Vertex::Vertex() {
@@ -34,10 +35,10 @@ namespace nikfemm {
     }
 
     void Vertex::addAdjacentMu(double mu) {
-        assert(adjmu_r_count < 18);
+        assert(adjmuj_count < 18);
         // don't check if mu is already in list for performance
-        adjmu_r[adjmu_r_count] = mu;
-        adjmu_r_count++;
+        adjmuj[adjmuj_count] = mu;
+        adjmuj_count++;
     }
 
     bool Vertex::operator==(const Vertex& v) const {
@@ -52,7 +53,7 @@ namespace nikfemm {
         // sum of areas of triangles formed by vertex and adjacent vertices divided by 3
         double area = 0;
         for (int i = 0; i < adjvert_count; i++) {
-            area += Point::area(adjvert[i]->p, adjvert[(i + 1) % adjvert_count]->p, p);
+            area += geomArea(adjvert[i]->p, adjvert[(i + 1) % adjvert_count]->p, p);
         }
         return area / 3;
     }

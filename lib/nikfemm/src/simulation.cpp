@@ -66,26 +66,23 @@ namespace nikfemm {
         mesh.enumerateVertices();
         MatCOO coo;
         CV b(mesh.vertices.size());
-        CV x0(mesh.vertices.size());
+        CV x(mesh.vertices.size());
         mesh.getFemMatrix(coo);
         mesh.getCoefficientVector(b);
         mesh.addDirichletBoundaryConditions(coo, b);
 
 #ifdef DEBUG_PRINT
         printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
-        for (uint64_t i = 0; i < mesh.vertices.size(); i++) {
-            x0[i] = 0;
-        }
 #endif
 
         MatCSR csr(coo);
 
-#ifdef DEBUG_PRINT
         csr.write_to_file("A");
         b.write_to_file("b");
+#ifdef DEBUG_PRINT
         csr.print();
         coo.plot();
-        x0.print();
+        x.print();
         b.print();
 
         // print all elems in coo
@@ -94,7 +91,9 @@ namespace nikfemm {
         }
 #endif
 
-        csr.conjugateGradientSolve(b, x0, 1e-8, 1000);
+        csr.conjugateGradientSolve(b, x, 1e-8, 1000);
+
+        mesh.setField(x);
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 

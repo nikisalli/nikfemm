@@ -9,6 +9,7 @@
 #include "../matrix/simple_vector.hpp"
 #include "../matrix/csr.hpp"
 #include "../matrix/coo.hpp"
+#include "../utils/utils.hpp"
 
 
 namespace nikfemm {
@@ -23,6 +24,7 @@ namespace nikfemm {
         ~Mesh();
 
         void plot();
+        void Bplot();
         void mesh(Drawing &drawing);
         void addKelvinBoundaryConditions();
         void addDirichletBoundaryConditions(MatCOO &coo, CV &b);
@@ -30,6 +32,8 @@ namespace nikfemm {
         void enumerateVertices();
         void getFemMatrix(MatCOO &coo);
         void getCoefficientVector(CV &b);
+        void setField(CV &x);
+        void computeCurl();
     };
 }
 

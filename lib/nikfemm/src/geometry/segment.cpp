@@ -25,10 +25,10 @@ namespace nikfemm {
     bool Segment::segmentsIntersect(Point s1p1, Point s1p2, Point s2p1, Point s2p2) {
         // Find the four orientations needed for general and
         // special cases
-        Orientation o1 = Point::orientation(s1p1, s1p2, s2p1);
-        Orientation o2 = Point::orientation(s1p1, s1p2, s2p2);
-        Orientation o3 = Point::orientation(s2p1, s2p2, s1p1);
-        Orientation o4 = Point::orientation(s2p1, s2p2, s1p2);
+        Orientation o1 = geomOrientation(s1p1, s1p2, s2p1);
+        Orientation o2 = geomOrientation(s1p1, s1p2, s2p2);
+        Orientation o3 = geomOrientation(s2p1, s2p2, s1p1);
+        Orientation o4 = geomOrientation(s2p1, s2p2, s1p2);
     
         // General case
         if (o1 != o2 && o3 != o4)

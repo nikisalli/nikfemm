@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include "point.hpp"
+#include "geometry_common.hpp"
 
 namespace nikfemm {
     struct Circle {
@@ -20,7 +21,7 @@ namespace nikfemm {
             bool operator!=(const Circle& c) const;
 
             inline bool contains(Point p) {
-                return Point::distance(center, p) <= radius;
+                return geomDistance(center, p) <= radius;
             }
             static inline Circle getCircleFromPoints(Point p1, Point p2, Point p3) {
                 double bx = p2.x - p1.x;
@@ -36,12 +37,12 @@ namespace nikfemm {
                 I.x += p1.x;
                 I.y += p1.y;
 
-                return Circle(I, Point::distance(I, p1));
+                return Circle(I, geomDistance(I, p1));
             }
 
             static inline Circle getCircleFromPoints(Point p1, Point p2) {
                 Point I = Point((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
-                return Circle(I, Point::distance(I, p1));
+                return Circle(I, geomDistance(I, p1));
             }
 
             inline bool containsPoints(std::vector<Point> points) {

@@ -3,6 +3,7 @@
 #include "SDL2/SDL.h"
 
 #include "coo.hpp"
+#include "../utils/utils.hpp"
 
 namespace nikfemm {
     bool ElemCOO::operator<(const ElemCOO &other) const {
@@ -47,7 +48,7 @@ namespace nikfemm {
         // draw the mesh
         // returns zero on success else non-zero
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            printf("error initializing SDL: %s\n", SDL_GetError());
+            nexit("error initializing SDL");
             exit(1);
         }
         SDL_Window* win = SDL_CreateWindow("GAME", // creates a window

@@ -1,3 +1,4 @@
 .vscode
+.vscode-ctags
 bin
 build

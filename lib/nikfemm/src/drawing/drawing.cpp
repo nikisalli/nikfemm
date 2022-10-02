@@ -55,7 +55,6 @@ namespace nikfemm {
                     continue;
                 }
                 if (Segment::segmentsIntersect(points[i], points[(i + 1) % n_points], points[j], points[(j + 1) % n_points])) {
-                    printf("Error: polygon self-intersects\n");
                     nexit("Error: polygon self-intersects");
                 }
             }
@@ -125,7 +124,7 @@ namespace nikfemm {
         // draw the mesh
         // returns zero on success else non-zero
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            printf("error initializing SDL: %s\n", SDL_GetError());
+            nexit("error initializing SDL");
         }
         SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
                                         SDL_WINDOWPOS_CENTERED,

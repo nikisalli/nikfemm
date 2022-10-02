@@ -24,10 +24,8 @@ namespace nikfemm {
     }
 
     void Mesh::plot() {
-        // draw the mesh
-        // returns zero on success else non-zero
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            printf("error initializing SDL: %s\n", SDL_GetError());
+            nexit("error initializing SDL: %s\n");
         }
         SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
                                         SDL_WINDOWPOS_CENTERED,
@@ -97,6 +95,124 @@ namespace nikfemm {
                     SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
                     SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
                 }
+            }
+
+            SDL_RenderPresent(rend);
+
+            SDL_Event event;
+            if (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    // destroy the window
+                    SDL_DestroyWindow(win);
+                    // clean up
+                    SDL_Quit();
+                    break;
+                }
+            }
+
+            SDL_KeyboardEvent key = event.key;
+            if (key.keysym.sym == SDLK_UP) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_DOWN) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_LEFT) {
+                x_offset += 10;
+            } else if (key.keysym.sym == SDLK_RIGHT) {
+                x_offset -= 10;
+            } else if (key.keysym.sym == SDLK_w) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_s) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_a) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_d) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_q) {
+                x_scale *= 0.9;
+                y_scale *= 0.9;
+            } else if (key.keysym.sym == SDLK_e) {
+                x_scale *= 1.1;
+                y_scale *= 1.1;
+            }
+
+            // sleep for 1 second
+        }
+    }
+
+    void Mesh::Bplot() {
+        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+            nexit("error initializing SDL: %s\n");
+        }
+        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
+                                        SDL_WINDOWPOS_CENTERED,
+                                        SDL_WINDOWPOS_CENTERED,
+                                        2000, 2000, 0);
+            
+        // triggers the program that controls
+        // your graphics hardware and sets flags
+        Uint32 render_flags = SDL_RENDERER_ACCELERATED;
+    
+        // creates a renderer to render our images
+        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
+
+        // clears the window
+        SDL_RenderClear(rend);
+
+        // get mesh enclosing rectangle
+        double min_x = 1000000;
+        double min_y = 1000000;
+        double max_x = -1000000;
+        double max_y = -1000000;
+        for (auto v : vertices) {
+            if (v->p.x < min_x) {
+                min_x = v->p.x;
+            }
+            if (v->p.y < min_y) {
+                min_y = v->p.y;
+            }
+            if (v->p.x > max_x) {
+                max_x = v->p.x;
+            }
+            if (v->p.y > max_y) {
+                max_y = v->p.y;
+            }
+        }
+
+        // object to window ratio
+        double ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        double x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        double y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        double x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        double y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
+
+        // render
+
+        while(true){
+            // clears the window
+            SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+            SDL_RenderClear(rend);
+            // draw the points
+            for (auto v : vertices) {
+                SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+                // draw a square centered at the point
+                SDL_Rect rect;
+                rect.x = x_offset + v->p.x * x_scale - 2;
+                rect.y = y_offset + v->p.y * y_scale - 2;
+                rect.w = 4;
+                rect.h = 4;
+                SDL_RenderFillRect(rend, &rect);
+
+                for (uint16_t i = 0; i < v->adjvert_count; i++) {
+                    SDL_SetRenderDrawColor(rend, 50, 50, 0, 100);
+                    SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
+                }
+
+                // normalize B field
             }
 
             SDL_RenderPresent(rend);
@@ -265,9 +381,11 @@ namespace nikfemm {
             double mag_squared = v->p.x * v->p.x + v->p.y * v->p.y;
             double scale = R_squared / mag_squared;
             // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
-            double dist = Point::distance(v->p, center);
+            double dist = geomDistance(v->p, center);
             if (dist < max_x) {
+#ifdef DEBUG_PRINT
                 printf("kelvin transform too large\n");
+#endif
                 v->p = v->p * ((radius * max_radius_coeff) / dist);
             } else {
                 v->p = v->p * scale;
@@ -419,7 +537,7 @@ namespace nikfemm {
 
         for (uint64_t i = 0; i < vertices.size(); i++) {
             Vertex* v = vertices[i];
-            double dist = Point::distance(v->p, center);
+            double dist = geomDistance(v->p, center);
             if (dist > dist1) {
                 dist3 = dist2;
                 index3 = index2;
@@ -444,10 +562,14 @@ namespace nikfemm {
             if (e.n == index1 || e.n == index2 || e.n == index3 || e.m == index1 || e.m == index2 || e.m == index3) {
                 if (e.n == e.m) {
                     e.val = 1;
+#ifdef DEBUG_PRINT
                     printf("Dirichlet boundary condition on FEM matrix element %lu %lu (element is on the diagonal)\n", e.m, e.n);
+#endif
                 } else {
                     e.val = 0;
+#ifdef DEBUG_PRINT
                     printf("Dirichlet boundary condition on FEM matrix element %lu %lu\n", e.m, e.n);
+#endif
                 }
 
                 /*
@@ -469,7 +591,9 @@ namespace nikfemm {
             (*it)->id = i;
             i++;
         }
+#ifdef DEBUG_PRINT
         printf("Enumerated %lu vertices\n", i);
+#endif
     }
 
     void Mesh::getFemMatrix(MatCOO &coo) {
@@ -505,21 +629,25 @@ namespace nikfemm {
                     nexit("Less than two opposite vertices found");
                 }
                 // get angle v-opp_v1-adj_v
-                double angle1 = Point::angle(v->p, opp_v1->p, adj_v->p);
-                printf ("angle1 = %f\n", angle1);
+                double angle1 = geomAngle(v->p, opp_v1->p, adj_v->p);
                 // get angle v-opp_v2-adj_v
-                double angle2 = Point::angle(v->p, opp_v2->p, adj_v->p);
-                printf ("angle2 = %f\n", angle2);
+                double angle2 = geomAngle(v->p, opp_v2->p, adj_v->p);
                 double w = 0.5 * (1 / tan(angle1) + 1 / tan(angle2));
+#ifdef DEBUG_PRINT
+                printf ("angle1 = %f\n", angle1);
+                printf ("angle2 = %f\n", angle2);
                 printf ("w = %f\n", w);
+#endif
                 // add the coefficient to the matrix
                 coo.add_elem(v->id, adj_v->id, w);
                 sum += w;
             }
+#ifdef DEBUG_PRINT
             printf("sum = %f\n", sum);
+            printf("------------------------------------------------------------\n");
+#endif
             // add the coefficient to the matrix
             coo.add_elem(v->id, v->id, sum);
-            printf("------------------------------------------------------------\n");
         }
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
@@ -527,18 +655,60 @@ namespace nikfemm {
 
     void Mesh::getCoefficientVector(CV &b) {
         for (auto v : vertices) {
-            uint8_t N = v->adjmu_r_count;
+            uint8_t N = v->adjmuj_count;
             double mu_r = 0;
             for (uint8_t i = 0; i < N; i++) {
-                mu_r += v->adjmu_r[i];
+                mu_r += v->adjmuj[i];
+#ifdef DEBUG_PRINT
                 printf("%f ", v->adjmu_r[i]);
+#endif
             }
             mu_r /= N;
+#ifdef DEBUG_PRINT
             printf("\nmu_r = %f\n", mu_r);
-            v->mu_r = mu_r;
+#endif
+            v->muj = mu_r;
             // find area of the cell centered at v
             double area = v->cellArea();
             b[v->id] = mu_r * area;
+        }
+    }
+
+    void Mesh::setField(CV &x) {
+        for (auto v : vertices) {
+            v->A = x[v->id];
+        }
+    }
+
+    void Mesh::computeCurl() {
+        for (auto v : vertices) {
+            double sum = 0;
+            for (uint8_t i = 0; i < v->adjvert_count; i++) {
+                printf("%lu,", v->adjvert[i]->id);
+            }
+            uint8_t N = v->adjvert_count;
+            cv::Mat S = cv::Mat(N, 5, CV_64F);
+            cv::Mat b = cv::Mat(N, 1, CV_64F);
+            double xi = v->p.x;
+            double yi = v->p.y;
+            for (uint8_t i = 0; i < N; i++) {
+                double xj = v->adjvert[i]->p.x;
+                double yj = v->adjvert[i]->p.y;
+
+                double xjmxi = xj - xi;
+                double yjmyi = yj - xi;
+
+                S.at<double>(i, 0) = xjmxi;
+                S.at<double>(i, 1) = yjmyi;
+                S.at<double>(i, 2) = xjmxi * yjmyi;
+                S.at<double>(i, 3) = xjmxi * xjmxi * 0.5;
+                S.at<double>(i, 4) = yjmyi * yjmyi * 0.5;
+
+                b.at<double>(i, 0) = v->adjvert[i]->A - v->A;
+            }
+            cv::invert(S, S, cv::DECOMP_SVD);
+            b = S * b;
+            v->B = {b.at<double>(0, 0), b.at<double>(1, 0)};
         }
     }
 }
