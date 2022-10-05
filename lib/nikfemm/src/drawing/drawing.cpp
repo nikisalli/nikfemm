@@ -12,8 +12,7 @@
 
 namespace nikfemm {
     Drawing::Drawing() {
-        // add default regions
-        region_map[BOUNDARY_REGION] = 0;
+
     }
 
     Drawing::~Drawing() {
@@ -75,19 +74,26 @@ namespace nikfemm {
 
     uint64_t Drawing::getRegionId(double val) {
         if (region_map.find(val) == region_map.end()) {
-            region_map[val] = regions.size();
-            regions.push_back(DrawingRegion(Point(0, 0), val));
+            region_map[val] = region_map.size();
+            // printf("region %f has id %lu\n", val, region_map[val]);
         }
         return region_map[val];
     }
 
     double Drawing::getRegionFromId(uint64_t id) {
-        return regions[id].second;
+        for (auto it = region_map.begin(); it != region_map.end(); it++) {
+            if (it->second == id) {
+                return it->first;
+            }
+        }
+        nexit("Error: region id not found");
+        // unreachable
+        return -1;
     }
 
     void Drawing::drawRegion(Point p, double val) {
         uint64_t region_id = getRegionId(val);
-        regions.push_back(DrawingRegion(p, val));
+        regions.push_back(DrawingRegion(p, region_id));
     }
 
     void Drawing::drawSegment(Point p1, Point p2) {

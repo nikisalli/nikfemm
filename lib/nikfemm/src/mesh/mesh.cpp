@@ -213,6 +213,7 @@ namespace nikfemm {
             // draw the points
             uint64_t i = 0;
             for (auto v : vertices) {
+                /*
                 SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
                 // draw a square centered at the point
                 SDL_Rect rect;
@@ -226,6 +227,7 @@ namespace nikfemm {
                 for (uint16_t i = 0; i < v->adjvert_count; i++) {
                     // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
                 }
+                */
 
                 if (geomDistance(v->p, Point(0, 0)) > radius * 2) {
                     continue;
@@ -531,16 +533,18 @@ namespace nikfemm {
         i = 0;
 
         for (auto r : drawing.regions) {
+            // printf("adding region %f %f %lu\n", r.first.x, r.first.y, r.second);
             in.regionlist[4 * i] = r.first.x;
             in.regionlist[4 * i + 1] = r.first.y;
             in.regionlist[4 * i + 2] = r.second;
             in.regionlist[4 * i + 3] = 0;
             i++;
         }
+        // printf("----------------------\n");
 
         out.pointlist = (TRI_REAL*)NULL;
 
-        char switches[] = "pzq20AQa0.004";
+        char switches[] = "pzq20AQa6";
 
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */
@@ -594,9 +598,10 @@ namespace nikfemm {
             // v2->addAdjacentMu(out.triangleattributelist[i]);
             // v3->addAdjacentMu(out.triangleattributelist[i]);
 
-            v1->addAdjacentMu(drawing.getRegionFromId(out.triangleattributelist[i]));
-            v2->addAdjacentMu(drawing.getRegionFromId(out.triangleattributelist[i]));
-            v3->addAdjacentMu(drawing.getRegionFromId(out.triangleattributelist[i]));
+            double reg_val = drawing.getRegionFromId(out.triangleattributelist[i]);
+            v1->addAdjacentMu(reg_val);
+            v2->addAdjacentMu(reg_val);
+            v3->addAdjacentMu(reg_val);
         }
 
         // sort boundary vertices
@@ -769,7 +774,7 @@ namespace nikfemm {
             }
         }*/
 
-        plot();
+        // plot();
     }
 
     void Mesh::addDirichletBoundaryConditions(MatCOO &coo, CV &b) {

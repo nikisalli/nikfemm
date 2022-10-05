@@ -17,7 +17,7 @@
 #include "../geometry/circle.hpp"
 #include "../mesh/vertex.hpp"
 
-#define BOUNDARY_REGION 0
+#define BOUNDARY_REGION 0.0f
 
 namespace nikfemm {
     typedef std::pair<Point, uint64_t> DrawingRegion;

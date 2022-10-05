@@ -60,7 +60,9 @@ namespace nikfemm {
         mesh.center = boundary_circle.center;
         auto start = std::chrono::high_resolution_clock::now();
         mesh.mesh(drawing);
+#ifdef DEBUG_PRINT
         mesh.plot();
+#endif
         mesh.addKelvinBoundaryConditions();
         // mesh.plot();
         mesh.enumerateVertices();
@@ -77,9 +79,9 @@ namespace nikfemm {
 
         MatCSR csr(coo);
 
+#ifdef DEBUG_PRINT
         csr.write_to_file("A");
         b.write_to_file("b");
-#ifdef DEBUG_PRINT
         // csr.print();
         coo.plot();
         x.print();
