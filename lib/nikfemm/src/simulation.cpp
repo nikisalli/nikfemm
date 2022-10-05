@@ -7,11 +7,11 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <iterator>
+#include <set>
 
 #include <constants.hpp>
 #include <simulation.hpp>
 
-#include "drawing/drawing_region.hpp"
 #include "drawing/drawing.hpp"
 #include "geometry/segment.hpp"
 #include "geometry/point.hpp"
@@ -42,9 +42,9 @@ namespace nikfemm {
         for (uint64_t i = 0; i < drawing.points.size(); i++) {
             drawing.points[i] = Point(drawing.points[i].x - smallest_circle.center.x, drawing.points[i].y - smallest_circle.center.y);
         }
-        std::unordered_set<DrawingRegion> translated_regions;
+        std::vector<DrawingRegion> translated_regions;
         for (DrawingRegion region : drawing.regions) {
-            translated_regions.insert(DrawingRegion(Point(region.p.x - smallest_circle.center.x, region.p.y - smallest_circle.center.y), region.region_attribute));
+            translated_regions.push_back(DrawingRegion(Point(region.first.x - smallest_circle.center.x, region.first.y - smallest_circle.center.y), region.second));
         }
         drawing.regions = translated_regions;
         // set simulation offset and boundary radius
@@ -80,7 +80,7 @@ namespace nikfemm {
         csr.write_to_file("A");
         b.write_to_file("b");
 #ifdef DEBUG_PRINT
-        csr.print();
+        // csr.print();
         coo.plot();
         x.print();
         b.print();
@@ -91,9 +91,11 @@ namespace nikfemm {
         }
 #endif
 
-        csr.conjugateGradientSolve(b, x, 1e-8, 1000);
+        csr.conjugateGradientSolve(b, x, 1e-7, 1000);
 
         mesh.setField(x);
+        mesh.computeCurl();
+        mesh.Aplot();
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 

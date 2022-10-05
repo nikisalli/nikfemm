@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <algorithm>
 
 #include "vertex.hpp"
 #include "../geometry/geometry_common.hpp"
@@ -52,6 +53,8 @@ namespace nikfemm {
     double Vertex::cellArea() {
         // sum of areas of triangles formed by vertex and adjacent vertices divided by 3
         double area = 0;
+        // we know that the vertex is the center of the cell, use it to sort the adjacent vertices
+        std::sort(adjvert, adjvert + adjvert_count, atanCompare(p));
         for (int i = 0; i < adjvert_count; i++) {
             area += geomArea(adjvert[i]->p, adjvert[(i + 1) % adjvert_count]->p, p);
         }

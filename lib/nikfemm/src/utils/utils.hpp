@@ -4,16 +4,27 @@
 #include <string>   
 #include <iostream>
 
-namespace nikfemm {
-    struct vec2 {
-        double x, y;
-    };
+#include "SDL2/SDL.h"
 
-    struct vec3 {
-        double x, y, z;
+#include "../geometry/point.hpp"
+
+namespace nikfemm {
+    class PolygonShape {
+        public:
+            PolygonShape(std::vector<SDL_Point> vertices);
+            ~PolygonShape();
+            SDL_Point GetCenter(void);  
+            SDL_Point * GetVertices(void);
+            int GetNumberOfVertices(void);
+        private:
+            SDL_Point * vertices;
+            SDL_Point center;
+            int length;
     };
 
     void nexit(std::string message);
+    SDL_Color val2jet(double v, double vmin, double vmax);
+    bool DrawFilledPolygon(SDL_Renderer* rend, PolygonShape poly, const SDL_Color color);
 }
 
 #endif

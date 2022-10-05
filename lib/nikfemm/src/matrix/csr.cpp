@@ -120,6 +120,7 @@ namespace nikfemm {
             double pAp = CV::dot(p, Ap);
             if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
                 pAp = std::numeric_limits<double>::epsilon();
+                printf("warning: pAp is zero. approximating with epsilon");
             }
             double alpha = rTr / pAp;
             // printf("alpha: %.1f\n", alpha);

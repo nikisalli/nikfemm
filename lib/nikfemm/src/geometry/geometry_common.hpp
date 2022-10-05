@@ -16,7 +16,14 @@ namespace nikfemm {
 
     inline double geomAngle(Point a, Point b, Point c) {
         // safe angle calculation
-        return fabs(atan2(c.y - b.y, c.x - b.x) - atan2(a.y - b.y, a.x - b.x));
+        double ax = a.x - b.x;
+        double ay = a.y - b.y;
+        double bx = c.x - b.x;
+        double by = c.y - b.y;
+        double dot = ax * bx + ay * by;
+        double det = ax * by - ay * bx;
+        double angle = fabs(atan2(det, dot));
+        return angle;
     }
 
     inline double geomArea(Point a, Point b, Point c) {

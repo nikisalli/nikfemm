@@ -12,7 +12,8 @@
 
 namespace nikfemm {
     Drawing::Drawing() {
-        
+        // add default regions
+        region_map[BOUNDARY_REGION] = 0;
     }
 
     Drawing::~Drawing() {
@@ -72,12 +73,21 @@ namespace nikfemm {
         }
     }
 
-    void Drawing::drawRegion(Point p, uint32_t region_attribute) {
-        regions.insert(DrawingRegion(p, region_attribute));
+    uint64_t Drawing::getRegionId(double val) {
+        if (region_map.find(val) == region_map.end()) {
+            region_map[val] = regions.size();
+            regions.push_back(DrawingRegion(Point(0, 0), val));
+        }
+        return region_map[val];
     }
 
-    void Drawing::drawRegion(Point p, PredefinedRegion region) {
-        regions.insert(DrawingRegion(p, region.region_attribute));
+    double Drawing::getRegionFromId(uint64_t id) {
+        return regions[id].second;
+    }
+
+    void Drawing::drawRegion(Point p, double val) {
+        uint64_t region_id = getRegionId(val);
+        regions.push_back(DrawingRegion(p, val));
     }
 
     void Drawing::drawSegment(Point p1, Point p2) {
@@ -200,8 +210,8 @@ namespace nikfemm {
                 SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
                 // draw a square centered at the point
                 SDL_Rect rect;
-                rect.x = x_offset + r.p.x * x_scale - 4;
-                rect.y = y_offset + r.p.y * y_scale - 4;
+                rect.x = x_offset + r.first.x * x_scale - 4;
+                rect.y = y_offset + r.first.y * y_scale - 4;
                 rect.w = 8;
                 rect.h = 8;
                 SDL_RenderFillRect(rend, &rect);

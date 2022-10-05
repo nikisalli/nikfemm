@@ -5,21 +5,21 @@
 #include "vector.hpp"
 
 namespace nikfemm {
-    Vector::Vector(double x, double y) {
+
+    Vector::Vector(double x, double y) : Point(x, y) {
         this->x = x;
         this->y = y;
     }
 
-    Vector::Vector() {
-        this->x = 0;
-        this->y = 0;
+    Vector::Vector() : Point() {
     }
 
-    bool Vector::operator==(const Vector& v) const {
-        return (abs(x - v.x) < EPSILON) && (abs(y - v.y) < EPSILON);
+    double Vector::magnitude() {
+        return sqrt(x * x + y * y);
     }
 
-    bool Vector::operator!=(const Vector& v) const {
-        return !(*this == v);
+    Vector Vector::versor() {
+        double mag = magnitude();
+        return Vector(x / mag, y / mag);
     }
 }

@@ -6,7 +6,7 @@
 #include <cstdint>
 
 #include "../geometry/point.hpp"
-#include "../utils/utils.hpp"
+#include "../geometry/vector.hpp"
 
 namespace nikfemm {
     class Vertex {
@@ -15,7 +15,7 @@ namespace nikfemm {
             uint64_t id;
             double muj; // relative permeability * current density
             double A; // magnetic vector potential
-            vec2 B; // magnetic flux density
+            Vector B; // magnetic flux density
             Point p;
 
             Vertex* adjvert[18];

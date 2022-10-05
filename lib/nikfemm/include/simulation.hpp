@@ -12,7 +12,6 @@
 
 #include <constants.hpp>
 
-#include "../src/drawing/drawing_region.hpp"
 #include "../src/geometry/segment.hpp"
 #include "../src/geometry/circle.hpp"
 #include "../src/drawing/drawing.hpp"

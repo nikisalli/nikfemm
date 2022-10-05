@@ -24,6 +24,7 @@ namespace nikfemm {
         ~Mesh();
 
         void plot();
+        void Aplot();
         void Bplot();
         void mesh(Drawing &drawing);
         void addKelvinBoundaryConditions();

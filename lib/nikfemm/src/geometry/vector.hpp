@@ -1,18 +1,15 @@
 #ifndef NIK_VECTOR_HPP
 #define NIK_VECTOR_HPP
 
-namespace nikfemm {
-    struct Vector {
-        double x;
-        double y;
+#include "point.hpp"
 
+namespace nikfemm {
+    struct Vector : Point {
         Vector(double x, double y);
         Vector();
 
-        // == operator with epsilon
-        bool operator==(const Vector& v) const;
-        // != operator with epsilon
-        bool operator!=(const Vector& v) const;
+        double magnitude();
+        Vector versor();
     };
 }
 

@@ -50,9 +50,9 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 
     MatCSR csr(coo);
 
-    CV x = csr.conjugateGradientSolve(b, x0, 1e-6, 10);
+    csr.conjugateGradientSolve(b, x0, 1e-6, 10);
 
-    x.print();
+    x0.print();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
