@@ -98,6 +98,7 @@ namespace nikfemm {
         mesh.setField(x);
         mesh.computeCurl();
         mesh.Aplot();
+        mesh.Bplot();
 
         // report(&out, 1, 1, 0, 0, 0, 0);
 

@@ -12,7 +12,6 @@ int main(int argc, char** argv) {
 
     // drawing.drawCircle(nikfemm::Point(1, 0), 0.5, 100);
     // drawing.drawRegion(nikfemm::Point(1, 0), 1);
-
     // drawing.drawCircle(nikfemm::Point(-1, 0), 0.5, 100);
     // drawing.drawRegion(nikfemm::Point(-1, 0), -1);
 

@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include <chrono>
 #include <math.h>
+#include <set>
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_ttf.h"
@@ -160,6 +161,7 @@ namespace nikfemm {
         SDL_RenderClear(rend);
 
         // get mesh enclosing rectangle
+        /*
         double min_x = 1000000;
         double min_y = 1000000;
         double max_x = -1000000;
@@ -178,6 +180,12 @@ namespace nikfemm {
                 max_y = v->p.y;
             }
         }
+        */
+
+        double min_x = -2 * radius;
+        double min_y = -2 * radius;
+        double max_x = 2 * radius;
+        double max_y = 2 * radius;
 
         // object to window ratio
         double ratio = 0.9;
@@ -395,10 +403,11 @@ namespace nikfemm {
         SDL_RenderClear(rend);
 
         // get mesh enclosing rectangle
-        double min_x = 1000000;
-        double min_y = 1000000;
-        double max_x = -1000000;
-        double max_y = -1000000;
+        /*
+        double min_x = std::numeric_limits<double>::max();
+        double min_y = std::numeric_limits<double>::max();
+        double max_x = std::numeric_limits<double>::min();
+        double max_y = std::numeric_limits<double>::max();
         for (auto v : vertices) {
             if (v->p.x < min_x) {
                 min_x = v->p.x;
@@ -413,6 +422,12 @@ namespace nikfemm {
                 max_y = v->p.y;
             }
         }
+        */
+
+        double min_x = -2 * radius;
+        double min_y = -2 * radius;
+        double max_x = 2 * radius;
+        double max_y = 2 * radius;
 
         // object to window ratio
         double ratio = 0.9;
@@ -426,14 +441,45 @@ namespace nikfemm {
         // y offset to center mesh in window
         double y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
 
+        /*
+        double max_A = std::numeric_limits<double>::min();
+        double min_A = std::numeric_limits<double>::max();
+
+        for (auto v : vertices) {
+            double b_mod = v->B.x * v->B.x + v->B.y * v->B.y;
+            printf("bx: %f by: %f b_mod: %f\n", v->B.x, v->B.y, b_mod);
+            if (b_mod > max_A) {
+                max_A = b_mod;
+            }
+            if (b_mod < min_A) {
+                min_A = b_mod;
+            }
+        }
+
+        printf("max_A: %f min_A: %f\n", max_A, min_A);
+        */
+
+        double average_A = 0;
+        for (auto v : vertices) {
+            double b_mod = sqrt(v->B.x * v->B.x + v->B.y * v->B.y);
+            average_A += b_mod;
+        }
+
+        average_A /= vertices.size();
+        double max_A = 2 * average_A;
+        double min_A = 0;
+
         // render
 
+        uint64_t frame = 0;
         while(true){
             // clears the window
             SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
             SDL_RenderClear(rend);
             // draw the points
+            uint64_t i = 0;
             for (auto v : vertices) {
+                /*
                 SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
                 // draw a square centered at the point
                 SDL_Rect rect;
@@ -443,14 +489,98 @@ namespace nikfemm {
                 rect.h = 4;
                 SDL_RenderFillRect(rend, &rect);
 
+                SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
                 for (uint16_t i = 0; i < v->adjvert_count; i++) {
-                    SDL_SetRenderDrawColor(rend, 50, 50, 0, 100);
-                    SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
+                    // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
+                }
+                */
+
+                if (geomDistance(v->p, Point(0, 0)) > radius * 2) {
+                    continue;
                 }
 
-                // draw arrow for B field
-                SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
-                SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->p.x * x_scale + v->B.versor().x * 10, y_offset + v->p.y * y_scale + v->B.versor().y * 10);
+                // verts
+                auto points = std::vector<SDL_Vertex>();
+                points.reserve(v->adjvert_count);
+
+                // fill the vertex cell with jet color of the vertex
+                double B_mod = sqrt(v->B.x * v->B.x + v->B.y * v->B.y);
+                SDL_Color c = val2jet(B_mod, min_A, max_A);
+                // printf("A: %f, c: %d, %d, %d\n", v->A, c.r, c.g, c.b);
+                                
+                // find the triangles that contain the vertex and then
+                // for every triangle find the barycenter and add it to the points vector
+                for (uint8_t i = 0; i < v->adjvert_count; i++) {
+                    for (uint8_t j = 0; j < v->adjvert[i]->adjvert_count; j++) {
+                        if (v->adjvert[i]->adjvert[j] == v) {
+                            continue;
+                        }
+                        for (uint8_t k = 0; k < v->adjvert[i]->adjvert[j]->adjvert_count; k++) {
+                            if (v->adjvert[i]->adjvert[j]->adjvert[k] == v) {
+                                SDL_Vertex new_v;
+                                Point barycenter = {
+                                    (v->p.x + v->adjvert[i]->p.x + v->adjvert[i]->adjvert[j]->p.x) / 3,
+                                    (v->p.y + v->adjvert[i]->p.y + v->adjvert[i]->adjvert[j]->p.y) / 3
+                                };
+                                new_v.position.x = x_offset + barycenter.x * x_scale;
+                                new_v.position.y = y_offset + barycenter.y * y_scale;
+                                new_v.color = c;
+                                // check if already in points
+                                bool already_in = false;
+                                for (auto p : points) {
+                                    if (p.position.x == new_v.position.x && p.position.y == new_v.position.y) {
+                                        already_in = true;
+                                        break;
+                                    }
+                                }
+                                if (already_in) {
+                                    continue;
+                                }
+                                points.push_back(new_v);
+                            }
+                        }
+                    }
+                }
+                
+                // find the center of the points
+                SDL_FPoint center = {0, 0};
+                for (uint8_t i = 0; i < points.size(); i++) {
+                    center.x += points[i].position.x;
+                    center.y += points[i].position.y;
+                }
+                // printf("count: %d\n", points.size());
+                center.x /= points.size();
+                center.y /= points.size();
+                // printf("center: %d %d\n", center.x, center.y);
+
+                // sort the points by angle
+                std::sort(points.begin(), points.end(), [center](SDL_Vertex a, SDL_Vertex b) {
+                    return atan2(a.position.y - center.y, a.position.x - center.x) < atan2(b.position.y - center.y, b.position.x - center.x);
+                });
+
+                // print the points
+                /*
+                for (uint8_t i = 0; i < points.size(); i++) {
+                    printf("%f %f\n", points[i].position.x, points[i].position.y);
+                }
+                */
+
+                SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+                for (uint8_t i = 0; i < points.size(); i++) {
+                    SDL_Vertex v1 = points[i];
+                    SDL_Vertex v2 = points[(i + 1) % points.size()];
+                    // draw triangle between center and two points
+                    SDL_Vertex verts[3] = {
+                        {center.x, center.y, c.r, c.g, c.b, c.a},
+                        {v1.position.x, v1.position.y, c.r, c.g, c.b, c.a},
+                        {v2.position.x, v2.position.y, c.r, c.g, c.b, c.a}
+                    };
+                    SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
+                }
+                if (i == frame) {
+                    // break;
+                }
+                i++;
             }
 
             SDL_RenderPresent(rend);
@@ -489,6 +619,31 @@ namespace nikfemm {
             } else if (key.keysym.sym == SDLK_e) {
                 x_scale *= 1.1;
                 y_scale *= 1.1;
+            } else if (key.keysym.sym == SDLK_r) {
+                x_scale = 1;
+                y_scale = 1;
+                x_offset = 0;
+                y_offset = 0;
+            } else if (key.keysym.sym == SDLK_SPACE) {
+                frame++;
+                printf("frame: %d\n", frame);
+                Vertex* v = vertices[frame];
+                SDL_Color c = val2jet(v->A, min_A, max_A);
+                printf("A: %f %d %d %d\n", v->A, c.r, c.g, c.b);
+            } else if (key.keysym.sym == SDLK_BACKSPACE) {
+                frame--;
+                printf("frame: %d\n", frame);
+                Vertex* v = vertices[frame];
+                SDL_Color c = val2jet(v->A, min_A, max_A);
+                printf("A: %f %d %d %d\n", v->A, c.r, c.g, c.b);
+            } else if (key.keysym.sym == SDLK_f) {
+                max_A += 0.1;
+            } else if (key.keysym.sym == SDLK_v) {
+                max_A -= 0.1;
+            } else if (key.keysym.sym == SDLK_g) {
+                min_A += 0.1;
+            } else if (key.keysym.sym == SDLK_b) {
+                min_A -= 0.1;
             }
 
             // sleep for 1 second
@@ -544,7 +699,7 @@ namespace nikfemm {
 
         out.pointlist = (TRI_REAL*)NULL;
 
-        char switches[] = "pzq20AQa6";
+        char switches[] = "pzq20AQa0.01";
 
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */
@@ -933,17 +1088,33 @@ namespace nikfemm {
 
     void Mesh::computeCurl() {
         for (auto v : vertices) {
-            uint8_t N = v->adjvert_count;
+            // find the vertices and their neighbors that are adjacent to v
+            std::set<Vertex*> adjverts;
+            for (uint8_t i = 0; i < v->adjvert_count; i++) {
+                Vertex* adj_v = v->adjvert[i];
+                adjverts.insert(adj_v);
+                for (uint8_t j = 0; j < adj_v->adjvert_count; j++) {
+                    Vertex* adj_adj_v = adj_v->adjvert[j];
+                    if (adj_adj_v != v) {
+                        adjverts.insert(adj_adj_v);
+                    }
+                }
+            }
+
+            uint8_t N = adjverts.size();
             cv::Mat S = cv::Mat(N, 5, CV_64F);
             cv::Mat b = cv::Mat(N, 1, CV_64F);
             double xi = v->p.x;
             double yi = v->p.y;
-            for (uint8_t i = 0; i < N; i++) {
-                double xj = v->adjvert[i]->p.x;
-                double yj = v->adjvert[i]->p.y;
+            printf("xi = %f, yi = %f\n", xi, yi);
+            uint64_t i = 0;
+            for (auto vj : adjverts) {
+                double xj = vj->p.x;
+                double yj = vj->p.y;
 
                 double xjmxi = xj - xi;
-                double yjmyi = yj - xi;
+                double yjmyi = yj - yi;
+                printf("xj = %f, yj = %f - {%f, %f, %f}\n", xj, yj, xjmxi, yjmyi, vj->A - v->A);
 
                 S.at<double>(i, 0) = xjmxi;
                 S.at<double>(i, 1) = yjmyi;
@@ -951,11 +1122,19 @@ namespace nikfemm {
                 S.at<double>(i, 3) = xjmxi * xjmxi * 0.5;
                 S.at<double>(i, 4) = yjmyi * yjmyi * 0.5;
 
-                b.at<double>(i, 0) = v->adjvert[i]->A - v->A;
+                b.at<double>(i, 0) = vj->A - v->A;
+                i++;
             }
+            // std::cout << S << std::endl;
+            // std::cout << b << std::endl;
             cv::invert(S, S, cv::DECOMP_SVD);
-            b = S * b;
-            v->B = {b.at<double>(0, 0), b.at<double>(1, 0)};
+            cv::Mat x = S * b;
+            // x contains the coefficients of the polynomial in the following order:
+            // ax + by + cxy + dx^2 + ey^2
+            // the gradient of the polynomial in 0, 0 is a, b
+            v->B.x = x.at<double>(1, 0);
+            v->B.y = - x.at<double>(0, 0);
+            printf("B = {%f, %f}\n", -v->B.y, v->B.x);
         }
     }
 }
