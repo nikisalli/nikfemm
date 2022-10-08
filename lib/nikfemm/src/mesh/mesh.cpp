@@ -441,13 +441,13 @@ namespace nikfemm {
         // y offset to center mesh in window
         double y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
 
-        /*
+        
         double max_A = std::numeric_limits<double>::min();
         double min_A = std::numeric_limits<double>::max();
 
         for (auto v : vertices) {
-            double b_mod = v->B.x * v->B.x + v->B.y * v->B.y;
-            printf("bx: %f by: %f b_mod: %f\n", v->B.x, v->B.y, b_mod);
+            double b_mod = sqrt(v->B.x * v->B.x + v->B.y * v->B.y);
+            // printf("bx: %f by: %f b_mod: %f\n", v->B.x, v->B.y, b_mod);
             if (b_mod > max_A) {
                 max_A = b_mod;
             }
@@ -456,9 +456,10 @@ namespace nikfemm {
             }
         }
 
-        printf("max_A: %f min_A: %f\n", max_A, min_A);
-        */
+        // printf("max_A: %f min_A: %f\n", max_A, min_A);
+        
 
+        /*
         double average_A = 0;
         for (auto v : vertices) {
             double b_mod = sqrt(v->B.x * v->B.x + v->B.y * v->B.y);
@@ -468,6 +469,7 @@ namespace nikfemm {
         average_A /= vertices.size();
         double max_A = 2 * average_A;
         double min_A = 0;
+        */
 
         // render
 
@@ -1106,7 +1108,7 @@ namespace nikfemm {
             cv::Mat b = cv::Mat(N, 1, CV_64F);
             double xi = v->p.x;
             double yi = v->p.y;
-            printf("xi = %f, yi = %f\n", xi, yi);
+            // printf("xi = %f, yi = %f\n", xi, yi);
             uint64_t i = 0;
             for (auto vj : adjverts) {
                 double xj = vj->p.x;
@@ -1114,7 +1116,7 @@ namespace nikfemm {
 
                 double xjmxi = xj - xi;
                 double yjmyi = yj - yi;
-                printf("xj = %f, yj = %f - {%f, %f, %f}\n", xj, yj, xjmxi, yjmyi, vj->A - v->A);
+                // printf("xj = %f, yj = %f - {%f, %f, %f}\n", xj, yj, xjmxi, yjmyi, vj->A - v->A);
 
                 S.at<double>(i, 0) = xjmxi;
                 S.at<double>(i, 1) = yjmyi;
@@ -1134,7 +1136,7 @@ namespace nikfemm {
             // the gradient of the polynomial in 0, 0 is a, b
             v->B.x = x.at<double>(1, 0);
             v->B.y = - x.at<double>(0, 0);
-            printf("B = {%f, %f}\n", -v->B.y, v->B.x);
+            // printf("B = {%f, %f}\n", -v->B.y, v->B.x);
         }
     }
 }
