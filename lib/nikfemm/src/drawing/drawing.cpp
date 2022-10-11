@@ -128,14 +128,6 @@ namespace nikfemm {
         drawSegment(s.p1, s.p2);
     }
 
-    void Drawing::drawSegment(const Vertex& v1, const Vertex& v2) {
-        drawSegment(v1.p, v2.p);
-    }
-
-    void Drawing::drawSegment(const Vertex* v1, const Vertex* v2) {
-        drawSegment(v1->p, v2->p);
-    }
-
     void Drawing::plot() {
         // draw the mesh
         // returns zero on success else non-zero

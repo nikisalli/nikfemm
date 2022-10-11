@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <constants.hpp>
+#include "../constants.hpp"
 
 namespace nikfemm {
     class Point {

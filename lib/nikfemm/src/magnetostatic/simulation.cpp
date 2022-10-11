@@ -9,16 +9,15 @@
 #include <iterator>
 #include <set>
 
-#include <constants.hpp>
-#include <simulation.hpp>
+#include "../constants.hpp"
+#include "simulation.hpp"
+#include "../drawing/drawing.hpp"
+#include "../geometry/segment.hpp"
+#include "../geometry/point.hpp"
 
-#include "drawing/drawing.hpp"
-#include "geometry/segment.hpp"
-#include "geometry/point.hpp"
-
-#include "matrix/coo.hpp"
-#include "matrix/csr.hpp"
-#include "matrix/simple_vector.hpp"
+#include "../algebra/coo.hpp"
+#include "../algebra/csr.hpp"
+#include "../algebra/simple_vector.hpp"
 
 namespace nikfemm {
     Simulation::Simulation() {
@@ -69,8 +68,7 @@ namespace nikfemm {
         MatCOO coo;
         CV b(mesh.vertices.size());
         CV x(mesh.vertices.size());
-        mesh.getFemMatrix(coo);
-        mesh.getCoefficientVector(b);
+        mesh.getFemSystem(coo, b);
         mesh.addDirichletBoundaryConditions(coo, b);
 
 #ifdef DEBUG_PRINT

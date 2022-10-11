@@ -6,12 +6,12 @@
 
 namespace nikfemm {
     CV::CV(uint64_t size) {
-        val = (double*) calloc(size, sizeof(double));
+        val.reserve(size);
         m = size;
     }
-    
+
     CV::~CV() {
-        free(val);
+
     }
 
     void CV::print() {

@@ -13,10 +13,12 @@ namespace nikfemm {
         public:
             /* properties */
             uint64_t id;
-            double muj; // relative permeability * current density
+            double mu; // permeability
+            double J; // current density
+            Vector M; // magnetization
             double A; // magnetic vector potential
             Vector B; // magnetic flux density
-            Point p;
+            Point p; // position
 
             Vertex* adjvert[18];
             double adjmuj[18];

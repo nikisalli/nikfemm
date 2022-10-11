@@ -11,7 +11,7 @@
 #include "../../lib/triangle/triangle.h"
 #include "../triangle/util.h"
 
-#include <constants.hpp>
+#include "../constants.hpp"
 
 #include "mesh.hpp"
 #include "../utils/utils.hpp"
@@ -809,9 +809,9 @@ namespace nikfemm {
         Drawing kelvin_drawing;
 
         // for each consecutive pair of boundary vertices, add a segment
-        kelvin_drawing.drawSegment(*(boundary_vertices.end() - 1), *(boundary_vertices.begin()));
+        kelvin_drawing.drawSegment((*(boundary_vertices.end() - 1))->p, (*(boundary_vertices.begin()))->p);
         for (uint64_t i = 0; i < boundary_vertices.size() - 1; i++) {
-            kelvin_drawing.drawSegment(*(boundary_vertices.begin() + i), *(boundary_vertices.begin() + i + 1));
+            kelvin_drawing.drawSegment((*(boundary_vertices.begin() + i))->p, (*(boundary_vertices.begin() + i + 1))->p);
         }
         kelvin_drawing.drawRegion(Point(0, 0), BOUNDARY_REGION);
 
@@ -1000,7 +1000,7 @@ namespace nikfemm {
 #endif
     }
 
-    void Mesh::getFemMatrix(MatCOO &coo) {
+    void Mesh::getFemSystem(MatCOO &coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
         uint64_t num = 0;
         for (auto v : vertices) {
@@ -1057,29 +1057,29 @@ namespace nikfemm {
             coo.add_elem(v->id, v->id, -sum);
             num++;
         }
-        auto end = std::chrono::high_resolution_clock::now();
-        std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
-    }
 
-    void Mesh::getCoefficientVector(CV &b) {
+        // get the b vector
         for (auto v : vertices) {
             uint8_t N = v->adjmuj_count;
-            double mu_r = 0;
+            double mu = 0;
             for (uint8_t i = 0; i < N; i++) {
-                mu_r += v->adjmuj[i];
+                mu += v->adjmuj[i];
 #ifdef DEBUG_PRINT
                 printf("%f ", v->adjmuj[i]);
 #endif
             }
-            mu_r /= N;
+            mu /= N;
 #ifdef DEBUG_PRINT
             printf("\nmu_r = %f\n", mu_r);
 #endif
-            v->muj = mu_r;
+            v->mu = mu;
             // find area of the cell centered at v
             double area = v->cellArea();
-            b[v->id] = mu_r * area;
+            b[v->id] = mu * area;
         }
+
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
     }
 
     void Mesh::setField(CV &x) {

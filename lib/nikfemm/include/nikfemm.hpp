@@ -1,1 +1,1 @@
-#include <simulation.hpp>
+#include "../src/magnetostatic/simulation.hpp"

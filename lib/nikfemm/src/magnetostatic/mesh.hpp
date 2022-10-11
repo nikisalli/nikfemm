@@ -6,9 +6,9 @@
 
 #include "../drawing/drawing.hpp"
 #include "vertex.hpp"
-#include "../matrix/simple_vector.hpp"
-#include "../matrix/csr.hpp"
-#include "../matrix/coo.hpp"
+#include "../algebra/simple_vector.hpp"
+#include "../algebra/csr.hpp"
+#include "../algebra/coo.hpp"
 #include "../utils/utils.hpp"
 
 
@@ -31,8 +31,7 @@ namespace nikfemm {
         void addDirichletBoundaryConditions(MatCOO &coo, CV &b);
         void kelvinTransformCentered();
         void enumerateVertices();
-        void getFemMatrix(MatCOO &coo);
-        void getCoefficientVector(CV &b);
+        void getFemSystem(MatCOO &coo, CV &b);
         void setField(CV &x);
         void computeCurl();
     };

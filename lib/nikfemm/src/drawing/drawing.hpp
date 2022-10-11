@@ -15,7 +15,6 @@
 #include "drawing_segment.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/circle.hpp"
-#include "../mesh/vertex.hpp"
 
 #define BOUNDARY_REGION 0.0f
 
@@ -42,8 +41,6 @@ namespace nikfemm {
             void drawRegion(Point p, double val);
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
-            void drawSegment(const Vertex &v1, const Vertex &v2);
-            void drawSegment(const Vertex *v1, const Vertex *v2);
             double getRegionFromId(uint64_t id);
             uint64_t getRegionId(double val);
         
