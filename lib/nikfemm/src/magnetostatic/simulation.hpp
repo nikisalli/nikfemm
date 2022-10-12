@@ -9,25 +9,27 @@
 
 #include "../../lib/triangle/triangle.h"
 #include "../../src/triangle/util.h"
-
 #include "../constants.hpp"
-
 #include "../geometry/segment.hpp"
 #include "../geometry/circle.hpp"
 #include "../drawing/drawing.hpp"
 #include "../magnetostatic/mesh.hpp"
+#include "mesh.hpp"
+
 
 namespace nikfemm {
-    class Simulation {
+    class MagnetostaticSimulation {
         protected:
             Mesh mesh;
         
         public:
-            Simulation();
-            ~Simulation();
+            Drawing<MagnetostaticProp> drawing;
+
+            MagnetostaticSimulation();
+            ~MagnetostaticSimulation();
 
             /* meshing */
-            void generateMesh(Drawing drawing);
+            void generateMesh();
     };
 }
 

@@ -17,6 +17,52 @@
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
+    // for sorting
+    bool MagnetostaticProp::operator==(const MagnetostaticProp& other) const {
+        return mu == other.mu && J == other.J && M == other.M && A == other.A && B == other.B;
+    }
+
+    // for sorting
+    bool MagnetostaticProp::operator!=(const MagnetostaticProp& other) const {
+        return !(*this == other);
+    }
+
+    // for sorting
+    bool MagnetostaticProp::operator<(const MagnetostaticProp& other) const {
+        if (mu < other.mu) {
+            return true;
+        } else if (mu > other.mu) {
+            return false;
+        } else if (J < other.J) {
+            return true;
+        } else if (J > other.J) {
+            return false;
+        } else if (M.x < other.M.x) {
+            return true;
+        } else if (M.x > other.M.x) {
+            return false;
+        } else if (M.y < other.M.y) {
+            return true;
+        } else if (M.y > other.M.y) {
+            return false;
+        } else if (A < other.A) {
+            return true;
+        } else if (A > other.A) {
+            return false;
+        } else if (B.x < other.B.x) {
+            return true;
+        } else if (B.x > other.B.x) {
+            return false;
+        } else if (B.y < other.B.y) {
+            return true;
+        } else if (B.y > other.B.y) {
+            return false;
+        } else {
+            return false;
+        }
+    }
+
+
     Mesh::Mesh() {
         
     }
@@ -203,11 +249,11 @@ namespace nikfemm {
         double min_A = std::numeric_limits<double>::max();
 
         for (auto v : vertices) {
-            if (v->A > max_A) {
-                max_A = v->A;
+            if (v->prop.A > max_A) {
+                max_A = v->prop.A;
             }
-            if (v->A < min_A) {
-                min_A = v->A;
+            if (v->prop.A < min_A) {
+                min_A = v->prop.A;
             }
         }
 
@@ -245,11 +291,11 @@ namespace nikfemm {
                 auto points = std::vector<SDL_Vertex>();
                 points.reserve(v->adjvert_count);
 
-                // fill the vertex cell with jet color of the vertex
-                SDL_Color c = val2jet(v->A, min_A, max_A);
+                // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
+                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
                 // printf("A: %f, c: %d, %d, %d\n", v->A, c.r, c.g, c.b);
                                 
-                // find the triangles that contain the vertex and then
+                // find the triangles that contain the Vertex<MagnetostaticProp> and then
                 // for every triangle find the barycenter and add it to the points vector
                 for (uint8_t i = 0; i < v->adjvert_count; i++) {
                     for (uint8_t j = 0; j < v->adjvert[i]->adjvert_count; j++) {
@@ -368,15 +414,15 @@ namespace nikfemm {
             } else if (key.keysym.sym == SDLK_SPACE) {
                 frame++;
                 printf("frame: %d\n", frame);
-                Vertex* v = vertices[frame];
-                SDL_Color c = val2jet(v->A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->A, c.r, c.g, c.b);
+                Vertex<MagnetostaticProp>* v = vertices[frame];
+                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
+                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
             } else if (key.keysym.sym == SDLK_BACKSPACE) {
                 frame--;
                 printf("frame: %d\n", frame);
-                Vertex* v = vertices[frame];
-                SDL_Color c = val2jet(v->A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->A, c.r, c.g, c.b);
+                Vertex<MagnetostaticProp>* v = vertices[frame];
+                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
+                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
             }
 
             // sleep for 1 second
@@ -446,7 +492,7 @@ namespace nikfemm {
         double min_A = std::numeric_limits<double>::max();
 
         for (auto v : vertices) {
-            double b_mod = sqrt(v->B.x * v->B.x + v->B.y * v->B.y);
+            double b_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
             // printf("bx: %f by: %f b_mod: %f\n", v->B.x, v->B.y, b_mod);
             if (b_mod > max_A) {
                 max_A = b_mod;
@@ -505,12 +551,12 @@ namespace nikfemm {
                 auto points = std::vector<SDL_Vertex>();
                 points.reserve(v->adjvert_count);
 
-                // fill the vertex cell with jet color of the vertex
-                double B_mod = sqrt(v->B.x * v->B.x + v->B.y * v->B.y);
+                // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
+                double B_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
                 SDL_Color c = val2jet(B_mod, min_A, max_A);
                 // printf("A: %f, c: %d, %d, %d\n", v->A, c.r, c.g, c.b);
                                 
-                // find the triangles that contain the vertex and then
+                // find the triangles that contain the Vertex<MagnetostaticProp> and then
                 // for every triangle find the barycenter and add it to the points vector
                 for (uint8_t i = 0; i < v->adjvert_count; i++) {
                     for (uint8_t j = 0; j < v->adjvert[i]->adjvert_count; j++) {
@@ -629,15 +675,15 @@ namespace nikfemm {
             } else if (key.keysym.sym == SDLK_SPACE) {
                 frame++;
                 printf("frame: %d\n", frame);
-                Vertex* v = vertices[frame];
-                SDL_Color c = val2jet(v->A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->A, c.r, c.g, c.b);
+                Vertex<MagnetostaticProp>* v = vertices[frame];
+                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
+                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
             } else if (key.keysym.sym == SDLK_BACKSPACE) {
                 frame--;
                 printf("frame: %d\n", frame);
-                Vertex* v = vertices[frame];
-                SDL_Color c = val2jet(v->A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->A, c.r, c.g, c.b);
+                Vertex<MagnetostaticProp>* v = vertices[frame];
+                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
+                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
             } else if (key.keysym.sym == SDLK_f) {
                 max_A += 0.1;
             } else if (key.keysym.sym == SDLK_v) {
@@ -652,7 +698,7 @@ namespace nikfemm {
         }
     }
 
-    void Mesh::mesh(Drawing &drawing) {
+    void Mesh::mesh(Drawing<MagnetostaticProp> &drawing) {
         triangulateio in, out;
 
         /* set up the input */
@@ -726,21 +772,21 @@ namespace nikfemm {
         vertices.reserve(out.numberofpoints);
         boundary_vertices.reserve(BOUNDARY_VERTICES);
         for (uint64_t i = 0; i < out.numberofpoints; i++) {
-            Vertex* v = new Vertex(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
+            Vertex<MagnetostaticProp>* v = new Vertex<MagnetostaticProp>(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
             vertices.push_back(v);
             if (out.pointmarkerlist[i] == 1) {
                 boundary_vertices.push_back(v);
             }
         }
-        // for each vertex in each triangle, add a point to the list
+        // for each Vertex<MagnetostaticProp> in each triangle, add a point to the list
         for (uint64_t i = 0; i < out.numberoftriangles; i++) {
             uint64_t p1 = out.trianglelist[3 * i];
             uint64_t p2 = out.trianglelist[3 * i + 1];
             uint64_t p3 = out.trianglelist[3 * i + 2];
 
-            Vertex* v1 = vertices[p1];
-            Vertex* v2 = vertices[p2];
-            Vertex* v3 = vertices[p3];
+            Vertex<MagnetostaticProp>* v1 = vertices[p1];
+            Vertex<MagnetostaticProp>* v2 = vertices[p2];
+            Vertex<MagnetostaticProp>* v3 = vertices[p3];
 
             // add vertices as neighbors of each other if they are not already
             v1->addAdjacentVertex(v2);
@@ -755,20 +801,20 @@ namespace nikfemm {
             // v2->addAdjacentMu(out.triangleattributelist[i]);
             // v3->addAdjacentMu(out.triangleattributelist[i]);
 
-            double reg_val = drawing.getRegionFromId(out.triangleattributelist[i]);
-            v1->addAdjacentMu(reg_val);
-            v2->addAdjacentMu(reg_val);
-            v3->addAdjacentMu(reg_val);
+            MagnetostaticProp reg_val = drawing.getRegionFromId(out.triangleattributelist[i]);
+            v1->addAdjacentProp(reg_val);
+            v2->addAdjacentProp(reg_val);
+            v3->addAdjacentProp(reg_val);
         }
 
         // sort boundary vertices
-        auto comparator = Vertex::atanCompare(center);
+        auto comparator = Vertex<MagnetostaticProp>::atanCompare(center);
         std::sort(boundary_vertices.begin(), boundary_vertices.end(), comparator);
         printf("Number of vertices: %lu, boundary vertices: %lu\n", vertices.size(), boundary_vertices.size());
     }
 
     void Mesh::kelvinTransformCentered() {
-        // kelvin transform each vertex in the mesh
+        // kelvin transform each Vertex<MagnetostaticProp> in the mesh
         /*
 
         x* = (R^2 / |x|^2) * x
@@ -780,7 +826,7 @@ namespace nikfemm {
         // printf("R^2 = %f\n", R_squared);
 
         for (auto it = vertices.begin(); it != vertices.end(); it++) {
-            Vertex* v = *it;
+            Vertex<MagnetostaticProp>* v = *it;
             double mag_squared = v->p.x * v->p.x + v->p.y * v->p.y;
             double scale = R_squared / mag_squared;
             // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
@@ -806,14 +852,14 @@ namespace nikfemm {
         // this mesh vertices = tmv
 
         Mesh kelvin_mesh;
-        Drawing kelvin_drawing;
+        Drawing<MagnetostaticProp> kelvin_drawing;
 
         // for each consecutive pair of boundary vertices, add a segment
         kelvin_drawing.drawSegment((*(boundary_vertices.end() - 1))->p, (*(boundary_vertices.begin()))->p);
         for (uint64_t i = 0; i < boundary_vertices.size() - 1; i++) {
             kelvin_drawing.drawSegment((*(boundary_vertices.begin() + i))->p, (*(boundary_vertices.begin() + i + 1))->p);
         }
-        kelvin_drawing.drawRegion(Point(0, 0), BOUNDARY_REGION);
+        kelvin_drawing.drawRegion(Point(0, 0), vacuum_prop);
 
         kelvin_mesh.mesh(kelvin_drawing);
         kelvin_mesh.center = Point(0, 0);
@@ -830,9 +876,9 @@ namespace nikfemm {
 
         // add kelvin mesh vertices to this mesh
         for (uint64 i = 0; i < kelvin_mesh.vertices.size(); i++) {
-            Vertex* kmv = kelvin_mesh.vertices[i];
+            Vertex<MagnetostaticProp>* kmv = kelvin_mesh.vertices[i];
             for (uint64_t j = 0; j < boundary_vertices.size(); j++) {
-                Vertex* tmb = boundary_vertices[j];
+                Vertex<MagnetostaticProp>* tmb = boundary_vertices[j];
                 if (kmv->p == tmb->p) {
                     goto end;
                 }
@@ -843,12 +889,12 @@ namespace nikfemm {
 
         // manage neighbors
         for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
-            Vertex* kmb = kelvin_mesh.boundary_vertices[i];
-            // equivalent mesh boundary vertex
-            Vertex* tmb = boundary_vertices[i];
+            Vertex<MagnetostaticProp>* kmb = kelvin_mesh.boundary_vertices[i];
+            // equivalent mesh boundary Vertex<MagnetostaticProp>
+            Vertex<MagnetostaticProp>* tmb = boundary_vertices[i];
             for (uint8_t j = 0; j < kmb->adjvert_count; j++) {
                 // if this adjvert is not a kmb add it to tmb's neighbors
-                Vertex* kmb_adj = kmb->adjvert[j];
+                Vertex<MagnetostaticProp>* kmb_adj = kmb->adjvert[j];
                 bool is_kmb = false;
                 for (uint64_t k = 0; k < kelvin_mesh.boundary_vertices.size(); k++) {
                     if (kmb_adj == kelvin_mesh.boundary_vertices[k]) {
@@ -868,10 +914,10 @@ namespace nikfemm {
         // check kmb in km number
         uint64 kmb_in_km = 0;
         for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
-            Vertex* kmb = kelvin_mesh.boundary_vertices[i];
+            Vertex<MagnetostaticProp>* kmb = kelvin_mesh.boundary_vertices[i];
             bool found = false;
             for (uint64_t j = 0; j < kelvin_mesh.vertices.size(); j++) {
-                Vertex* kmv = kelvin_mesh.vertices[j];
+                Vertex<MagnetostaticProp>* kmv = kelvin_mesh.vertices[j];
                 if (kmb == kmv) {
                     found = true;
                     kmb_in_km++;
@@ -879,14 +925,14 @@ namespace nikfemm {
                 }
             }
             if (!found) {
-                nexit("Kelvin mesh boundary vertex not found in kelvin mesh");
+                nexit("Kelvin mesh boundary Vertex<MagnetostaticProp> not found in kelvin mesh");
             }
         }
         printf("Kelvin mesh boundary vertices in kelvin mesh: %lu\n", kmb_in_km);
 
-        // check if every vertex in the kelvin mesh is in this mesh minus the kelvin boundary vertices
+        // check if every Vertex<MagnetostaticProp> in the kelvin mesh is in this mesh minus the kelvin boundary vertices
         for (uint64_t i = 0; i < kelvin_mesh.vertices.size(); i++) {
-            Vertex* kmv = kelvin_mesh.vertices[i];
+            Vertex<MagnetostaticProp>* kmv = kelvin_mesh.vertices[i];
             bool is_kmb = false;
             for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
                 if (kmv == kelvin_mesh.boundary_vertices[i]) {
@@ -903,29 +949,29 @@ namespace nikfemm {
                     }
                 }
                 if (!is_in) {
-                    nexit("Kelvin mesh vertex not in this mesh");
+                    nexit("Kelvin mesh Vertex<MagnetostaticProp> not in this mesh");
                 }
             }
         }
 
         // check if kelvin boundary vertices are not in this mesh
         for (auto it = kelvin_mesh.boundary_vertices.begin(); it != kelvin_mesh.boundary_vertices.end(); it++) {
-            Vertex* kmb = *it;
+            Vertex<MagnetostaticProp>* kmb = *it;
             for (auto it2 = vertices.begin(); it2 != vertices.end(); it2++) {
-                Vertex* tmv = *it2;
+                Vertex<MagnetostaticProp>* tmv = *it2;
                 if (kmb == tmv) {
-                    nexit("Kelvin boundary vertex found in this mesh");
+                    nexit("Kelvin boundary Vertex<MagnetostaticProp> found in this mesh");
                 }
             }
         }
 
-        // check if every vertex in this mesh has no neighbor in the kelvin mesh boundary
+        // check if every Vertex<MagnetostaticProp> in this mesh has no neighbor in the kelvin mesh boundary
         for (uint64_t i = 0; i < vertices.size(); i++) {
             for (uint8_t j = 0; j < vertices[i]->adjvert_count; j++) {
-                Vertex* adj = vertices[i]->adjvert[j];
+                Vertex<MagnetostaticProp>* adj = vertices[i]->adjvert[j];
                 for (uint64_t k = 0; k < kelvin_mesh.boundary_vertices.size(); k++) {
                     if (adj == kelvin_mesh.boundary_vertices[k]) {
-                        nexit("Vertex in this mesh has neighbor in kelvin mesh boundary");
+                        nexit("Vertex<MagnetostaticProp> in this mesh has neighbor in kelvin mesh boundary");
                     }
                 }
             }
@@ -940,7 +986,7 @@ namespace nikfemm {
         uint64_t index1, index2, index3;
 
         for (uint64_t i = 0; i < vertices.size(); i++) {
-            Vertex* v = vertices[i];
+            Vertex<MagnetostaticProp>* v = vertices[i];
             double dist = geomDistance(v->p, center);
             if (dist > dist1) {
                 dist3 = dist2;
@@ -1006,16 +1052,16 @@ namespace nikfemm {
         for (auto v : vertices) {
             double sum = 0;
             for (uint8_t i = 0; i < v->adjvert_count; i++) {
-                Vertex* adj_v = v->adjvert[i];
+                Vertex<MagnetostaticProp>* adj_v = v->adjvert[i];
                 // find the two opposite vertices relative to the edge between v and adj_v
                 // to do this we find the two vertices that are not v or adj_v and are adjacent to both v and adj_v
-                Vertex* opp_v1 = nullptr;
-                Vertex* opp_v2 = nullptr;
+                Vertex<MagnetostaticProp>* opp_v1 = nullptr;
+                Vertex<MagnetostaticProp>* opp_v2 = nullptr;
                 for (uint8_t j = 0; j < v->adjvert_count; j++) {
-                    Vertex* v_adj = v->adjvert[j];
+                    Vertex<MagnetostaticProp>* v_adj = v->adjvert[j];
                     if (v_adj != adj_v) {
                         for (uint8_t k = 0; k < adj_v->adjvert_count; k++) {
-                            Vertex* adj_v_adj = adj_v->adjvert[k];
+                            Vertex<MagnetostaticProp>* adj_v_adj = adj_v->adjvert[k];
                             if (adj_v_adj != v) {
                                 if (v_adj == adj_v_adj) {
                                     if (opp_v1 == nullptr) {
@@ -1060,22 +1106,21 @@ namespace nikfemm {
 
         // get the b vector
         for (auto v : vertices) {
-            uint8_t N = v->adjmuj_count;
-            double mu = 0;
+            uint8_t N = v->adjprop_count;
+            double param = 0;
             for (uint8_t i = 0; i < N; i++) {
-                mu += v->adjmuj[i];
+                param += v->adjprop[i].mu * v->adjprop[i].J;
 #ifdef DEBUG_PRINT
                 printf("%f ", v->adjmuj[i]);
 #endif
             }
-            mu /= N;
+            param /= N;
 #ifdef DEBUG_PRINT
             printf("\nmu_r = %f\n", mu_r);
 #endif
-            v->mu = mu;
             // find area of the cell centered at v
             double area = v->cellArea();
-            b[v->id] = mu * area;
+            b[v->id] = param * area;
         }
 
         auto end = std::chrono::high_resolution_clock::now();
@@ -1084,19 +1129,19 @@ namespace nikfemm {
 
     void Mesh::setField(CV &x) {
         for (auto v : vertices) {
-            v->A = x[v->id];
+            v->prop.A = x[v->id];
         }
     }
 
     void Mesh::computeCurl() {
         for (auto v : vertices) {
             // find the vertices and their neighbors that are adjacent to v
-            std::set<Vertex*> adjverts;
+            std::set<Vertex<MagnetostaticProp>*> adjverts;
             for (uint8_t i = 0; i < v->adjvert_count; i++) {
-                Vertex* adj_v = v->adjvert[i];
+                Vertex<MagnetostaticProp>* adj_v = v->adjvert[i];
                 adjverts.insert(adj_v);
                 for (uint8_t j = 0; j < adj_v->adjvert_count; j++) {
-                    Vertex* adj_adj_v = adj_v->adjvert[j];
+                    Vertex<MagnetostaticProp>* adj_adj_v = adj_v->adjvert[j];
                     if (adj_adj_v != v) {
                         adjverts.insert(adj_adj_v);
                     }
@@ -1124,7 +1169,7 @@ namespace nikfemm {
                 S.at<double>(i, 3) = xjmxi * xjmxi * 0.5;
                 S.at<double>(i, 4) = yjmyi * yjmyi * 0.5;
 
-                b.at<double>(i, 0) = vj->A - v->A;
+                b.at<double>(i, 0) = vj->prop.A - v->prop.A;
                 i++;
             }
             // std::cout << S << std::endl;
@@ -1134,8 +1179,8 @@ namespace nikfemm {
             // x contains the coefficients of the polynomial in the following order:
             // ax + by + cxy + dx^2 + ey^2
             // the gradient of the polynomial in 0, 0 is a, b
-            v->B.x = x.at<double>(1, 0);
-            v->B.y = - x.at<double>(0, 0);
+            v->prop.B.x = x.at<double>(1, 0);
+            v->prop.B.y = - x.at<double>(0, 0);
             // printf("B = {%f, %f}\n", -v->B.y, v->B.x);
         }
     }

@@ -36,6 +36,12 @@ namespace nikfemm {
         throw std::runtime_error(message);
     }
 
+    void nassert(bool condition, std::string message) {
+        if (!condition) {
+            throw std::runtime_error(message);
+        }
+    }
+
     SDL_Color val2jet(double v, double vmin, double vmax) {
         SDL_Color c = {255, 255, 255, 255}; // white
         double dv;

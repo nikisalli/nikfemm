@@ -14,21 +14,20 @@
 #include "../drawing/drawing.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/point.hpp"
-
 #include "../algebra/coo.hpp"
 #include "../algebra/csr.hpp"
 #include "../algebra/simple_vector.hpp"
 
 namespace nikfemm {
-    Simulation::Simulation() {
+    MagnetostaticSimulation::MagnetostaticSimulation() {
 
     }
 
-    Simulation::~Simulation() {
+    MagnetostaticSimulation::~MagnetostaticSimulation() {
 
     }
 
-    void Simulation::generateMesh(Drawing drawing) {
+    void MagnetostaticSimulation::generateMesh() {
         // get time in milliseconds
 
         /* auto boundary */
@@ -53,7 +52,7 @@ namespace nikfemm {
         Circle boundary_circle = Circle(Point(0, 0), 2 * smallest_circle.radius);
         drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
         // add region near the edge of the circle
-        drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), BOUNDARY_REGION);
+        drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), vacuum_prop);
         // add the boundary 
         // drawing.plot();
         mesh.center = boundary_circle.center;

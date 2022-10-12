@@ -23,6 +23,7 @@ namespace nikfemm {
     };
 
     void nexit(std::string message);
+    void nassert(bool condition, std::string message);
     SDL_Color val2jet(double v, double vmin, double vmax);
     bool DrawFilledPolygon(SDL_Renderer* rend, PolygonShape poly, const SDL_Color color);
 }
