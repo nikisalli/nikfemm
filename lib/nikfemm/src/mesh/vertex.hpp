@@ -36,18 +36,6 @@ namespace nikfemm {
             bool operator!=(const Vertex& v) const;
 
             double cellArea();
-
-            // comparison operator for sorting based on atan2
-            struct atanCompare {
-                atanCompare(Point center) {
-                    this->center = center;
-                }
-
-                Point center;
-                bool operator()(const Vertex* v1, const Vertex* v2) const {
-                    return atan2(v1->p.y - center.y, v1->p.x - center.x) < atan2(v2->p.y - center.y, v2->p.x - center.x);
-                }
-            };
     };
 
     template<typename Prop>
@@ -108,7 +96,9 @@ namespace nikfemm {
         // sum of areas of triangles formed by vertex and adjacent vertices divided by 3
         double area = 0;
         // we know that the vertex is the center of the cell, use it to sort the adjacent vertices
-        std::sort(adjvert, adjvert + adjvert_count, atanCompare(p));
+        std::sort(adjvert, adjvert + adjvert_count, [this](Vertex* v1, Vertex* v2) {
+            return atan2(v1->p.y - p.y, v1->p.x - p.x) < atan2(v2->p.y - p.y, v2->p.x - p.x);
+        });
         for (int i = 0; i < adjvert_count; i++) {
             area += geomArea(adjvert[i]->p, adjvert[(i + 1) % adjvert_count]->p, p);
         }
