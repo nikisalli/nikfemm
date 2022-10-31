@@ -54,6 +54,7 @@ namespace nikfemm {
             void plot();
     };
 
+    // templated member functions must be defined in the header file
     template <typename Prop>
     Drawing<Prop>::Drawing() {
 

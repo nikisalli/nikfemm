@@ -19,7 +19,6 @@
 
 #include "../utils/utils.hpp"
 #include "../drawing/drawing.hpp"
-#include "../mesh/vertex.hpp"
 #include "../mesh/mesh.hpp"
 #include "../algebra/simple_vector.hpp"
 #include "../algebra/csr.hpp"
@@ -28,7 +27,6 @@
 #include "properties.hpp"
 
 namespace nikfemm {
-
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
         MagnetostaticMesh() {
             // default material property
@@ -42,11 +40,12 @@ namespace nikfemm {
         void Aplot();
         void Bplot();
         void getFemSystem(MatCOO &coo, CV &b);
-        void setField(CV &x);
-        void computeCurl();
+        // void computeCurl();
     };
 
+    // templated member functions must be defined in the header file
     void MagnetostaticMesh::Aplot() {
+        /*
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
             nexit("error initializing SDL: %s\n");
         }
@@ -66,26 +65,6 @@ namespace nikfemm {
         SDL_RenderClear(rend);
 
         // get mesh enclosing rectangle
-        /*
-        double min_x = 1000000;
-        double min_y = 1000000;
-        double max_x = -1000000;
-        double max_y = -1000000;
-        for (auto v : vertices) {
-            if (v->p.x < min_x) {
-                min_x = v->p.x;
-            }
-            if (v->p.y < min_y) {
-                min_y = v->p.y;
-            }
-            if (v->p.x > max_x) {
-                max_x = v->p.x;
-            }
-            if (v->p.y > max_y) {
-                max_y = v->p.y;
-            }
-        }
-        */
 
         double min_x = -2 * radius;
         double min_y = -2 * radius;
@@ -126,21 +105,20 @@ namespace nikfemm {
             // draw the points
             uint64_t i = 0;
             for (auto v : vertices) {
-                /*
-                SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-                // draw a square centered at the point
-                SDL_Rect rect;
-                rect.x = x_offset + v->p.x * x_scale - 2;
-                rect.y = y_offset + v->p.y * y_scale - 2;
-                rect.w = 4;
-                rect.h = 4;
-                SDL_RenderFillRect(rend, &rect);
-
-                SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
-                for (uint16_t i = 0; i < v->adjvert_count; i++) {
-                    // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
-                }
-                */
+                
+                // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+                // // draw a square centered at the point
+                // SDL_Rect rect;
+                // rect.x = x_offset + v->p.x * x_scale - 2;
+                // rect.y = y_offset + v->p.y * y_scale - 2;
+                // rect.w = 4;
+                // rect.h = 4;
+                // SDL_RenderFillRect(rend, &rect);
+                // SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
+                // for (uint16_t i = 0; i < v->adjvert_count; i++) {
+                //     // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
+                // }
+                
 
                 if (geomDistance(v->p, Point(0, 0)) > radius * 2) {
                     continue;
@@ -205,11 +183,11 @@ namespace nikfemm {
                 });
 
                 // print the points
-                /*
-                for (uint8_t i = 0; i < points.size(); i++) {
-                    printf("%f %f\n", points[i].position.x, points[i].position.y);
-                }
-                */
+                
+                // for (uint8_t i = 0; i < points.size(); i++) {
+                //     printf("%f %f\n", points[i].position.x, points[i].position.y);
+                // }
+                
 
                 SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
                 for (uint8_t i = 0; i < points.size(); i++) {
@@ -286,9 +264,11 @@ namespace nikfemm {
 
             // sleep for 1 second
         }
+        */
     }
 
     void MagnetostaticMesh::Bplot() {
+        /*
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
             nexit("error initializing SDL: %s\n");
         }
@@ -308,26 +288,6 @@ namespace nikfemm {
         SDL_RenderClear(rend);
 
         // get mesh enclosing rectangle
-        /*
-        double min_x = std::numeric_limits<double>::max();
-        double min_y = std::numeric_limits<double>::max();
-        double max_x = std::numeric_limits<double>::min();
-        double max_y = std::numeric_limits<double>::max();
-        for (auto v : vertices) {
-            if (v->p.x < min_x) {
-                min_x = v->p.x;
-            }
-            if (v->p.y < min_y) {
-                min_y = v->p.y;
-            }
-            if (v->p.x > max_x) {
-                max_x = v->p.x;
-            }
-            if (v->p.y > max_y) {
-                max_y = v->p.y;
-            }
-        }
-        */
 
         double min_x = -2 * radius;
         double min_y = -2 * radius;
@@ -364,18 +324,6 @@ namespace nikfemm {
         // printf("max_A: %f min_A: %f\n", max_A, min_A);
         
 
-        /*
-        double average_A = 0;
-        for (auto v : vertices) {
-            double b_mod = sqrt(v->B.x * v->B.x + v->B.y * v->B.y);
-            average_A += b_mod;
-        }
-
-        average_A /= vertices.size();
-        double max_A = 2 * average_A;
-        double min_A = 0;
-        */
-
         // render
 
         uint64_t frame = 0;
@@ -386,21 +334,6 @@ namespace nikfemm {
             // draw the points
             uint64_t i = 0;
             for (auto v : vertices) {
-                /*
-                SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-                // draw a square centered at the point
-                SDL_Rect rect;
-                rect.x = x_offset + v->p.x * x_scale - 2;
-                rect.y = y_offset + v->p.y * y_scale - 2;
-                rect.w = 4;
-                rect.h = 4;
-                SDL_RenderFillRect(rend, &rect);
-
-                SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
-                for (uint16_t i = 0; i < v->adjvert_count; i++) {
-                    // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
-                }
-                */
 
                 if (geomDistance(v->p, Point(0, 0)) > radius * 2) {
                     continue;
@@ -466,11 +399,6 @@ namespace nikfemm {
                 });
 
                 // print the points
-                /*
-                for (uint8_t i = 0; i < points.size(); i++) {
-                    printf("%f %f\n", points[i].position.x, points[i].position.y);
-                }
-                */
 
                 SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
                 for (uint8_t i = 0; i < points.size(); i++) {
@@ -555,96 +483,32 @@ namespace nikfemm {
 
             // sleep for 1 second
         }
+        */
     }
 
     void MagnetostaticMesh::getFemSystem(MatCOO &coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
-        uint64_t num = 0;
-        for (auto v : vertices) {
-            double sum = 0;
-            for (uint8_t i = 0; i < v->adjvert_count; i++) {
-                Vertex<MagnetostaticProp>* adj_v = v->adjvert[i];
-                // find the two opposite vertices relative to the edge between v and adj_v
-                // to do this we find the two vertices that are not v or adj_v and are adjacent to both v and adj_v
-                Vertex<MagnetostaticProp>* opp_v1 = nullptr;
-                Vertex<MagnetostaticProp>* opp_v2 = nullptr;
-                for (uint8_t j = 0; j < v->adjvert_count; j++) {
-                    Vertex<MagnetostaticProp>* v_adj = v->adjvert[j];
-                    if (v_adj != adj_v) {
-                        for (uint8_t k = 0; k < adj_v->adjvert_count; k++) {
-                            Vertex<MagnetostaticProp>* adj_v_adj = adj_v->adjvert[k];
-                            if (adj_v_adj != v) {
-                                if (v_adj == adj_v_adj) {
-                                    if (opp_v1 == nullptr) {
-                                        opp_v1 = v_adj;
-                                    } else if (opp_v2 == nullptr) {
-                                        opp_v2 = v_adj;
-                                    } else {
-                                        nexit("More than two opposite vertices found");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (opp_v1 == nullptr || opp_v2 == nullptr) {
-                    nexit("Less than two opposite vertices found");
-                }
-                // get angle v-opp_v1-adj_v
-                double angle1 = geomAngle(v->p, opp_v1->p, adj_v->p);
-                // get angle v-opp_v2-adj_v
-                double angle2 = geomAngle(v->p, opp_v2->p, adj_v->p);
-                // double w = 0.5 * (1 / tan(angle1) + 1 / tan(angle2));
-                double w = 0.5 * (cos(angle1) / sin(angle1) + cos(angle2) / sin(angle2));
-#ifdef DEBUG_PRINT
-                printf ("elem num %lu\n", num);
-                printf ("angle1 = %f\n", angle1);
-                printf ("angle2 = %f\n", angle2);
-                printf ("w = %f\n", w);
-#endif
-                // add the coefficient to the matrix
-                coo.add_elem(v->id, adj_v->id, w);
-                sum += w;
-            }
-#ifdef DEBUG_PRINT
-            printf("sum = %f\n", sum);
-            printf("------------------------------------------------------------\n");
-#endif
-            // add the coefficient to the matrix
-            coo.add_elem(v->id, v->id, -sum);
-            num++;
+
+        // print points
+        for (uint64 i = 0; i < data.numberofpoints; i++) {
+            printf("%d %f %f %d\n", i, data.pointlist[i].x, data.pointlist[i].y, 0);
         }
 
-        // get the b vector
-        for (auto v : vertices) {
-            uint8_t N = v->adjprop_count;
-            double param = 0;
-            for (uint8_t i = 0; i < N; i++) {
-                param += v->adjprop[i].mu * v->adjprop[i].J;
-#ifdef DEBUG_PRINT
-                printf("%f ", v->adjmuj[i]);
-#endif
-            }
-            param /= N;
-#ifdef DEBUG_PRINT
-            printf("\nmu_r = %f\n", mu_r);
-#endif
-            // find area of the cell centered at v
-            double area = v->cellArea();
-            b[v->id] = param * area;
+        printf("--------------------\n");
+
+        // print triangles
+        for (uint64 i = 0; i < data.numberoftriangles; i++) {
+            printf("%d %d %d %d %d\n", i, data.trianglelist[i].verts[0],
+                                          data.trianglelist[i].verts[1],
+                                          data.trianglelist[i].verts[2],
+                                          data.triangleattributelist[i]);
         }
 
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
     }
 
-    void MagnetostaticMesh::setField(CV &x) {
-        for (auto v : vertices) {
-            v->prop.A = x[v->id];
-        }
-    }
-
-    void MagnetostaticMesh::computeCurl() {
+    /*void MagnetostaticMesh::computeCurl() {
         for (auto v : vertices) {
             // find the vertices and their neighbors that are adjacent to v
             std::set<Vertex<MagnetostaticProp>*> adjverts;
@@ -694,7 +558,7 @@ namespace nikfemm {
             v->prop.B.y = - x.at<double>(0, 0);
             // printf("B = {%f, %f}\n", -v->B.y, v->B.x);
         }
-    }
+    }*/
 }
 
 #endif

@@ -55,19 +55,19 @@ namespace nikfemm {
         drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), vacuum_prop);
         // add the boundary 
         // drawing.plot();
-        mesh.center = boundary_circle.center;
         auto start = std::chrono::high_resolution_clock::now();
         mesh.mesh(drawing);
 #ifdef DEBUG_PRINT
         mesh.plot();
 #endif
         mesh.addKelvinBoundaryConditions();
-        // mesh.plot();
-        mesh.enumerateVertices();
+        mesh.plot();
         MatCOO coo;
-        CV b(mesh.vertices.size());
-        CV x(mesh.vertices.size());
+        CV b(mesh.data.numberofpoints);
+        CV x(mesh.data.numberofpoints);
         mesh.getFemSystem(coo, b);
+        return;
+        /*
         mesh.addDirichletBoundaryConditions(coo, b);
 
 #ifdef DEBUG_PRINT
@@ -75,12 +75,12 @@ namespace nikfemm {
 #endif
 
         MatCSR csr(coo);
-
-#ifdef DEBUG_PRINT
         csr.write_to_file("A");
         b.write_to_file("b");
+
+#ifdef DEBUG_PRINT
         // csr.print();
-        coo.plot();
+        // coo.plot();
         x.print();
         b.print();
 
@@ -100,6 +100,7 @@ namespace nikfemm {
         // report(&out, 1, 1, 0, 0, 0, 0);
 
         printf("Number of points: %d\nNumber of boundary vertices: %d\n", mesh.vertices.size(), mesh.boundary_vertices.size());
+        */
         // get end time
         auto end = std::chrono::high_resolution_clock::now();
         printf("%f Total time\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count()*1000);

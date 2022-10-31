@@ -3,19 +3,54 @@
 
 #include <cstdint>
 
-#include "vertex.hpp"
 #include "../algebra/coo.hpp"
 #include "../algebra/simple_vector.hpp"
 
 namespace nikfemm {
+    struct Elem {
+        int verts[3];
+    };
+
+    struct MeshData {
+        Point *pointlist;                                               /* In / out */
+        TRI_REAL *pointattributelist;                                      /* In / out */
+        int *pointmarkerlist;                                          /* In / out */
+        int numberofpoints;                                            /* In / out */
+        int numberofpointattributes;                                   /* In / out */
+
+        Elem *trianglelist;                                             /* In / out */
+        TRI_REAL *triangleattributelist;                                   /* In / out */
+        TRI_REAL *trianglearealist;                                         /* In only */
+        int *neighborlist;                                             /* Out only */
+        int numberoftriangles;                                         /* In / out */
+        int numberofcorners;                                           /* In / out */
+        int numberoftriangleattributes;                                /* In / out */
+
+        int *segmentlist;                                              /* In / out */
+        int *segmentmarkerlist;                                        /* In / out */
+        int numberofsegments;                                          /* In / out */
+
+        TRI_REAL *holelist;                        /* In / pointer to array copied out */
+        int numberofholes;                                      /* In / copied out */
+
+        TRI_REAL *regionlist;                      /* In / pointer to array copied out */
+        int numberofregions;                                    /* In / copied out */
+
+        int *edgelist;                                                 /* Out only */
+        int *edgemarkerlist;            /* Not used with Voronoi diagram; out only */
+        TRI_REAL *normlist;                /* Used only with Voronoi diagram; out only */
+        int numberofedges;                                             /* Out only */
+
+        int hullsize;                                                  /* Out only */
+    };
+
     template <typename Prop>
     struct Mesh {
         Point center = Point(0, 0);
         double radius = 0;
         Prop default_prop;
 
-        std::vector<Vertex<Prop>*> vertices;
-        std::vector<Vertex<Prop>*> boundary_vertices;
+        MeshData data;
 
         Mesh();
         ~Mesh();
@@ -25,9 +60,13 @@ namespace nikfemm {
         void addKelvinBoundaryConditions();
         void addDirichletBoundaryConditions(MatCOO &coo, CV &b);
         void kelvinTransformCentered();
-        void enumerateVertices();
+
+        protected:
+        Point getVertex(uint64_t index);
+        void setVertex(uint64_t index, Point point);
     };
 
+    // templated member functions must be defined in the header file
     template <typename Prop>
     Mesh<Prop>::Mesh() {
 
@@ -63,19 +102,12 @@ namespace nikfemm {
         double min_y = 1000000;
         double max_x = -1000000;
         double max_y = -1000000;
-        for (auto v : vertices) {
-            if (v->p.x < min_x) {
-                min_x = v->p.x;
-            }
-            if (v->p.y < min_y) {
-                min_y = v->p.y;
-            }
-            if (v->p.x > max_x) {
-                max_x = v->p.x;
-            }
-            if (v->p.y > max_y) {
-                max_y = v->p.y;
-            }
+        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+            Point p = data.pointlist[i];
+            if (p.x < min_x) min_x = p.x;
+            if (p.y < min_y) min_y = p.y;
+            if (p.x > max_x) max_x = p.x;
+            if (p.y > max_y) max_y = p.y;
         }
 
         // object to window ratio
@@ -97,19 +129,16 @@ namespace nikfemm {
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             SDL_RenderClear(rend);
             // draw the points
-            for (auto v : vertices) {
-                SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-                // draw a square centered at the point
-                SDL_Rect rect;
-                rect.x = x_offset + v->p.x * x_scale - 2;
-                rect.y = y_offset + v->p.y * y_scale - 2;
-                rect.w = 4;
-                rect.h = 4;
-                SDL_RenderFillRect(rend, &rect);
-
-                for (uint16_t i = 0; i < v->adjvert_count; i++) {
+            for (uint64_t i = 0; i < data.numberoftriangles; i++) {
+                for (uint64_t j = 0; j < 3; j++) {
+                    Point p1 = data.pointlist[data.trianglelist[i].verts[j]];
+                    Point p2 = data.pointlist[data.trianglelist[i].verts[(j + 1) % 3]];
                     SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-                    SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
+                    SDL_RenderDrawLine(rend, x_scale * p1.x + x_offset, y_scale * p1.y + y_offset, x_scale * p2.x + x_offset, y_scale * p2.y + y_offset);
+
+                    // draw the vertices
+                    SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+                    SDL_RenderDrawPoint(rend, x_scale * p1.x + x_offset, y_scale * p1.y + y_offset);
                 }
             }
 
@@ -157,7 +186,7 @@ namespace nikfemm {
 
     template <typename Prop>
     void Mesh<Prop>::mesh(Drawing<Prop> &drawing) {
-        triangulateio in, out;
+        triangulateio in;
 
         /* set up the input */
         struct TempSegment {
@@ -202,75 +231,27 @@ namespace nikfemm {
             i++;
         }
         // printf("----------------------\n");
-
-        out.pointlist = (TRI_REAL*)NULL;
-
-        char switches[] = "pzq20AQa0.01";
+        char switches[] = "pzq20AQa0.1";
 
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */
 
-        out.pointlist = (TRI_REAL *) NULL;            /* Not needed if -N switch used. */
+        data.pointlist = (Point *) NULL;            /* Not needed if -N switch used. */
         /* Not needed if -N switch used or number of point attributes is zero: */
-        out.pointattributelist = (TRI_REAL *) NULL;
-        out.pointmarkerlist = (int *) NULL; /* Not needed if -N or -B switch used. */
-        out.trianglelist = (int *) NULL;          /* Not needed if -E switch used. */
+        data.pointattributelist = (TRI_REAL *) NULL;
+        data.pointmarkerlist = (int *) NULL; /* Not needed if -N or -B switch used. */
+        data.trianglelist = (Elem *) NULL;          /* Not needed if -E switch used. */
         /* Not needed if -E switch used or number of triangle attributes is zero: */
-        out.triangleattributelist = (TRI_REAL *) NULL;
-        out.neighborlist = (int *) NULL;         /* Needed only if -n switch used. */
+        data.triangleattributelist = (TRI_REAL *) NULL;
+        data.neighborlist = (int *) NULL;         /* Needed only if -n switch used. */
         /* Needed only if segments are output (-p or -c) and -P not used: */
-        out.segmentlist = (int *) NULL;
+        data.segmentlist = (int *) NULL;
         /* Needed only if segments are output (-p or -c) and -P and -B not used: */
-        out.segmentmarkerlist = (int *) NULL;
-        out.edgelist = (int *) NULL;             /* Needed only if -e switch used. */
-        out.edgemarkerlist = (int *) NULL;   /* Needed if -e used and -B not used. */
+        data.segmentmarkerlist = (int *) NULL;
+        data.edgelist = (int *) NULL;             /* Needed only if -e switch used. */
+        data.edgemarkerlist = (int *) NULL;   /* Needed if -e used and -B not used. */
 
-        triangulate(switches, &in, &out, NULL);
-
-        vertices.reserve(out.numberofpoints);
-        boundary_vertices.reserve(BOUNDARY_VERTICES);
-        for (uint64_t i = 0; i < out.numberofpoints; i++) {
-            Vertex<Prop>* v = new Vertex<Prop>(out.pointlist[2 * i], out.pointlist[2 * i + 1]);
-            vertices.push_back(v);
-            if (out.pointmarkerlist[i] == 1) {
-                boundary_vertices.push_back(v);
-            }
-        }
-        // for each Vertex<Prop> in each triangle, add a point to the list
-        for (uint64_t i = 0; i < out.numberoftriangles; i++) {
-            uint64_t p1 = out.trianglelist[3 * i];
-            uint64_t p2 = out.trianglelist[3 * i + 1];
-            uint64_t p3 = out.trianglelist[3 * i + 2];
-
-            Vertex<Prop>* v1 = vertices[p1];
-            Vertex<Prop>* v2 = vertices[p2];
-            Vertex<Prop>* v3 = vertices[p3];
-
-            // add vertices as neighbors of each other if they are not already
-            v1->addAdjacentVertex(v2);
-            v1->addAdjacentVertex(v3);
-            v2->addAdjacentVertex(v1);
-            v2->addAdjacentVertex(v3);
-            v3->addAdjacentVertex(v1);
-            v3->addAdjacentVertex(v2);
-
-            // add muj
-            // v1->addAdjacentMu(out.triangleattributelist[i]);
-            // v2->addAdjacentMu(out.triangleattributelist[i]);
-            // v3->addAdjacentMu(out.triangleattributelist[i]);
-
-            Prop reg_val = drawing.getRegionFromId(out.triangleattributelist[i]);
-            v1->addAdjacentProp(reg_val);
-            v2->addAdjacentProp(reg_val);
-            v3->addAdjacentProp(reg_val);
-        }
-
-        // sort boundary vertices using lambda with reference capture [&]
-        std::sort(boundary_vertices.begin(), boundary_vertices.end(), [&](Vertex<Prop>* a, Vertex<Prop>* b) {
-            // compare atans using center
-            return atan2(a->p.y - center.y, a->p.x - center.x) < atan2(b->p.y - center.y, b->p.x - center.x);
-        });
-        printf("Number of vertices: %lu, boundary vertices: %lu\n", vertices.size(), boundary_vertices.size());
+        triangulate(switches, &in, reinterpret_cast<triangulateio*>(&data), NULL);        
     }
 
     template <typename Prop>
@@ -286,20 +267,22 @@ namespace nikfemm {
         double max_x = radius / max_radius_coeff;
         // printf("R^2 = %f\n", R_squared);
 
-        for (auto it = vertices.begin(); it != vertices.end(); it++) {
-            Vertex<Prop>* v = *it;
-            double mag_squared = v->p.x * v->p.x + v->p.y * v->p.y;
-            double scale = R_squared / mag_squared;
-            // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
-            double dist = geomDistance(v->p, center);
-            if (dist < max_x) {
-            // if (false) {
+        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+            if (data.pointmarkerlist[i] == 0) {  // if it's not a boundary point
+                Point v = data.pointlist[i];
+                double mag_squared = v.x * v.x + v.y * v.y;
+                double scale = R_squared / mag_squared;
+                // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
+                double dist = geomDistance(v, center);
+                if (dist < max_x) {
+                // if (false) {
 #ifdef DEBUG_PRINT
-                printf("kelvin transform too large\n");
+                    printf("kelvin transform too large\n");
 #endif
-                v->p = v->p * ((radius * max_radius_coeff) / dist);
-            } else {
-                v->p = v->p * scale;
+                    data.pointlist[i] = v * ((radius * max_radius_coeff) / dist);
+                } else {
+                    data.pointlist[i] = v * scale;
+                }
             }
         }
     }
@@ -316,11 +299,9 @@ namespace nikfemm {
         Mesh<Prop> kelvin_mesh;
         Drawing<Prop> kelvin_drawing;
 
-        // for each consecutive pair of boundary vertices, add a segment
-        kelvin_drawing.drawSegment((*(boundary_vertices.end() - 1))->p, (*(boundary_vertices.begin()))->p);
-        for (uint64_t i = 0; i < boundary_vertices.size() - 1; i++) {
-            kelvin_drawing.drawSegment((*(boundary_vertices.begin() + i))->p, (*(boundary_vertices.begin() + i + 1))->p);
-        }
+        Circle boundary_circle = Circle(Point(0, 0), radius);
+        kelvin_drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
+        // add region near the edge of the circle
         kelvin_drawing.drawRegion(Point(0, 0), default_prop);
 
         kelvin_mesh.mesh(kelvin_drawing);
@@ -328,186 +309,83 @@ namespace nikfemm {
         kelvin_mesh.radius = radius;
 
         // merge km into tm
-        if (boundary_vertices.size() != kelvin_mesh.boundary_vertices.size()) {
-            nexit("Kelvin mesh boundary vertices size does not match, cannot merge");
-        }
-
         // transform km
         kelvin_mesh.kelvinTransformCentered();
         // kelvin_mesh.plot();
 
-        // add kelvin mesh vertices to this mesh
-        for (uint64_t i = 0; i < kelvin_mesh.vertices.size(); i++) {
-            Vertex<Prop>* kmv = kelvin_mesh.vertices[i];
-            for (uint64_t j = 0; j < boundary_vertices.size(); j++) {
-                Vertex<Prop>* tmb = boundary_vertices[j];
-                if (kmv->p == tmb->p) {
-                    goto end;
-                }
-            }
-            vertices.push_back(kmv);
-            end:;
-        }
+        // merge km into tm
+        // for each vertex in km, find the corresponding vertex in tm and build a map from kmb to tmb
 
-        // manage neighbors
-        for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
-            Vertex<Prop>* kmb = kelvin_mesh.boundary_vertices[i];
-            // equivalent mesh boundary Vertex<Prop>
-            Vertex<Prop>* tmb = boundary_vertices[i];
-            for (uint8_t j = 0; j < kmb->adjvert_count; j++) {
-                // if this adjvert is not a kmb add it to tmb's neighbors
-                Vertex<Prop>* kmb_adj = kmb->adjvert[j];
-                bool is_kmb = false;
-                for (uint64_t k = 0; k < kelvin_mesh.boundary_vertices.size(); k++) {
-                    if (kmb_adj == kelvin_mesh.boundary_vertices[k]) {
-                        is_kmb = true;
-                        break;
-                    }
-                }
-                if (!is_kmb) {
-                    tmb->addAdjacentVertex(kmb_adj);
-                    kmb_adj->addAdjacentVertex(tmb);
-                }
-            }
-        }
+        // 1. create map from kelvin mesh boundary vertices to this mesh boundary vertices
+        // 2. calculate new this mesh point number
+        // 3. reallocate memory for this mesh
+        // 4. add kelvin mesh non boundary vertices to this mesh
+        // 5. create map from old kelvin mesh vertices minus boundary to new mesh vertices
+        // 6. calculate new this mesh triangle number
+        // 7. reallocate memory for this mesh
+        // 8. use map to update triangle vertex indices
+        // 9. add kelvin mesh triangles to this mesh
 
-        /* checks */
-        /*
-        // check kmb in km number
-        uint64 kmb_in_km = 0;
-        for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
-            Vertex<Prop>* kmb = kelvin_mesh.boundary_vertices[i];
-            bool found = false;
-            for (uint64_t j = 0; j < kelvin_mesh.vertices.size(); j++) {
-                Vertex<Prop>* kmv = kelvin_mesh.vertices[j];
-                if (kmb == kmv) {
-                    found = true;
-                    kmb_in_km++;
-                    break;
-                }
-            }
-            if (!found) {
-                nexit("Kelvin mesh boundary Vertex<Prop> not found in kelvin mesh");
-            }
-        }
-        printf("Kelvin mesh boundary vertices in kelvin mesh: %lu\n", kmb_in_km);
-
-        // check if every Vertex<Prop> in the kelvin mesh is in this mesh minus the kelvin boundary vertices
-        for (uint64_t i = 0; i < kelvin_mesh.vertices.size(); i++) {
-            Vertex<Prop>* kmv = kelvin_mesh.vertices[i];
-            bool is_kmb = false;
-            for (uint64_t i = 0; i < kelvin_mesh.boundary_vertices.size(); i++) {
-                if (kmv == kelvin_mesh.boundary_vertices[i]) {
-                    is_kmb = true;
-                    break;
-                }
-            }
-            if (!is_kmb) {
-                bool is_in = false;
-                for (uint64_t i = 0; i < vertices.size(); i++) {
-                    if (kmv == vertices[i]) {
-                        is_in = true;
-                        break;
-                    }
-                }
-                if (!is_in) {
-                    nexit("Kelvin mesh Vertex<Prop> not in this mesh");
-                }
-            }
-        }
-
-        // check if kelvin boundary vertices are not in this mesh
-        for (auto it = kelvin_mesh.boundary_vertices.begin(); it != kelvin_mesh.boundary_vertices.end(); it++) {
-            Vertex<Prop>* kmb = *it;
-            for (auto it2 = vertices.begin(); it2 != vertices.end(); it2++) {
-                Vertex<Prop>* tmv = *it2;
-                if (kmb == tmv) {
-                    nexit("Kelvin boundary Vertex<Prop> found in this mesh");
-                }
-            }
-        }
-
-        // check if every Vertex<Prop> in this mesh has no neighbor in the kelvin mesh boundary
-        for (uint64_t i = 0; i < vertices.size(); i++) {
-            for (uint8_t j = 0; j < vertices[i]->adjvert_count; j++) {
-                Vertex<Prop>* adj = vertices[i]->adjvert[j];
-                for (uint64_t k = 0; k < kelvin_mesh.boundary_vertices.size(); k++) {
-                    if (adj == kelvin_mesh.boundary_vertices[k]) {
-                        nexit("Vertex<Prop> in this mesh has neighbor in kelvin mesh boundary");
+        std::map<uint64_t, uint64_t> kelvin_to_this;
+        uint64_t kelvin_number_of_boundary_points = 0;
+        for (uint64_t i = 0; i < kelvin_mesh.data.numberofpoints; i++) {
+            if (kelvin_mesh.data.pointmarkerlist[i]) {
+                for (uint64_t j = 0; j < data.numberofpoints; j++) {
+                    if (data.pointmarkerlist[j]) {
+                        if (data.pointlist[j].x == kelvin_mesh.data.pointlist[i].x && data.pointlist[j].y == kelvin_mesh.data.pointlist[i].y) {
+                            kelvin_to_this[i] = j;
+                            kelvin_number_of_boundary_points++;
+                            break;
+                        }
                     }
                 }
             }
-        }*/
+        }
 
-        // plot();
+        // calculate new this mesh point number
+        uint64_t new_point_number = data.numberofpoints + kelvin_mesh.data.numberofpoints - kelvin_number_of_boundary_points;
+
+        // reallocate memory for this mesh
+        data.pointlist = (Point *) realloc(data.pointlist, new_point_number * sizeof(Point));
+        // I actually don't need these
+        // data.pointattributelist = (TRI_REAL *) realloc(data.pointattributelist, new_point_number * sizeof(TRI_REAL));
+        // data.pointmarkerlist = (int *) realloc(data.pointmarkerlist, new_point_number * sizeof(int));
+
+        // add kelvin mesh non boundary vertices to this mesh
+        for (uint64_t i = 0; i < kelvin_mesh.data.numberofpoints; i++) {
+            if (!kelvin_mesh.data.pointmarkerlist[i]) {
+                data.pointlist[data.numberofpoints] = kelvin_mesh.data.pointlist[i];
+                // data.pointmarkerlist[data.numberofpoints] = 0;
+                kelvin_to_this[i] = data.numberofpoints;
+                data.numberofpoints++;
+            }
+        }
+
+        // calculate new this mesh triangle number
+        uint64_t new_triangle_number = data.numberoftriangles + kelvin_mesh.data.numberoftriangles;
+
+        // reallocate memory for this mesh
+        data.trianglelist = (Elem *) realloc(data.trianglelist, new_triangle_number * sizeof(Elem));
+        data.triangleattributelist = (TRI_REAL *) realloc(data.triangleattributelist, new_triangle_number * sizeof(TRI_REAL));
+
+        // use map to update triangle vertex indices
+        for (uint64_t i = 0; i < kelvin_mesh.data.numberoftriangles; i++) {
+            // check if point in map else leave it alone
+            for (uint8_t j = 0; j < 3; j++) {
+                if (kelvin_to_this.count(kelvin_mesh.data.trianglelist[i].verts[j])) {
+                    data.trianglelist[data.numberoftriangles].verts[j] = kelvin_to_this[kelvin_mesh.data.trianglelist[i].verts[j]];
+                }
+            }
+            data.triangleattributelist[data.numberoftriangles] = kelvin_mesh.data.triangleattributelist[i];
+            data.numberoftriangles++;
+        }
+
+        data.numberoftriangles = new_triangle_number;
     }
 
     template <typename Prop>
     void Mesh<Prop>::addDirichletBoundaryConditions(MatCOO &coo, CV &b) {
-        // find the three furthest vertices from the center
-        double dist1, dist2, dist3;
-        uint64_t index1, index2, index3;
-
-        for (uint64_t i = 0; i < vertices.size(); i++) {
-            Vertex<Prop>* v = vertices[i];
-            double dist = geomDistance(v->p, center);
-            if (dist > dist1) {
-                dist3 = dist2;
-                index3 = index2;
-                dist2 = dist1;
-                index2 = index1;
-                dist1 = dist;
-                index1 = v->id;
-            } else if (dist > dist2 && dist != dist1) {
-                dist3 = dist2;
-                index3 = index2;
-                dist2 = dist;
-                index2 = v->id;
-            } else if (dist > dist3 && dist != dist2) {
-                dist3 = dist;
-                index3 = v->id;
-            }
-        }
-
-        // all the coefficients on the inedxN-th column of the matrix A are set to 0 for dirichlet boundary conditions
-        for (uint64_t i = 0; i < coo.elems.size(); i++) {
-            ElemCOO e = coo.elems[i];
-            if (e.n == index1 || e.n == index2 || e.n == index3 || e.m == index1 || e.m == index2 || e.m == index3) {
-                if (e.n == e.m) {
-                    e.val = 1;
-#ifdef DEBUG_PRINT
-                    printf("Dirichlet boundary condition on FEM matrix element %lu %lu (element is on the diagonal)\n", e.m, e.n);
-#endif
-                } else {
-                    e.val = 0;
-#ifdef DEBUG_PRINT
-                    printf("Dirichlet boundary condition on FEM matrix element %lu %lu\n", e.m, e.n);
-#endif
-                }
-
-                /*
-                // in this case the dirichlet boundary condition sets the magnetic vector potential A to zero on the boundary so it is
-                // not necessary to subtract the coefficient of the corresponding value multiplied by the dirichlet magnetic vector potential
-                // from the b vector
-                if (e.m == index1 || e.m == index2 || e.m == index3) {
-                    b[e.m] -= e.val * 0;
-                }
-                */
-            }
-            coo.elems[i] = e;
-        }
-    }
-
-    template <typename Prop>
-    void Mesh<Prop>::enumerateVertices() {
-        uint64_t i = 0;
-        for (auto it = vertices.begin(); it != vertices.end(); it++) {
-            (*it)->id = i;
-            i++;
-        }
-#ifdef DEBUG_PRINT
-        printf("Enumerated %lu vertices\n", i);
-#endif
+        
     }
 }
 
