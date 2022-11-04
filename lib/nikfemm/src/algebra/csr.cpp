@@ -12,8 +12,6 @@
 
 namespace nikfemm {
     MatCSR::MatCSR(MatCOO& coo) {
-        // sort elems
-        std::sort(coo.elems.begin(), coo.elems.end());
         m = coo.m;
         n = coo.n;
         nnz = coo.elems.size();
@@ -22,10 +20,38 @@ namespace nikfemm {
         A = (double*) calloc(nnz, sizeof(double));
 
         IA[0] = 0;
+
+        struct ElemCoo {
+            uint64_t m;
+            uint64_t n;
+            double val;
+        };
+
+        std::vector<ElemCoo> elems_coo;
+
+        for (auto elem : coo.elems) {
+            elems_coo.push_back(
+                ElemCoo {
+                    elem.first >> 32,
+                    elem.first & 0xFFFFFFFF,
+                    elem.second
+                }
+            );
+        }
+
+        // sort by m and n
+        std::sort(elems_coo.begin(), elems_coo.end(), [](ElemCoo& e1, ElemCoo& e2) {
+            if (e1.m == e2.m) {
+                return e1.n < e2.n;
+            } else {
+                return e1.m < e2.m;
+            }
+        });
+
         for (uint64_t i = 0; i < nnz; i++) {
-            JA[i] = coo.elems[i].n;
-            A[i] = coo.elems[i].val;
-            IA[coo.elems[i].m + 1]++;
+            JA[i] = elems_coo[i].n;
+            A[i] = elems_coo[i].val;
+            IA[elems_coo[i].m + 1]++;
         }
         for (uint64_t i = 0; i < m; i++) {
             IA[i + 1] += IA[i];

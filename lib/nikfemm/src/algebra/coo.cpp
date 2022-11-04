@@ -6,20 +6,6 @@
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
-    bool ElemCOO::operator<(const ElemCOO &other) const {
-        if (m < other.m) {
-            return true;
-        } else if (m == other.m) {
-            return n < other.n;
-        } else {
-            return false;
-        }
-    }
-
-    bool ElemCOO::operator==(const ElemCOO &other) const {
-        return m == other.m && n == other.n;
-    }
-
     MatCOO::MatCOO() {
         m = 0;
         n = 0;
@@ -28,19 +14,28 @@ namespace nikfemm {
     MatCOO::~MatCOO() {
     }
 
-    void MatCOO::add_elem(uint64_t m, uint64_t n, double val) {
-        add_elem(ElemCOO{m, n, val});
+    void MatCOO::set_elem(uint32_t _m, uint32_t _n, double val) {
+        if (_m + 1 > m) m = _m + 1;
+        if (_n + 1 > n) n = _n + 1;
+        elems[(uint64_t)_m << 32 | (uint64_t)_n] = val;
     }
 
-    void MatCOO::add_elem(ElemCOO elem) {
-        if (elem.m + 1 > m ) {
-            m = elem.m + 1;
+    void MatCOO::add_elem(uint32_t _m, uint32_t _n, double val) {
+        if (_m + 1 > m) m = _m + 1;
+        if (_n + 1 > n) n = _n + 1;
+        // is element in matrix?
+        if (elems.find((uint64_t)_m << 32 | (uint64_t)_n) != elems.end()) {
+            elems[(uint64_t)_m << 32 | (uint64_t)_n] += val;
+        } else {
+            elems[(uint64_t)_m << 32 | (uint64_t)_n] = val;
         }
-        if (elem.n + 1 > n) {
-            n = elem.n + 1;
-        }
-        if (elem.val != 0.0) {
-            elems.push_back(elem);
+    }
+
+    double MatCOO::get_elem(uint32_t _m, uint32_t _n) {
+        if (elems.find((uint64_t)_m << 32 | (uint64_t)_n) != elems.end()) {
+            return elems[(uint64_t)_m << 32 | (uint64_t)_n];
+        } else {
+            return 0.0;
         }
     }
 
@@ -76,11 +71,14 @@ namespace nikfemm {
             SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
             SDL_RenderClear(rend);
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-            for (int i = 0; i < elems.size(); i++) {
-                if (fabs(elems[i].val) > 0.0000001) {
+            for (auto elem : elems) {
+                uint32_t _m = elem.first >> 32;
+                uint32_t _n = elem.first & 0xFFFFFFFF;
+                double val = elem.second;
+                if (val != 0) {
                     SDL_Rect rect;
-                    rect.x = (elems[i].m * x_scale) + x_offset;
-                    rect.y = (elems[i].n * y_scale) + y_offset;
+                    rect.x = x_offset + _n * x_scale;
+                    rect.y = y_offset + _m * y_scale;
                     rect.w = x_scale;
                     rect.h = y_scale;
                     SDL_RenderFillRect(rend, &rect);

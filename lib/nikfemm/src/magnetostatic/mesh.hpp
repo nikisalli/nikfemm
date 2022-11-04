@@ -37,15 +37,15 @@ namespace nikfemm {
             
         }
 
-        void Aplot();
+        void Aplot(CV &A);
         void Bplot();
         void getFemSystem(MatCOO &coo, CV &b);
+        void addDirichletBoundaryConditions(MatCOO &coo, CV &b);
         // void computeCurl();
     };
 
     // templated member functions must be defined in the header file
-    void MagnetostaticMesh::Aplot() {
-        /*
+    void MagnetostaticMesh::Aplot(CV &A) {
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
             nexit("error initializing SDL: %s\n");
         }
@@ -86,12 +86,12 @@ namespace nikfemm {
         double max_A = std::numeric_limits<double>::min();
         double min_A = std::numeric_limits<double>::max();
 
-        for (auto v : vertices) {
-            if (v->prop.A > max_A) {
-                max_A = v->prop.A;
+        for (uint64_t i = 0; i < A.m; i++) {
+            if (A.val[i] > max_A) {
+                max_A = A.val[i];
             }
-            if (v->prop.A < min_A) {
-                min_A = v->prop.A;
+            if (A.val[i] < min_A) {
+                min_A = A.val[i];
             }
         }
 
@@ -104,7 +104,7 @@ namespace nikfemm {
             SDL_RenderClear(rend);
             // draw the points
             uint64_t i = 0;
-            for (auto v : vertices) {
+            for (uint64_t i = 0; i < data.numberofpoints; i++) {
                 
                 // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
                 // // draw a square centered at the point
@@ -119,58 +119,41 @@ namespace nikfemm {
                 //     // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
                 // }
                 
+                Point p = data.pointlist[i];
 
-                if (geomDistance(v->p, Point(0, 0)) > radius * 2) {
+                if (geomDistance(p, Point(0, 0)) > radius * 2) {
                     continue;
                 }
 
                 // verts
                 auto points = std::vector<SDL_Vertex>();
-                points.reserve(v->adjvert_count);
 
                 // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
-                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
+                SDL_Color c = val2jet(A.val[i], min_A, max_A);
                 // printf("A: %f, c: %d, %d, %d\n", v->A, c.r, c.g, c.b);
                                 
                 // find the triangles that contain the Vertex<MagnetostaticProp> and then
                 // for every triangle find the barycenter and add it to the points vector
-                for (uint8_t i = 0; i < v->adjvert_count; i++) {
-                    for (uint8_t j = 0; j < v->adjvert[i]->adjvert_count; j++) {
-                        if (v->adjvert[i]->adjvert[j] == v) {
-                            continue;
-                        }
-                        for (uint8_t k = 0; k < v->adjvert[i]->adjvert[j]->adjvert_count; k++) {
-                            if (v->adjvert[i]->adjvert[j]->adjvert[k] == v) {
-                                SDL_Vertex new_v;
-                                Point barycenter = {
-                                    (v->p.x + v->adjvert[i]->p.x + v->adjvert[i]->adjvert[j]->p.x) / 3,
-                                    (v->p.y + v->adjvert[i]->p.y + v->adjvert[i]->adjvert[j]->p.y) / 3
-                                };
-                                new_v.position.x = x_offset + barycenter.x * x_scale;
-                                new_v.position.y = y_offset + barycenter.y * y_scale;
-                                new_v.color = c;
-                                // check if already in points
-                                bool already_in = false;
-                                for (auto p : points) {
-                                    if (p.position.x == new_v.position.x && p.position.y == new_v.position.y) {
-                                        already_in = true;
-                                        break;
-                                    }
-                                }
-                                if (already_in) {
-                                    continue;
-                                }
-                                points.push_back(new_v);
-                            }
-                        }
+                for (uint64_t j = 0; j < data.numberoftriangles; j++) {
+                    if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
+                        SDL_Vertex new_v;
+                        Point barycenter = {
+                            (data.pointlist[data.trianglelist[j].verts[0]].x + data.pointlist[data.trianglelist[j].verts[1]].x + data.pointlist[data.trianglelist[j].verts[2]].x) / 3,
+                            (data.pointlist[data.trianglelist[j].verts[0]].y + data.pointlist[data.trianglelist[j].verts[1]].y + data.pointlist[data.trianglelist[j].verts[2]].y) / 3
+                        };
+                        new_v.position.x = x_offset + barycenter.x * x_scale;
+                        new_v.position.y = y_offset + barycenter.y * y_scale;
+                        new_v.color = c;
+
+                        points.push_back(new_v);
                     }
                 }
                 
                 // find the center of the points
                 SDL_FPoint center = {0, 0};
-                for (uint8_t i = 0; i < points.size(); i++) {
-                    center.x += points[i].position.x;
-                    center.y += points[i].position.y;
+                for (uint8_t j = 0; j < points.size(); j++) {
+                    center.x += points[j].position.x;
+                    center.y += points[j].position.y;
                 }
                 // printf("count: %d\n", points.size());
                 center.x /= points.size();
@@ -190,9 +173,9 @@ namespace nikfemm {
                 
 
                 SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-                for (uint8_t i = 0; i < points.size(); i++) {
-                    SDL_Vertex v1 = points[i];
-                    SDL_Vertex v2 = points[(i + 1) % points.size()];
+                for (uint8_t j = 0; j < points.size(); j++) {
+                    SDL_Vertex v1 = points[j];
+                    SDL_Vertex v2 = points[(j + 1) % points.size()];
                     // draw triangle between center and two points
                     SDL_Vertex verts[3] = {
                         {center.x, center.y, c.r, c.g, c.b, c.a},
@@ -201,10 +184,6 @@ namespace nikfemm {
                     };
                     SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
                 }
-                if (i == frame) {
-                    // break;
-                }
-                i++;
             }
 
             SDL_RenderPresent(rend);
@@ -248,23 +227,10 @@ namespace nikfemm {
                 y_scale = 1;
                 x_offset = 0;
                 y_offset = 0;
-            } else if (key.keysym.sym == SDLK_SPACE) {
-                frame++;
-                printf("frame: %d\n", frame);
-                Vertex<MagnetostaticProp>* v = vertices[frame];
-                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
-            } else if (key.keysym.sym == SDLK_BACKSPACE) {
-                frame--;
-                printf("frame: %d\n", frame);
-                Vertex<MagnetostaticProp>* v = vertices[frame];
-                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
             }
 
             // sleep for 1 second
         }
-        */
     }
 
     void MagnetostaticMesh::Bplot() {
@@ -489,23 +455,127 @@ namespace nikfemm {
     void MagnetostaticMesh::getFemSystem(MatCOO &coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
 
-        // print points
-        for (uint64 i = 0; i < data.numberofpoints; i++) {
-            printf("%d %f %f %d\n", i, data.pointlist[i].x, data.pointlist[i].y, 0);
+#ifdef DEBUG_PRINT
+        for (uint64_t i = 0; i < data.numberoftriangles; i++) {
+            printf("%d %d\n", i, (int)drawing.getRegionFromId(data.triangleattributelist[i]).mu);
+        }
+#endif
+
+        Elem adjelems[18];
+        uint64_t adjelems_ids[18];
+        MagnetostaticProp adjelems_props[18];
+        uint8_t adjelems_count = 0;
+        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+            // get the elements containing i
+            adjelems_count = 0;
+            for (uint64_t j = 0; j < data.numberoftriangles; j++) {
+                if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
+                    adjelems[adjelems_count] = data.trianglelist[j];
+                    adjelems_ids[adjelems_count] = j;
+                    adjelems_props[adjelems_count] = drawing.getRegionFromId(data.triangleattributelist[j]);
+                    adjelems_count++;
+                }
+            }
+
+            for (uint8_t j = 0; j < adjelems_count; j++) {
+                uint64_t v1, v2, v3;
+                v1 = i;
+                if (i == adjelems[j].verts[0]) {
+                    v2 = adjelems[j].verts[1];
+                    v3 = adjelems[j].verts[2];
+                } else if (i == adjelems[j].verts[1]) {
+                    v2 = adjelems[j].verts[2];
+                    v3 = adjelems[j].verts[0];
+                } else if (i == adjelems[j].verts[2]) {
+                    v2 = adjelems[j].verts[0];
+                    v3 = adjelems[j].verts[1];
+                } else {
+                    nexit("error: vertex not found in element");
+                }
+
+                double oriented_area = Point::double_oriented_area(data.pointlist[v1], data.pointlist[v2], data.pointlist[v3]);
+                
+                if (oriented_area < 0) {
+                    std::swap(v2, v3);
+                }
+
+                double area = Point::double_oriented_area(data.pointlist[v1], data.pointlist[v2], data.pointlist[v3]);
+
+                double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / area;
+                double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
+                double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
+                double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
+                double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
+                double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
+
+#ifdef DEBUG_PRINT
+                printf("elem_mu %f\n", adjelems_props[j].mu);
+                printf("b1, c1 %f %f\n", b1, c1);
+                printf("b2, c2 %f %f\n", b2, c2);
+                printf("b3, c3 %f %f\n", b3, c3);
+                printf("area %f\n", area);
+#endif
+
+                coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[j].mu));
+                coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[j].mu));
+                coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[j].mu));
+
+                // set the b vector
+                b.add_elem(i, (area * adjelems_props[j].J) / 6);
+            }
         }
 
-        printf("--------------------\n");
-
-        // print triangles
-        for (uint64 i = 0; i < data.numberoftriangles; i++) {
-            printf("%d %d %d %d %d\n", i, data.trianglelist[i].verts[0],
-                                          data.trianglelist[i].verts[1],
-                                          data.trianglelist[i].verts[2],
-                                          data.triangleattributelist[i]);
+        // iterate over upper triangular matrix and copy to lower triangular matrix
+        for (uint64_t i = 0; i < coo.m; i++) {
+            for (uint64_t j = i; j < coo.n; j++) {
+                if (coo.get_elem(i, j) != 0) {
+                    coo.add_elem(j, i, coo.get_elem(i, j));
+                }
+            }
         }
 
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
+    }
+
+    void MagnetostaticMesh::addDirichletBoundaryConditions(MatCOO &coo, CV &b) {
+        // find three furthest points from the center
+        uint64_t p1, p2, p3;
+        double d1, d2, d3;
+        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+            double dist = geomDistance(data.pointlist[i], Point(0, 0));
+            if (dist > d1) {
+                d3 = d2;
+                p3 = p2;
+                d2 = d1;
+                p2 = p1;
+                d1 = dist;
+                p1 = i;
+            } else if (dist > d2) {
+                d3 = d2;
+                p3 = p2;
+                d2 = dist;
+                p2 = i;
+            } else if (dist > d3) {
+                d3 = dist;
+                p3 = i;
+            }
+        }
+
+        for (auto elem : coo.elems) {
+            uint32_t m = elem.first >> 32;
+            uint32_t n = elem.first & 0xFFFFFFFF;
+            if (m == p1 || m == p2 || m == p3) {
+                coo.set_elem(m, n, 0);
+            }
+            if (n == p1 || n == p2 || n == p3) {
+                coo.set_elem(m, n, 0);
+            }
+        }
+
+        coo.set_elem(p1, p1, 1);
+        coo.set_elem(p2, p2, 1);
+        coo.set_elem(p3, p3, 1);
     }
 
     /*void MagnetostaticMesh::computeCurl() {

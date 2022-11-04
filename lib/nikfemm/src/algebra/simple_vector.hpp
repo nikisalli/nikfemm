@@ -35,6 +35,8 @@ namespace nikfemm {
 
         static double squareSum(const CV& cv);
         static double dot(const CV& cv1, const CV& cv2);
+
+        void add_elem(uint64_t _m, double d);  // row, value
     };
 }
 

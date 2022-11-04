@@ -24,6 +24,10 @@ namespace nikfemm {
             Point operator-(const Point& p) const;
             Point operator*(const double& d) const;
             Point operator/(const double& d) const;
+
+            static inline double double_oriented_area(const Point& p1, const Point& p2, const Point& p3) {
+                return p1.x * p2.y - p1.x * p3.y - p2.x * p1.y + p2.x * p3.y + p3.x * p1.y - p3.x * p2.y;
+            }
     };
 }
 

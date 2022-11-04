@@ -5,12 +5,14 @@
 
 #include "../algebra/coo.hpp"
 #include "../algebra/simple_vector.hpp"
+#include "../drawing/drawing.hpp"
 
 namespace nikfemm {
     struct Elem {
         int verts[3];
     };
 
+    // this was copied from the triangle library, I changed some types to be able to reinterpret_cast and use the data in a more intuitive way
     struct MeshData {
         Point *pointlist;                                               /* In / out */
         TRI_REAL *pointattributelist;                                      /* In / out */
@@ -51,19 +53,15 @@ namespace nikfemm {
         Prop default_prop;
 
         MeshData data;
+        Drawing<Prop> drawing;
 
         Mesh();
         ~Mesh();
 
         void plot();
-        void mesh(Drawing<Prop> &drawing);
+        void mesh();
         void addKelvinBoundaryConditions();
-        void addDirichletBoundaryConditions(MatCOO &coo, CV &b);
         void kelvinTransformCentered();
-
-        protected:
-        Point getVertex(uint64_t index);
-        void setVertex(uint64_t index, Point point);
     };
 
     // templated member functions must be defined in the header file
@@ -185,7 +183,7 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Mesh<Prop>::mesh(Drawing<Prop> &drawing) {
+    void Mesh<Prop>::mesh() {
         triangulateio in;
 
         /* set up the input */
@@ -297,14 +295,13 @@ namespace nikfemm {
         // this mesh vertices = tmv
 
         Mesh<Prop> kelvin_mesh;
-        Drawing<Prop> kelvin_drawing;
 
         Circle boundary_circle = Circle(Point(0, 0), radius);
-        kelvin_drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
+        kelvin_mesh.drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
         // add region near the edge of the circle
-        kelvin_drawing.drawRegion(Point(0, 0), default_prop);
+        kelvin_mesh.drawing.drawRegion(Point(0, 0), default_prop);
 
-        kelvin_mesh.mesh(kelvin_drawing);
+        kelvin_mesh.mesh();
         kelvin_mesh.center = Point(0, 0);
         kelvin_mesh.radius = radius;
 
@@ -368,6 +365,9 @@ namespace nikfemm {
         data.trianglelist = (Elem *) realloc(data.trianglelist, new_triangle_number * sizeof(Elem));
         data.triangleattributelist = (TRI_REAL *) realloc(data.triangleattributelist, new_triangle_number * sizeof(TRI_REAL));
 
+        // find the id of the default prop in this mesh
+        uint64_t default_prop_id = drawing.getRegionId(default_prop);
+
         // use map to update triangle vertex indices
         for (uint64_t i = 0; i < kelvin_mesh.data.numberoftriangles; i++) {
             // check if point in map else leave it alone
@@ -376,16 +376,11 @@ namespace nikfemm {
                     data.trianglelist[data.numberoftriangles].verts[j] = kelvin_to_this[kelvin_mesh.data.trianglelist[i].verts[j]];
                 }
             }
-            data.triangleattributelist[data.numberoftriangles] = kelvin_mesh.data.triangleattributelist[i];
+            data.triangleattributelist[data.numberoftriangles] = default_prop_id;
             data.numberoftriangles++;
         }
 
         data.numberoftriangles = new_triangle_number;
-    }
-
-    template <typename Prop>
-    void Mesh<Prop>::addDirichletBoundaryConditions(MatCOO &coo, CV &b) {
-        
     }
 }
 

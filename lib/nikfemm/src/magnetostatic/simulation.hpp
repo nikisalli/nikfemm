@@ -20,11 +20,9 @@
 namespace nikfemm {
     class MagnetostaticSimulation {
         protected:
-            MagnetostaticMesh mesh;
         
         public:
-            Drawing<MagnetostaticProp> drawing;
-
+            MagnetostaticMesh mesh;
             MagnetostaticSimulation();
             ~MagnetostaticSimulation();
 

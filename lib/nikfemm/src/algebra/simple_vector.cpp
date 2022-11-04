@@ -132,5 +132,10 @@ namespace nikfemm {
             result += cv[i] * cv[i];
         }
         return result;
-    }    
+    }
+
+    void CV::add_elem(uint64_t _m, double d) {
+        if (_m > m) m = _m;
+        this->val[_m] += d;
+    }
 }

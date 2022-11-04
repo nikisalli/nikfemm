@@ -3,29 +3,21 @@
 
 #include <set>
 #include <cstdint>
-#include <vector>
+#include <unordered_map>
 
 namespace nikfemm {
-    struct ElemCOO {
-        uint64_t m;  // rows
-        uint64_t n;  // columns
-        double val;
-
-        bool operator<(const ElemCOO &other) const;
-        bool operator==(const ElemCOO &other) const;
-    };
-
     struct MatCOO {
-        std::vector<ElemCOO> elems;
+        std::unordered_map<uint64_t, double> elems;
         
-        uint64_t m = 0;  // rows
-        uint64_t n = 0;  // columns
+        uint32_t m = 0;  // rows
+        uint32_t n = 0;  // columns
 
         MatCOO();
         ~MatCOO();
 
-        void add_elem(uint64_t m, uint64_t n, double val);  // row, column, value
-        void add_elem(ElemCOO elem);
+        void set_elem(uint32_t _m, uint32_t _n, double val);  // row, column, value
+        void add_elem(uint32_t _m, uint32_t _n, double val);  // row, column, value
+        double get_elem(uint32_t _m, uint32_t _n);  // row, column, value
         void plot();
     };
 }

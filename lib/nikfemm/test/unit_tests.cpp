@@ -20,6 +20,9 @@ BOOST_AUTO_TEST_CASE( csr_index )
 
     MatCSR csr(coo);
 
+    csr.print();
+    csr.printCSR();
+
     BOOST_CHECK_EQUAL(csr(0, 0), 1);
     BOOST_CHECK_EQUAL(csr(0, 1), 2);
     BOOST_CHECK_EQUAL(csr(0, 2), 0);
@@ -36,9 +39,9 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
     MatCOO coo;
     // [1, 2, 0; 0, 3, 4; 5, 0, 6]
     coo.add_elem(0, 0, 3);
-    coo.add_elem(0, 1, -2);
+    coo.add_elem(0, 1, 1);
     coo.add_elem(1, 0, 1);
-    coo.add_elem(1, 1, 3);
+    coo.add_elem(1, 1, 2);
 
     CV b(2);
     b[0] = -1;
@@ -50,7 +53,7 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 
     MatCSR csr(coo);
 
-    csr.conjugateGradientSolve(b, x0, 1e-6, 10);
+    csr.conjugateGradientSolve(b, x0, 1e-6, 100);
 
     x0.print();
 }

@@ -11,6 +11,6 @@
 
 #define BOUNDARY_VERTICES           100
 
-#define DEBUG_PRINT
+// #define DEBUG_PRINT
 
 #endif
