@@ -5,10 +5,10 @@
 
 namespace nikfemm {
     struct MagnetostaticProp {
-        double mu; // permeability
-        double J; // current density
+        float mu; // permeability
+        float J; // current density
         Vector M; // magnetization
-        double A; // magnetic vector potential
+        float A; // magnetic vector potential
         Vector B; // magnetic flux density
 
         // for sorting

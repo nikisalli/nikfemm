@@ -9,7 +9,7 @@
 #include "circle.hpp"
 
 namespace nikfemm {
-    Circle::Circle(Point center, double radius) {
+    Circle::Circle(Point center, float radius) {
         this->center = center;
         this->radius = radius;
     }

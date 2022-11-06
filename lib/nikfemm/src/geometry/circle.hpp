@@ -12,9 +12,9 @@ namespace nikfemm {
     struct Circle {
         public:
             Point center;
-            double radius;
+            float radius;
 
-            Circle(Point center, double radius);
+            Circle(Point center, float radius);
             Circle();
 
             bool operator==(const Circle& c) const;
@@ -24,14 +24,14 @@ namespace nikfemm {
                 return geomDistance(center, p) <= radius;
             }
             static inline Circle getCircleFromPoints(Point p1, Point p2, Point p3) {
-                double bx = p2.x - p1.x;
-                double by = p2.y - p1.y;
-                double cx = p3.x - p1.x;
-                double cy = p3.y - p1.y;
+                float bx = p2.x - p1.x;
+                float by = p2.y - p1.y;
+                float cx = p3.x - p1.x;
+                float cy = p3.y - p1.y;
 
-                double B = bx * bx + by * by;
-                double C = cx * cx + cy * cy;
-                double D = bx * cy - by * cx;
+                float B = bx * bx + by * by;
+                float C = cx * cx + cy * cy;
+                float D = bx * cy - by * cx;
                 Point I = Point((cy * B - by * C) / (2 * D), (bx * C - cx * B) / (2 * D));
 
                 I.x += p1.x;
