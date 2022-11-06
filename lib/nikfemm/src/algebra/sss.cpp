@@ -17,15 +17,15 @@ namespace nikfemm {
         n = coo.n;
         nnz = coo.elems.size();
 
-        row_ptr = new uint64_t[m + 1]();
-        col_ind = new uint64_t[nnz - m];
+        row_ptr = new uint32_t[m + 1]();
+        col_ind = new uint32_t[nnz - m];
         val = new double[nnz - m];
         diag = new double[m];
 
-        uint64_t i = 0;
+        uint32_t i = 0;
         for (auto const& [key, value] : coo.elems) {
-            uint64_t _m = key >> 32;
-            uint64_t _n = key & 0xFFFFFFFF;
+            uint32_t _m = key >> 32;
+            uint32_t _n = key & 0xFFFFFFFF;
             if (_m == _n) {
                 diag[_m] = value;
             } else if (_m  > _n) {  // < for upper triangular, > for lower triangular
@@ -36,7 +36,7 @@ namespace nikfemm {
             }
         }
 
-        for (uint64_t i = 0; i < m; i++) {
+        for (uint32_t i = 0; i < m; i++) {
             row_ptr[i + 1] += row_ptr[i];
         }
     }
@@ -51,22 +51,22 @@ namespace nikfemm {
     void MatSSS::printSSS() {
         printf("m: %lu, n: %lu, nnz: %lu\n", m, n, nnz);
         printf("row_ptr: ");
-        for (uint64_t i = 0; i < m + 1; i++) {
+        for (uint32_t i = 0; i < m + 1; i++) {
             printf("%lu ", row_ptr[i]);
         }
         printf("\n");
         printf("col_ind: ");
-        for (uint64_t i = 0; i < nnz - m; i++) {
+        for (uint32_t i = 0; i < nnz - m; i++) {
             printf("%lu ", col_ind[i]);
         }
         printf("\n");
         printf("val: ");
-        for (uint64_t i = 0; i < nnz - m; i++) {
+        for (uint32_t i = 0; i < nnz - m; i++) {
             printf("%.1f ", val[i]);
         }
         printf("\n");
         printf("diag: ");
-        for (uint64_t i = 0; i < m; i++) {
+        for (uint32_t i = 0; i < m; i++) {
             printf("%.1f ", diag[i]);
         }
         printf("\n");
@@ -74,8 +74,8 @@ namespace nikfemm {
 
     void MatSSS::print() {
         printf("m: %lu, n: %lu, nnz: %lu\n", m, n, nnz);
-        for (uint64_t i = 0; i < m; i++) {
-            for (uint64_t j = 0; j < n; j++) {
+        for (uint32_t i = 0; i < m; i++) {
+            for (uint32_t j = 0; j < n; j++) {
                 printf("%.1f ", (*this)(i, j));
             }
             printf("\n");
@@ -85,8 +85,8 @@ namespace nikfemm {
     void MatSSS::write_to_file(const char* filename) {
         FILE* fp = fopen(filename, "w");
         fprintf(fp, "%lu %lu %lu\n", m, n, nnz);
-        for (uint64_t i = 0; i < m; i++) {
-            for (uint64_t j = 0; j < n; j++) {
+        for (uint32_t i = 0; i < m; i++) {
+            for (uint32_t j = 0; j < n; j++) {
                 fprintf(fp, "%.17g ", (*this)(i, j));
             }
             fprintf(fp, "\n");
@@ -94,11 +94,11 @@ namespace nikfemm {
         fclose(fp);
     }
 
-    double MatSSS::operator()(uint64_t i, uint64_t j) const {
+    double MatSSS::operator()(uint32_t i, uint32_t j) const {
         if (i == j) {
             return diag[i];
         } else if (i > j) {  // < for upper triangular, > for lower triangular
-            uint64_t k = row_ptr[i];
+            uint32_t k = row_ptr[i];
             while (k < row_ptr[i + 1]) {
                 if (col_ind[k] == j) {
                     return val[k];
@@ -113,13 +113,13 @@ namespace nikfemm {
 
     CV MatSSS::getInverseDiagonal() const {
         CV invDiag(m);
-        for (uint64_t i = 0; i < m; i++) {
+        for (uint32_t i = 0; i < m; i++) {
             invDiag[i] = 1 / diag[i];
         }
         return invDiag;
     }
 
-    void MatSSS::preconditionedConjugateGradientSolve(CV& b, CV& x, double maxError, uint64_t maxIterations) {
+    void MatSSS::preconditionedConjugateGradientSolve(CV& b, CV& x, double maxError, uint32_t maxIterations) {
         CV r(b.m);
         CV::mult(r, *this, x);
         CV::sub(r, b, r);
@@ -130,7 +130,7 @@ namespace nikfemm {
         CV::copy(p, z);
         CV Ap(b.m);
         double rTzold;
-        for (uint64_t i = 0; i < maxIterations; i++) {
+        for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {

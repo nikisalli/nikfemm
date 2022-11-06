@@ -100,7 +100,7 @@ namespace nikfemm {
         double min_y = 1000000;
         double max_x = -1000000;
         double max_y = -1000000;
-        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+        for (uint32_t i = 0; i < data.numberofpoints; i++) {
             Point p = data.pointlist[i];
             if (p.x < min_x) min_x = p.x;
             if (p.y < min_y) min_y = p.y;
@@ -127,8 +127,8 @@ namespace nikfemm {
             SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             SDL_RenderClear(rend);
             // draw the points
-            for (uint64_t i = 0; i < data.numberoftriangles; i++) {
-                for (uint64_t j = 0; j < 3; j++) {
+            for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+                for (uint32_t j = 0; j < 3; j++) {
                     Point p1 = data.pointlist[data.trianglelist[i].verts[j]];
                     Point p2 = data.pointlist[data.trianglelist[i].verts[(j + 1) % 3]];
                     SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
@@ -188,8 +188,8 @@ namespace nikfemm {
 
         /* set up the input */
         struct TempSegment {
-            uint64_t id1;
-            uint64_t id2;
+            uint32_t id1;
+            uint32_t id2;
         };
 
         in.numberofpoints = drawing.points.size();
@@ -197,12 +197,12 @@ namespace nikfemm {
         in.numberofsegments = drawing.segments.size();
         in.segmentlist = (int*)malloc(in.numberofsegments * 2 * sizeof(int));
 
-        for (uint64_t i = 0; i < drawing.points.size(); i++) {
+        for (uint32_t i = 0; i < drawing.points.size(); i++) {
             in.pointlist[2 * i] = drawing.points[i].x;
             in.pointlist[2 * i + 1] = drawing.points[i].y;
         }
 
-        uint64_t i = 0;
+        uint32_t i = 0;
         for (auto s : drawing.segments) {
             in.segmentlist[2 * i] = s.p1;
             in.segmentlist[2 * i + 1] = s.p2;
@@ -265,7 +265,7 @@ namespace nikfemm {
         double max_x = radius / max_radius_coeff;
         // printf("R^2 = %f\n", R_squared);
 
-        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+        for (uint32_t i = 0; i < data.numberofpoints; i++) {
             if (data.pointmarkerlist[i] == 0) {  // if it's not a boundary point
                 Point v = data.pointlist[i];
                 double mag_squared = v.x * v.x + v.y * v.y;
@@ -323,11 +323,11 @@ namespace nikfemm {
         // 8. use map to update triangle vertex indices
         // 9. add kelvin mesh triangles to this mesh
 
-        std::map<uint64_t, uint64_t> kelvin_to_this;
-        uint64_t kelvin_number_of_boundary_points = 0;
-        for (uint64_t i = 0; i < kelvin_mesh.data.numberofpoints; i++) {
+        std::map<uint32_t, uint32_t> kelvin_to_this;
+        uint32_t kelvin_number_of_boundary_points = 0;
+        for (uint32_t i = 0; i < kelvin_mesh.data.numberofpoints; i++) {
             if (kelvin_mesh.data.pointmarkerlist[i]) {
-                for (uint64_t j = 0; j < data.numberofpoints; j++) {
+                for (uint32_t j = 0; j < data.numberofpoints; j++) {
                     if (data.pointmarkerlist[j]) {
                         if (data.pointlist[j].x == kelvin_mesh.data.pointlist[i].x && data.pointlist[j].y == kelvin_mesh.data.pointlist[i].y) {
                             kelvin_to_this[i] = j;
@@ -340,7 +340,7 @@ namespace nikfemm {
         }
 
         // calculate new this mesh point number
-        uint64_t new_point_number = data.numberofpoints + kelvin_mesh.data.numberofpoints - kelvin_number_of_boundary_points;
+        uint32_t new_point_number = data.numberofpoints + kelvin_mesh.data.numberofpoints - kelvin_number_of_boundary_points;
 
         // reallocate memory for this mesh
         data.pointlist = (Point *) realloc(data.pointlist, new_point_number * sizeof(Point));
@@ -349,7 +349,7 @@ namespace nikfemm {
         // data.pointmarkerlist = (int *) realloc(data.pointmarkerlist, new_point_number * sizeof(int));
 
         // add kelvin mesh non boundary vertices to this mesh
-        for (uint64_t i = 0; i < kelvin_mesh.data.numberofpoints; i++) {
+        for (uint32_t i = 0; i < kelvin_mesh.data.numberofpoints; i++) {
             if (!kelvin_mesh.data.pointmarkerlist[i]) {
                 data.pointlist[data.numberofpoints] = kelvin_mesh.data.pointlist[i];
                 // data.pointmarkerlist[data.numberofpoints] = 0;
@@ -359,17 +359,17 @@ namespace nikfemm {
         }
 
         // calculate new this mesh triangle number
-        uint64_t new_triangle_number = data.numberoftriangles + kelvin_mesh.data.numberoftriangles;
+        uint32_t new_triangle_number = data.numberoftriangles + kelvin_mesh.data.numberoftriangles;
 
         // reallocate memory for this mesh
         data.trianglelist = (Elem *) realloc(data.trianglelist, new_triangle_number * sizeof(Elem));
         data.triangleattributelist = (TRI_REAL *) realloc(data.triangleattributelist, new_triangle_number * sizeof(TRI_REAL));
 
         // find the id of the default prop in this mesh
-        uint64_t default_prop_id = drawing.getRegionId(default_prop);
+        uint32_t default_prop_id = drawing.getRegionId(default_prop);
 
         // use map to update triangle vertex indices
-        for (uint64_t i = 0; i < kelvin_mesh.data.numberoftriangles; i++) {
+        for (uint32_t i = 0; i < kelvin_mesh.data.numberoftriangles; i++) {
             // check if point in map else leave it alone
             for (uint8_t j = 0; j < 3; j++) {
                 if (kelvin_to_this.count(kelvin_mesh.data.trianglelist[i].verts[j])) {

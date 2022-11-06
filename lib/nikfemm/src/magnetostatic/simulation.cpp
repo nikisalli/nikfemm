@@ -39,7 +39,7 @@ namespace nikfemm {
             smallest_circle.radius = 1;
         }
         // translate everything to the origin
-        for (uint64_t i = 0; i < mesh.drawing.points.size(); i++) {
+        for (uint32_t i = 0; i < mesh.drawing.points.size(); i++) {
             mesh.drawing.points[i] = Point(mesh.drawing.points[i].x - smallest_circle.center.x, mesh.drawing.points[i].y - smallest_circle.center.y);
         }
         std::vector<DrawingRegion> translated_regions;

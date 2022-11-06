@@ -5,10 +5,10 @@
 
 namespace nikfemm {
     struct DrawingSegment {
-        uint64_t p1;
-        uint64_t p2;
+        uint32_t p1;
+        uint32_t p2;
 
-        DrawingSegment(uint64_t p1, uint64_t p2) {
+        DrawingSegment(uint32_t p1, uint32_t p2) {
             this->p1 = p1;
             this->p2 = p2;
         }
@@ -26,7 +26,7 @@ namespace std {
     template <>
     struct hash<nikfemm::DrawingSegment> {
         inline std::size_t operator()(const nikfemm::DrawingSegment& s) const {
-            return hash<uint64_t>()(s.p1) ^ hash<uint64_t>()(s.p2);
+            return hash<uint32_t>()(s.p1) ^ hash<uint32_t>()(s.p2);
         }
     };
 

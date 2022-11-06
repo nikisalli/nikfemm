@@ -86,7 +86,7 @@ namespace nikfemm {
         double max_A = std::numeric_limits<double>::min();
         double min_A = std::numeric_limits<double>::max();
 
-        for (uint64_t i = 0; i < A.m; i++) {
+        for (uint32_t i = 0; i < A.m; i++) {
             if (A.val[i] > max_A) {
                 max_A = A.val[i];
             }
@@ -97,13 +97,13 @@ namespace nikfemm {
 
         // render
 
-        uint64_t frame = 0;
+        uint32_t frame = 0;
         // clears the window
         SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
         SDL_RenderClear(rend);
         // draw the points
-        uint64_t i = 0;
-        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+        uint32_t i = 0;
+        for (uint32_t i = 0; i < data.numberofpoints; i++) {
             
             // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             // // draw a square centered at the point
@@ -133,7 +133,7 @@ namespace nikfemm {
                             
             // find the triangles that contain the Vertex<MagnetostaticProp> and then
             // for every triangle find the barycenter and add it to the points vector
-            for (uint64_t j = 0; j < data.numberoftriangles; j++) {
+            for (uint32_t j = 0; j < data.numberoftriangles; j++) {
                 if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
                     SDL_Vertex new_v;
                     Point barycenter = {
@@ -292,13 +292,13 @@ namespace nikfemm {
 
         // render
 
-        uint64_t frame = 0;
+        uint32_t frame = 0;
         while(true){
             // clears the window
             SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
             SDL_RenderClear(rend);
             // draw the points
-            uint64_t i = 0;
+            uint32_t i = 0;
             for (auto v : vertices) {
 
                 if (geomDistance(v->p, Point(0, 0)) > radius * 2) {
@@ -456,25 +456,25 @@ namespace nikfemm {
         auto start = std::chrono::high_resolution_clock::now();
 
 #ifdef DEBUG_PRINT
-        for (uint64_t i = 0; i < data.numberoftriangles; i++) {
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             printf("%d %d\n", i, (int)drawing.getRegionFromId(data.triangleattributelist[i]).mu);
         }
 #endif
 
-        auto adjelems_ids = new uint64_t[data.numberofpoints][18];
+        auto adjelems_ids = new uint32_t[data.numberofpoints][18];
         auto adjelems_props = new MagnetostaticProp[data.numberofpoints][18];
         auto adjelems_count = new uint8_t[data.numberofpoints]();  // initialize to 0
 
-        for (uint64_t i = 0; i < data.numberoftriangles; i++) {
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
-                uint64_t myid = data.trianglelist[i].verts[j];
+                uint32_t myid = data.trianglelist[i].verts[j];
                 adjelems_ids[myid][adjelems_count[myid]] = i;
                 adjelems_props[myid][adjelems_count[myid]++] = drawing.getRegionFromId(data.triangleattributelist[i]);
             }
         }
-        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+        for (uint32_t i = 0; i < data.numberofpoints; i++) {
             for (uint8_t j = 0; j < adjelems_count[i]; j++) {
-                uint64_t v1, v2, v3;
+                uint32_t v1, v2, v3;
                 v1 = i;
                 Elem myelem = data.trianglelist[adjelems_ids[i][j]];
                 if (i == data.trianglelist[adjelems_ids[i][j]].verts[0]) {
@@ -526,8 +526,8 @@ namespace nikfemm {
         }
 
         // iterate over upper triangular matrix and copy to lower triangular matrix
-        // for (uint64_t i = 0; i < coo.m; i++) {
-        //     for (uint64_t j = i; j < coo.n; j++) {
+        // for (uint32_t i = 0; i < coo.m; i++) {
+        //     for (uint32_t j = i; j < coo.n; j++) {
         //         if (coo.get_elem(i, j) != 0) {
         //             coo.add_elem(j, i, coo.get_elem(i, j));
         //         }
@@ -540,9 +540,9 @@ namespace nikfemm {
 
     void MagnetostaticMesh::addDirichletBoundaryConditions(MatCOO &coo, CV &b) {
         // find three furthest points from the center
-        uint64_t p1, p2, p3;
+        uint32_t p1, p2, p3;
         double d1, d2, d3;
-        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+        for (uint32_t i = 0; i < data.numberofpoints; i++) {
             double dist = geomDistance(data.pointlist[i], Point(0, 0));
             if (dist > d1) {
                 d3 = d2;
@@ -599,7 +599,7 @@ namespace nikfemm {
             double xi = v->p.x;
             double yi = v->p.y;
             // printf("xi = %f, yi = %f\n", xi, yi);
-            uint64_t i = 0;
+            uint32_t i = 0;
             for (auto vj : adjverts) {
                 double xj = vj->p.x;
                 double yj = vj->p.y;

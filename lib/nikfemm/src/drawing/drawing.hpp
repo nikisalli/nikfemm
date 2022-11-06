@@ -25,11 +25,11 @@
 #include "../geometry/circle.hpp"
 
 namespace nikfemm {
-    typedef std::pair<Point, uint64_t> DrawingRegion;
+    typedef std::pair<Point, uint32_t> DrawingRegion;
 
     template<typename Prop>
     struct Drawing {
-        std::map<Prop, uint64_t> region_map;
+        std::map<Prop, uint32_t> region_map;
         std::vector<DrawingRegion> regions;
         std::vector<Point> points;
         std::unordered_set<DrawingSegment> segments;
@@ -48,8 +48,8 @@ namespace nikfemm {
             void drawRegion(Point p, Prop val);
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
-            Prop getRegionFromId(uint64_t id);
-            uint64_t getRegionId(Prop val);
+            Prop getRegionFromId(uint32_t id);
+            uint32_t getRegionId(Prop val);
         
             void plot();
     };
@@ -125,7 +125,7 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    uint64_t Drawing<Prop>::getRegionId(Prop val) {
+    uint32_t Drawing<Prop>::getRegionId(Prop val) {
         if (region_map.find(val) == region_map.end()) {
             region_map[val] = region_map.size();
             // printf("region %f has id %lu\n", val, region_map[val]);
@@ -134,7 +134,7 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    Prop Drawing<Prop>::getRegionFromId(uint64_t id) {
+    Prop Drawing<Prop>::getRegionFromId(uint32_t id) {
         for (auto it = region_map.begin(); it != region_map.end(); it++) {
             if (it->second == id) {
                 return it->first;
@@ -147,7 +147,7 @@ namespace nikfemm {
 
     template <typename Prop>
     void Drawing<Prop>::drawRegion(Point p, Prop val) {
-        uint64_t region_id = getRegionId(val);
+        uint32_t region_id = getRegionId(val);
         regions.push_back(DrawingRegion(p, region_id));
     }
 
@@ -156,9 +156,9 @@ namespace nikfemm {
         // check if point is already in points
         bool p1_found = false;
         bool p2_found = false;
-        uint64_t p1_id = 0;
-        uint64_t p2_id = 0;
-        for (uint64_t i = 0; i < points.size(); i++) {
+        uint32_t p1_id = 0;
+        uint32_t p2_id = 0;
+        for (uint32_t i = 0; i < points.size(); i++) {
             if (points[i] == p1) {
                 p1_found = true;
                 p1_id = i;

@@ -58,7 +58,7 @@ namespace nikfemm {
             static Circle trivialCircleFromPoints(std::vector<Point> points);
 
         protected:
-            static Circle welzlHelper(std::vector<Point> points, std::vector<Point> R, uint64_t n);
+            static Circle welzlHelper(std::vector<Point> points, std::vector<Point> R, uint32_t n);
         public:
             static Circle getMinimumEnclosingCircle(std::vector<Point> points);
             static Circle getMinimumEnclosingCircle(std::unordered_set<Point> points);

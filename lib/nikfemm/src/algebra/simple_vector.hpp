@@ -12,16 +12,16 @@ namespace nikfemm {
     struct MatSSS;
     struct CV {
         double* val;
-        uint64_t m;  // columns
+        uint32_t m;  // columns
 
-        CV(uint64_t size);
+        CV(uint32_t size);
         ~CV();
 
         void print();
         void write_to_file(const char *filename);
         
-        double& operator[](uint64_t i);
-        double operator[](uint64_t i) const;
+        double& operator[](uint32_t i);
+        double operator[](uint32_t i) const;
 
         static void mult(CV& result, const MatCSR& mat, const CV& cv);
         static void mult(CV& result, const MatSSS& mat, const CV& cv);
@@ -39,8 +39,8 @@ namespace nikfemm {
         static double squareSum(const CV& cv);
         static double dot(const CV& cv1, const CV& cv2);
 
-        void add_elem(uint64_t _m, double d);  // row, value
-        void set_elem(uint64_t _m, double d);  // row, value
+        void add_elem(uint32_t _m, double d);  // row, value
+        void set_elem(uint32_t _m, double d);  // row, value
     };
 }
 

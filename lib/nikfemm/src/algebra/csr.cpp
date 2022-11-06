@@ -17,11 +17,11 @@ namespace nikfemm {
         n = coo.n;
         nnz = coo.elems.size();
 
-        IA = new uint64_t[m + 1]();
-        JA = new uint64_t[nnz];
+        IA = new uint32_t[m + 1]();
+        JA = new uint32_t[nnz];
         A = new double[nnz];
 
-        uint64_t i = 0;
+        uint32_t i = 0;
         for (auto const& [key, val] : coo.elems) {
             // printf("key: %lu, m: %lu, n: %lu, val: %g\n", key, key >> 32, key & 0xFFFFFFFF, val);
             JA[i] = key & 0xFFFFFFFF;
@@ -30,7 +30,7 @@ namespace nikfemm {
             i++;
         }
 
-        for (uint64_t i = 0; i < m; i++) {
+        for (uint32_t i = 0; i < m; i++) {
             IA[i + 1] += IA[i];
         }
     }
@@ -44,17 +44,17 @@ namespace nikfemm {
     void MatCSR::printCSR() {
         printf("m: %lu, n: %lu, nnz: %lu\n", m, n, nnz);
         printf("IA: ");
-        for (uint64_t i = 0; i < m + 1; i++) {
+        for (uint32_t i = 0; i < m + 1; i++) {
             printf("%lu ", IA[i]);
         }
         printf("\n");
         printf("JA: ");
-        for (uint64_t i = 0; i < nnz; i++) {
+        for (uint32_t i = 0; i < nnz; i++) {
             printf("%lu ", JA[i]);
         }
         printf("\n");
         printf("A: ");
-        for (uint64_t i = 0; i < nnz; i++) {
+        for (uint32_t i = 0; i < nnz; i++) {
             printf("%.1f ", A[i]);
         }
         printf("\n");
@@ -62,20 +62,20 @@ namespace nikfemm {
 
     void MatCSR::print() {
         // iterate over CSR elements
-        uint64_t idx = 0;
-        for (uint64_t i = 0; i < m; i++) {
-            for (uint64_t j = 0; j < n; j++) {
+        uint32_t idx = 0;
+        for (uint32_t i = 0; i < m; i++) {
+            for (uint32_t j = 0; j < n; j++) {
                 printf("%.1f ", (*this)(i, j));
             }
             printf("\n");
         }
     }
 
-    double MatCSR::operator()(uint64_t i, uint64_t j) const {
+    double MatCSR::operator()(uint32_t i, uint32_t j) const {
         assert(i <= m && j <= n);
-        uint64_t row_start = IA[i];
-        uint64_t row_end = IA[i + 1];
-        for (uint64_t k = row_start; k < row_end; k++) {
+        uint32_t row_start = IA[i];
+        uint32_t row_end = IA[i + 1];
+        for (uint32_t k = row_start; k < row_end; k++) {
             if (JA[k] == j) {
                 return A[k];
             }
@@ -85,13 +85,13 @@ namespace nikfemm {
 
     CV MatCSR::getInverseDiagonal() const {
         CV cv(m);
-        for (uint64_t i = 0; i < m; i++) {
+        for (uint32_t i = 0; i < m; i++) {
             cv.set_elem(i, 1.0 / (*this)(i, i));
         }
         return cv;
     }
 
-    void MatCSR::conjugateGradientSolve(CV& b, CV& x, double maxError, uint64_t maxIterations) {
+    void MatCSR::conjugateGradientSolve(CV& b, CV& x, double maxError, uint32_t maxIterations) {
         CV r(b.m);
         CV p(b.m);
         CV Ap(b.m);
@@ -99,7 +99,7 @@ namespace nikfemm {
         CV::sub(r, b, r);
         CV::copy(p, r);
         double rTr = CV::squareSum(r);
-        for (uint64_t i = 0; i < maxIterations; i++) {
+        for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
             double pAp = CV::dot(p, Ap);
             if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
@@ -127,7 +127,7 @@ namespace nikfemm {
         }
     }
 
-    void MatCSR::preconditionedConjugateGradientSolve(CV& b, CV& x, double maxError, uint64_t maxIterations) {
+    void MatCSR::preconditionedConjugateGradientSolve(CV& b, CV& x, double maxError, uint32_t maxIterations) {
         CV r(b.m);
         CV::mult(r, *this, x);
         CV::sub(r, b, r);
@@ -138,7 +138,7 @@ namespace nikfemm {
         CV::copy(p, z);
         CV Ap(b.m);
         double rTzold;
-        for (uint64_t i = 0; i < maxIterations; i++) {
+        for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {

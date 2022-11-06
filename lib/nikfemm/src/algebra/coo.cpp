@@ -8,7 +8,7 @@
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
-    MatCOO::MatCOO(uint64_t m, uint64_t n) {
+    MatCOO::MatCOO(uint32_t m, uint32_t n) {
         this->m = m;
         this->n = n;
     }

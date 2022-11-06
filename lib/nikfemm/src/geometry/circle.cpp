@@ -51,12 +51,12 @@ namespace nikfemm {
         return getCircleFromPoints(points[0], points[1], points[2]);
     }
 
-    Circle Circle::welzlHelper(std::vector<Point> points, std::vector<Point> R, uint64_t n) {
+    Circle Circle::welzlHelper(std::vector<Point> points, std::vector<Point> R, uint32_t n) {
         if (n == 0 || R.size() == 3) {
             return trivialCircleFromPoints(R);
         }
 
-        uint64_t k = rand() % n;
+        uint32_t k = rand() % n;
         Point p = points[k];
 
         std::swap(points[k], points[n - 1]);
