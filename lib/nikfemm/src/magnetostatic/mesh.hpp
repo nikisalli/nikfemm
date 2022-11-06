@@ -512,14 +512,6 @@ namespace nikfemm {
                     coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
                 }
 
-#ifdef DEBUG_PRINT
-                printf("elem_mu %f\n", adjelems_props[j].mu);
-                printf("b1, c1 %f %f\n", b1, c1);
-                printf("b2, c2 %f %f\n", b2, c2);
-                printf("b3, c3 %f %f\n", b3, c3);
-                printf("area %f\n", area);
-#endif
-
                 // set the b vector
                 b.add_elem(i, (area * adjelems_props[i][j].J) / 6);
             }
