@@ -19,7 +19,7 @@ namespace nikfemm {
 
         IA = new uint32_t[m + 1]();
         JA = new uint32_t[nnz];
-        A = new double[nnz];
+        A = new float[nnz];
 
         uint32_t i = 0;
         for (auto const& [key, val] : coo.elems) {
@@ -71,7 +71,7 @@ namespace nikfemm {
         }
     }
 
-    double MatCSR::operator()(uint32_t i, uint32_t j) const {
+    float MatCSR::operator()(uint32_t i, uint32_t j) const {
         assert(i <= m && j <= n);
         uint32_t row_start = IA[i];
         uint32_t row_end = IA[i + 1];
@@ -91,25 +91,25 @@ namespace nikfemm {
         return cv;
     }
 
-    void MatCSR::conjugateGradientSolve(CV& b, CV& x, double maxError, uint32_t maxIterations) {
+    void MatCSR::conjugateGradientSolve(CV& b, CV& x, float maxError, uint32_t maxIterations) {
         CV r(b.m);
         CV p(b.m);
         CV Ap(b.m);
         CV::mult(r, *this, x);
         CV::sub(r, b, r);
         CV::copy(p, r);
-        double rTr = CV::squareSum(r);
+        float rTr = CV::squareSum(r);
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
-            double pAp = CV::dot(p, Ap);
-            if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
-                pAp = std::numeric_limits<double>::epsilon();
+            float pAp = CV::dot(p, Ap);
+            if (fabs(pAp) < std::numeric_limits<float>::epsilon()) {
+                pAp = std::numeric_limits<float>::epsilon();
                 printf("warning: pAp is zero. approximating with epsilon");
             }
-            double alpha = rTr / pAp;
+            float alpha = rTr / pAp;
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
-            double rTrNew = CV::squareSum(r);
+            float rTrNew = CV::squareSum(r);
 #ifdef DEBUG_PRINT
             printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
 #endif
@@ -121,13 +121,13 @@ namespace nikfemm {
 #endif
                 break;
             }
-            double beta = rTrNew / rTr;
+            float beta = rTrNew / rTr;
             CV::addScaled(p, r, beta, p);
             rTr = rTrNew;
         }
     }
 
-    void MatCSR::preconditionedConjugateGradientSolve(CV& b, CV& x, double maxError, uint32_t maxIterations) {
+    void MatCSR::preconditionedConjugateGradientSolve(CV& b, CV& x, float maxError, uint32_t maxIterations) {
         CV r(b.m);
         CV::mult(r, *this, x);
         CV::sub(r, b, r);
@@ -137,18 +137,18 @@ namespace nikfemm {
         CV p(b.m);
         CV::copy(p, z);
         CV Ap(b.m);
-        double rTzold;
+        float rTzold;
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
-            double alpha = CV::dot(r, z) / CV::dot(p, Ap);
-            if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
-                alpha = std::numeric_limits<double>::epsilon();
+            float alpha = CV::dot(r, z) / CV::dot(p, Ap);
+            if (fabs(alpha) < std::numeric_limits<float>::epsilon()) {
+                alpha = std::numeric_limits<float>::epsilon();
                 printf("warning: alpha is zero. approximating with epsilon\n");
             }
             rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
-            double squareError = CV::squareSum(r);
+            float squareError = CV::squareSum(r);
 #ifdef DEBUG_PRINT
             printf("iteration %lu, error: %f\n", i, sqrt(squareError));
 #endif
@@ -161,7 +161,7 @@ namespace nikfemm {
                 break;
             }
             CV::mult(z, m, r);
-            double beta = CV::dot(r, z) / rTzold;
+            float beta = CV::dot(r, z) / rTzold;
             CV::addScaled(p, z, beta, p);
         }
     }
