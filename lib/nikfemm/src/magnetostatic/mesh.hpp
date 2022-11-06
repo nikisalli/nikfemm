@@ -500,14 +500,13 @@ namespace nikfemm {
 
                 double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / area;
                 double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
-                if (v1 < i) {}
                 coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[i][j].mu));
-                if (v2 < i) {
+                if (v2 <= i) {
                     double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
                     double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
                     coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
                 }
-                if (v3 < i) {
+                if (v3 <= i) {
                     double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
                     double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
                     coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));

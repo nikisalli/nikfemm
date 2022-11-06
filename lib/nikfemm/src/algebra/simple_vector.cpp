@@ -57,8 +57,6 @@ namespace nikfemm {
             result[i] = mat.diag[i] * cv[i];
             for (uint64_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
                 result[i] += mat.val[j] * cv[mat.col_ind[j]];
-            }
-            for (uint64_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
                 result[mat.col_ind[j]] += mat.val[j] * cv[i];
             }
         }
