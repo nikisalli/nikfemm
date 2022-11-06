@@ -6,11 +6,8 @@
 
 namespace nikfemm {
     CV::CV(uint64_t size) {
-        val.reserve(size);
+        val = new double[size]();
         m = size;
-        for (uint64_t i = 0; i < size; i++) {
-            val.push_back(0);
-        }
     }
 
     CV::~CV() {

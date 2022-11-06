@@ -11,7 +11,7 @@ namespace nikfemm {
     struct MatCSR;
     struct MatSSS;
     struct CV {
-        std::vector<double> val;
+        double* val;
         uint64_t m;  // columns
 
         CV(uint64_t size);
