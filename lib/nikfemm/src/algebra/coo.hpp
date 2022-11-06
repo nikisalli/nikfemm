@@ -3,16 +3,16 @@
 
 #include <set>
 #include <cstdint>
-#include <unordered_map>
+#include <map>
 
 namespace nikfemm {
     struct MatCOO {
-        std::unordered_map<uint64_t, double> elems;
+        std::map<uint64_t, double> elems;
         
         uint32_t m = 0;  // rows
         uint32_t n = 0;  // columns
 
-        MatCOO();
+        MatCOO(uint64_t m, uint64_t n);
         ~MatCOO();
 
         void set_elem(uint32_t _m, uint32_t _n, double val);  // row, column, value

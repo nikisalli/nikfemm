@@ -16,6 +16,7 @@
 #include "../geometry/point.hpp"
 #include "../algebra/coo.hpp"
 #include "../algebra/csr.hpp"
+#include "../algebra/sss.hpp"
 #include "../algebra/simple_vector.hpp"
 
 namespace nikfemm {
@@ -32,6 +33,7 @@ namespace nikfemm {
 
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
+        auto start1 = std::chrono::high_resolution_clock::now();
         Circle smallest_circle = Circle::getMinimumEnclosingCircle(mesh.drawing.points);
         if (mesh.drawing.points.size() == 0) {
             smallest_circle.radius = 1;
@@ -55,35 +57,35 @@ namespace nikfemm {
         mesh.drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), vacuum_prop);
         // add the boundary 
         // mesh.drawing.plot();
-        auto start = std::chrono::high_resolution_clock::now();
+        auto start2 = std::chrono::high_resolution_clock::now();
         mesh.mesh();
+        auto start3 = std::chrono::high_resolution_clock::now();
 #ifdef DEBUG_PRINT
         mesh.plot();
 #endif
         mesh.addKelvinBoundaryConditions();
+        auto start4 = std::chrono::high_resolution_clock::now();
 #ifdef DEBUG_PRINT
         mesh.plot();
 #endif
-        MatCOO coo;
+        MatCOO coo(mesh.data.numberofpoints, mesh.data.numberofpoints);
         CV b(mesh.data.numberofpoints);
         CV x(mesh.data.numberofpoints);
-
-        // initialize x to 0
-        for (uint64_t i = 0; i < mesh.data.numberofpoints; i++) {
-            x[i] = 0;
-            b[i] = 0;
-        }
+        auto start5 = std::chrono::high_resolution_clock::now();
 
         mesh.getFemSystem(coo, b);
+        auto start6 = std::chrono::high_resolution_clock::now();
         mesh.addDirichletBoundaryConditions(coo, b);
+        auto start7 = std::chrono::high_resolution_clock::now();
 
 #ifdef DEBUG_PRINT
         printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
 #endif
 
-        MatCSR csr(coo);
-        csr.write_to_file("A");
-        b.write_to_file("b");
+        MatSSS sss(coo);
+        // sss.write_to_file("A");
+        // b.write_to_file("b");
+        auto start8 = std::chrono::high_resolution_clock::now();
 
 #ifdef DEBUG_PRINT
         // csr.print();
@@ -92,10 +94,23 @@ namespace nikfemm {
         // b.print();
 #endif
 
-        csr.conjugateGradientSolve(b, x, 1e-7, 10000);
+        // csr.conjugateGradientSolve(b, x, 1e-7, 10000);
+        sss.preconditionedConjugateGradientSolve(b, x, 1e-7, 1000);
+        auto start9 = std::chrono::high_resolution_clock::now();
+
+        auto end = std::chrono::high_resolution_clock::now();
+        printf("%f translate and fix mesh\n", std::chrono::duration_cast<std::chrono::duration<double>>(start2 - start1).count()*1000);
+        printf("%f mesh\n", std::chrono::duration_cast<std::chrono::duration<double>>(start3 - start2).count()*1000);
+        printf("%f kelvin boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<double>>(start4 - start3).count()*1000);
+        printf("%f allocate vectors b x and coo\n", std::chrono::duration_cast<std::chrono::duration<double>>(start5 - start4).count()*1000);
+        printf("%f get fem system\n", std::chrono::duration_cast<std::chrono::duration<double>>(start6 - start5).count()*1000);
+        printf("%f add dirichlet boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<double>>(start7 - start6).count()*1000);
+        printf("%f convert to csr\n", std::chrono::duration_cast<std::chrono::duration<double>>(start8 - start7).count()*1000);
+        printf("%f solve\n", std::chrono::duration_cast<std::chrono::duration<double>>(start9 - start8).count()*1000);
+        printf("%f total\n", std::chrono::duration_cast<std::chrono::duration<double>>(start9 - start1).count()*1000);
 
         mesh.Aplot(x);
-        return;
+        // return;
         /*
         mesh.Bplot();
 
@@ -103,8 +118,6 @@ namespace nikfemm {
 
         printf("Number of points: %d\nNumber of boundary vertices: %d\n", mesh.vertices.size(), mesh.boundary_vertices.size());
         */
-        // get end time
-        auto end = std::chrono::high_resolution_clock::now();
-        printf("%f Total time\n", std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count()*1000);
+
     }
 }

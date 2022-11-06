@@ -5,10 +5,11 @@
 #include <vector>
 
 #include "csr.hpp"
+#include "sss.hpp"
 
 namespace nikfemm {
     struct MatCSR;
-
+    struct MatSSS;
     struct CV {
         std::vector<double> val;
         uint64_t m;  // columns
@@ -23,7 +24,9 @@ namespace nikfemm {
         double operator[](uint64_t i) const;
 
         static void mult(CV& result, const MatCSR& mat, const CV& cv);
+        static void mult(CV& result, const MatSSS& mat, const CV& cv);
         static void mult(CV& result, const double d, const CV& cv);
+        static void mult(CV& result, const CV& cv1, const CV& cv2);
         static void add(CV& result, const CV& cv1, const CV& cv2);
         static void sub(CV& result, const CV& cv1, const CV& cv2);
         static void div(CV& result, const CV& cv, const double d);
@@ -37,6 +40,7 @@ namespace nikfemm {
         static double dot(const CV& cv1, const CV& cv2);
 
         void add_elem(uint64_t _m, double d);  // row, value
+        void set_elem(uint64_t _m, double d);  // row, value
     };
 }
 

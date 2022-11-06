@@ -8,6 +8,7 @@
 #include <constants.hpp>
 
 #include "csr.hpp"
+
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
@@ -15,53 +16,29 @@ namespace nikfemm {
         m = coo.m;
         n = coo.n;
         nnz = coo.elems.size();
-        IA = (uint64_t*) calloc(m + 1, sizeof(uint64_t));
-        JA = (uint64_t*) calloc(nnz, sizeof(uint64_t));
-        A = (double*) calloc(nnz, sizeof(double));
 
-        IA[0] = 0;
+        IA = new uint64_t[m + 1]();
+        JA = new uint64_t[nnz];
+        A = new double[nnz];
 
-        struct ElemCoo {
-            uint64_t m;
-            uint64_t n;
-            double val;
-        };
-
-        std::vector<ElemCoo> elems_coo;
-
-        for (auto elem : coo.elems) {
-            elems_coo.push_back(
-                ElemCoo {
-                    elem.first >> 32,
-                    elem.first & 0xFFFFFFFF,
-                    elem.second
-                }
-            );
+        uint64_t i = 0;
+        for (auto const& [key, val] : coo.elems) {
+            // printf("key: %lu, m: %lu, n: %lu, val: %g\n", key, key >> 32, key & 0xFFFFFFFF, val);
+            JA[i] = key & 0xFFFFFFFF;
+            A[i] = val;
+            IA[(key >> 32) + 1]++;
+            i++;
         }
 
-        // sort by m and n
-        std::sort(elems_coo.begin(), elems_coo.end(), [](ElemCoo& e1, ElemCoo& e2) {
-            if (e1.m == e2.m) {
-                return e1.n < e2.n;
-            } else {
-                return e1.m < e2.m;
-            }
-        });
-
-        for (uint64_t i = 0; i < nnz; i++) {
-            JA[i] = elems_coo[i].n;
-            A[i] = elems_coo[i].val;
-            IA[elems_coo[i].m + 1]++;
-        }
         for (uint64_t i = 0; i < m; i++) {
             IA[i + 1] += IA[i];
         }
     }
 
     MatCSR::~MatCSR() {
-        free(IA);
-        free(JA);
-        free(A);
+        delete[] IA;
+        delete[] JA;
+        delete[] A;
     }
 
     void MatCSR::printCSR() {
@@ -95,10 +72,7 @@ namespace nikfemm {
     }
 
     double MatCSR::operator()(uint64_t i, uint64_t j) const {
-        // bounds check
-        if (i >= m || j >= n) {
-            nexit("MatCSR::operator(): index out of range");
-        }
+        assert(i <= m && j <= n);
         uint64_t row_start = IA[i];
         uint64_t row_end = IA[i + 1];
         for (uint64_t k = row_start; k < row_end; k++) {
@@ -109,69 +83,86 @@ namespace nikfemm {
         return 0;
     }
 
-    CV MatCSR::operator*(const CV& cv) const {
-        assert(cv.m == n);
-        CV cv2(m);
+    CV MatCSR::getInverseDiagonal() const {
+        CV cv(m);
         for (uint64_t i = 0; i < m; i++) {
-            for (uint64_t j = IA[i]; j < IA[i + 1]; j++) {
-                cv2[i] += A[j] * cv[JA[j]];
-            }
+            cv.set_elem(i, 1.0 / (*this)(i, i));
         }
-        return cv2;
+        return cv;
     }
 
     void MatCSR::conjugateGradientSolve(CV& b, CV& x, double maxError, uint64_t maxIterations) {
         CV r(b.m);
         CV p(b.m);
         CV Ap(b.m);
-        // printf("x0:\n");
-        // x.print();
         CV::mult(r, *this, x);
-        // printf("r:\n");
-        // r.print();
         CV::sub(r, b, r);
-        // printf("r:\n");
-        // r.print();
         CV::copy(p, r);
-        // printf("p:\n");
-        // p.print();
         double rTr = CV::squareSum(r);
-        // printf("rTr: %.1f\n", rTr);
-
         for (uint64_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, *this, p);
-            // printf("Ap:\n");
-            // Ap.print();
-            // printf("p.Ap = %f\n", CV::dot(p, Ap));
             double pAp = CV::dot(p, Ap);
             if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
                 pAp = std::numeric_limits<double>::epsilon();
                 printf("warning: pAp is zero. approximating with epsilon");
             }
             double alpha = rTr / pAp;
-            // printf("alpha: %.1f\n", alpha);
             CV::addScaled(x, x, alpha, p);
-            // printf("x:\n");
-            // x.print();
             CV::addScaled(r, r, -alpha, Ap);
-            // printf("r:\n");
-            // r.print();
             double rTrNew = CV::squareSum(r);
-            // printf("rTrNew: %.1f\n", rTrNew);
+#ifdef DEBUG_PRINT
             printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
+#endif
             if (rTrNew < maxError * maxError) {
+#ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
                 printf("x:\n");
                 x.print();
+#endif
                 break;
             }
             double beta = rTrNew / rTr;
-            // printf("beta: %.1f\n", beta);
             CV::addScaled(p, r, beta, p);
-            // printf("p:\n");
-            // p.print();
             rTr = rTrNew;
-            // printf("rTr: %.1f\n", rTr);
+        }
+    }
+
+    void MatCSR::preconditionedConjugateGradientSolve(CV& b, CV& x, double maxError, uint64_t maxIterations) {
+        CV r(b.m);
+        CV::mult(r, *this, x);
+        CV::sub(r, b, r);
+        CV m = getInverseDiagonal();
+        CV z(b.m);
+        CV::mult(z, m, r);
+        CV p(b.m);
+        CV::copy(p, z);
+        CV Ap(b.m);
+        double rTzold;
+        for (uint64_t i = 0; i < maxIterations; i++) {
+            CV::mult(Ap, *this, p);
+            double alpha = CV::dot(r, z) / CV::dot(p, Ap);
+            if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
+                alpha = std::numeric_limits<double>::epsilon();
+                printf("warning: alpha is zero. approximating with epsilon\n");
+            }
+            rTzold = CV::dot(r, z);
+            CV::addScaled(x, x, alpha, p);
+            CV::addScaled(r, r, -alpha, Ap);
+            double squareError = CV::squareSum(r);
+#ifdef DEBUG_PRINT
+            printf("iteration %lu, error: %f\n", i, sqrt(squareError));
+#endif
+            if (squareError < maxError * maxError) {
+#ifdef DEBUG_PRINT
+                printf("converged after %lu iterations\n", i);
+                printf("x:\n");
+                x.print();
+#endif
+                break;
+            }
+            CV::mult(z, m, r);
+            double beta = CV::dot(r, z) / rTzold;
+            CV::addScaled(p, z, beta, p);
         }
     }
 

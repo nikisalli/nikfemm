@@ -10,7 +10,6 @@
 #include <set>
 
 #include "SDL2/SDL.h"
-#include "opencv2/opencv.hpp"
 
 #include "../../lib/triangle/triangle.h"
 #include "../triangle/util.h"
@@ -22,6 +21,7 @@
 #include "../mesh/mesh.hpp"
 #include "../algebra/simple_vector.hpp"
 #include "../algebra/csr.hpp"
+#include "../algebra/sss.hpp"
 #include "../algebra/coo.hpp"
 #include "../constants.hpp"
 #include "properties.hpp"
@@ -98,96 +98,96 @@ namespace nikfemm {
         // render
 
         uint64_t frame = 0;
-        while(true){
-            // clears the window
-            SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-            SDL_RenderClear(rend);
-            // draw the points
-            uint64_t i = 0;
-            for (uint64_t i = 0; i < data.numberofpoints; i++) {
-                
-                // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-                // // draw a square centered at the point
-                // SDL_Rect rect;
-                // rect.x = x_offset + v->p.x * x_scale - 2;
-                // rect.y = y_offset + v->p.y * y_scale - 2;
-                // rect.w = 4;
-                // rect.h = 4;
-                // SDL_RenderFillRect(rend, &rect);
-                // SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
-                // for (uint16_t i = 0; i < v->adjvert_count; i++) {
-                //     // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
-                // }
-                
-                Point p = data.pointlist[i];
+        // clears the window
+        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+        SDL_RenderClear(rend);
+        // draw the points
+        uint64_t i = 0;
+        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+            
+            // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+            // // draw a square centered at the point
+            // SDL_Rect rect;
+            // rect.x = x_offset + v->p.x * x_scale - 2;
+            // rect.y = y_offset + v->p.y * y_scale - 2;
+            // rect.w = 4;
+            // rect.h = 4;
+            // SDL_RenderFillRect(rend, &rect);
+            // SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
+            // for (uint16_t i = 0; i < v->adjvert_count; i++) {
+            //     // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
+            // }
+            
+            Point p = data.pointlist[i];
 
-                if (geomDistance(p, Point(0, 0)) > radius * 2) {
-                    continue;
-                }
-
-                // verts
-                auto points = std::vector<SDL_Vertex>();
-
-                // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
-                SDL_Color c = val2jet(A.val[i], min_A, max_A);
-                // printf("A: %f, c: %d, %d, %d\n", v->A, c.r, c.g, c.b);
-                                
-                // find the triangles that contain the Vertex<MagnetostaticProp> and then
-                // for every triangle find the barycenter and add it to the points vector
-                for (uint64_t j = 0; j < data.numberoftriangles; j++) {
-                    if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
-                        SDL_Vertex new_v;
-                        Point barycenter = {
-                            (data.pointlist[data.trianglelist[j].verts[0]].x + data.pointlist[data.trianglelist[j].verts[1]].x + data.pointlist[data.trianglelist[j].verts[2]].x) / 3,
-                            (data.pointlist[data.trianglelist[j].verts[0]].y + data.pointlist[data.trianglelist[j].verts[1]].y + data.pointlist[data.trianglelist[j].verts[2]].y) / 3
-                        };
-                        new_v.position.x = x_offset + barycenter.x * x_scale;
-                        new_v.position.y = y_offset + barycenter.y * y_scale;
-                        new_v.color = c;
-
-                        points.push_back(new_v);
-                    }
-                }
-                
-                // find the center of the points
-                SDL_FPoint center = {0, 0};
-                for (uint8_t j = 0; j < points.size(); j++) {
-                    center.x += points[j].position.x;
-                    center.y += points[j].position.y;
-                }
-                // printf("count: %d\n", points.size());
-                center.x /= points.size();
-                center.y /= points.size();
-                // printf("center: %d %d\n", center.x, center.y);
-
-                // sort the points by angle
-                std::sort(points.begin(), points.end(), [center](SDL_Vertex a, SDL_Vertex b) {
-                    return atan2(a.position.y - center.y, a.position.x - center.x) < atan2(b.position.y - center.y, b.position.x - center.x);
-                });
-
-                // print the points
-                
-                // for (uint8_t i = 0; i < points.size(); i++) {
-                //     printf("%f %f\n", points[i].position.x, points[i].position.y);
-                // }
-                
-
-                SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-                for (uint8_t j = 0; j < points.size(); j++) {
-                    SDL_Vertex v1 = points[j];
-                    SDL_Vertex v2 = points[(j + 1) % points.size()];
-                    // draw triangle between center and two points
-                    SDL_Vertex verts[3] = {
-                        {center.x, center.y, c.r, c.g, c.b, c.a},
-                        {v1.position.x, v1.position.y, c.r, c.g, c.b, c.a},
-                        {v2.position.x, v2.position.y, c.r, c.g, c.b, c.a}
-                    };
-                    SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
-                }
+            if (geomDistance(p, Point(0, 0)) > radius * 2) {
+                continue;
             }
 
-            SDL_RenderPresent(rend);
+            // verts
+            auto points = std::vector<SDL_Vertex>();
 
+            // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
+            SDL_Color c = val2jet(A.val[i], min_A, max_A);
+            // printf("A: %f, c: %d, %d, %d\n", A.val[i], c.r, c.g, c.b);
+                            
+            // find the triangles that contain the Vertex<MagnetostaticProp> and then
+            // for every triangle find the barycenter and add it to the points vector
+            for (uint64_t j = 0; j < data.numberoftriangles; j++) {
+                if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
+                    SDL_Vertex new_v;
+                    Point barycenter = {
+                        (data.pointlist[data.trianglelist[j].verts[0]].x + data.pointlist[data.trianglelist[j].verts[1]].x + data.pointlist[data.trianglelist[j].verts[2]].x) / 3,
+                        (data.pointlist[data.trianglelist[j].verts[0]].y + data.pointlist[data.trianglelist[j].verts[1]].y + data.pointlist[data.trianglelist[j].verts[2]].y) / 3
+                    };
+                    new_v.position.x = x_offset + barycenter.x * x_scale;
+                    new_v.position.y = y_offset + barycenter.y * y_scale;
+                    new_v.color = c;
+
+                    points.push_back(new_v);
+                }
+            }
+            
+            // find the center of the points
+            SDL_FPoint center = {0, 0};
+            for (uint8_t j = 0; j < points.size(); j++) {
+                center.x += points[j].position.x;
+                center.y += points[j].position.y;
+            }
+            // printf("count: %d\n", points.size());
+            center.x /= points.size();
+            center.y /= points.size();
+            // printf("center: %d %d\n", center.x, center.y);
+
+            // sort the points by angle
+            std::sort(points.begin(), points.end(), [center](SDL_Vertex a, SDL_Vertex b) {
+                return atan2(a.position.y - center.y, a.position.x - center.x) < atan2(b.position.y - center.y, b.position.x - center.x);
+            });
+
+            // print the points
+            
+            // for (uint8_t i = 0; i < points.size(); i++) {
+            //     printf("%f %f\n", points[i].position.x, points[i].position.y);
+            // }
+            
+
+            SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+            for (uint8_t j = 0; j < points.size(); j++) {
+                SDL_Vertex v1 = points[j];
+                SDL_Vertex v2 = points[(j + 1) % points.size()];
+                // draw triangle between center and two points
+                SDL_Vertex verts[3] = {
+                    {center.x, center.y, c.r, c.g, c.b, c.a},
+                    {v1.position.x, v1.position.y, c.r, c.g, c.b, c.a},
+                    {v2.position.x, v2.position.y, c.r, c.g, c.b, c.a}
+                };
+                SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
+            }
+        }
+
+        SDL_RenderPresent(rend);
+
+        while(true){
             SDL_Event event;
             if (SDL_PollEvent(&event)) {
                 if (event.type == SDL_QUIT) {
@@ -461,34 +461,31 @@ namespace nikfemm {
         }
 #endif
 
-        Elem adjelems[18];
-        uint64_t adjelems_ids[18];
-        MagnetostaticProp adjelems_props[18];
-        uint8_t adjelems_count = 0;
-        for (uint64_t i = 0; i < data.numberofpoints; i++) {
-            // get the elements containing i
-            adjelems_count = 0;
-            for (uint64_t j = 0; j < data.numberoftriangles; j++) {
-                if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
-                    adjelems[adjelems_count] = data.trianglelist[j];
-                    adjelems_ids[adjelems_count] = j;
-                    adjelems_props[adjelems_count] = drawing.getRegionFromId(data.triangleattributelist[j]);
-                    adjelems_count++;
-                }
-            }
+        auto adjelems_ids = new uint64_t[data.numberofpoints][18];
+        auto adjelems_props = new MagnetostaticProp[data.numberofpoints][18];
+        auto adjelems_count = new uint8_t[data.numberofpoints]();  // initialize to 0
 
-            for (uint8_t j = 0; j < adjelems_count; j++) {
+        for (uint64_t i = 0; i < data.numberoftriangles; i++) {
+            for (uint8_t j = 0; j < 3; j++) {
+                uint64_t myid = data.trianglelist[i].verts[j];
+                adjelems_ids[myid][adjelems_count[myid]] = i;
+                adjelems_props[myid][adjelems_count[myid]++] = drawing.getRegionFromId(data.triangleattributelist[i]);
+            }
+        }
+        for (uint64_t i = 0; i < data.numberofpoints; i++) {
+            for (uint8_t j = 0; j < adjelems_count[i]; j++) {
                 uint64_t v1, v2, v3;
                 v1 = i;
-                if (i == adjelems[j].verts[0]) {
-                    v2 = adjelems[j].verts[1];
-                    v3 = adjelems[j].verts[2];
-                } else if (i == adjelems[j].verts[1]) {
-                    v2 = adjelems[j].verts[2];
-                    v3 = adjelems[j].verts[0];
-                } else if (i == adjelems[j].verts[2]) {
-                    v2 = adjelems[j].verts[0];
-                    v3 = adjelems[j].verts[1];
+                Elem myelem = data.trianglelist[adjelems_ids[i][j]];
+                if (i == data.trianglelist[adjelems_ids[i][j]].verts[0]) {
+                    v2 = myelem.verts[1];
+                    v3 = myelem.verts[2];
+                } else if (i == myelem.verts[1]) {
+                    v2 = myelem.verts[2];
+                    v3 = myelem.verts[0];
+                } else if (i == myelem.verts[2]) {
+                    v2 = myelem.verts[0];
+                    v3 = myelem.verts[1];
                 } else {
                     nexit("error: vertex not found in element");
                 }
@@ -503,10 +500,18 @@ namespace nikfemm {
 
                 double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / area;
                 double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
-                double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
-                double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
-                double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
-                double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
+                if (v1 < i) {}
+                coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[i][j].mu));
+                if (v2 < i) {
+                    double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
+                    double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
+                    coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
+                }
+                if (v3 < i) {
+                    double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
+                    double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
+                    coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
+                }
 
 #ifdef DEBUG_PRINT
                 printf("elem_mu %f\n", adjelems_props[j].mu);
@@ -516,23 +521,19 @@ namespace nikfemm {
                 printf("area %f\n", area);
 #endif
 
-                coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[j].mu));
-                coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[j].mu));
-                coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[j].mu));
-
                 // set the b vector
-                b.add_elem(i, (area * adjelems_props[j].J) / 6);
+                b.add_elem(i, (area * adjelems_props[i][j].J) / 6);
             }
         }
 
         // iterate over upper triangular matrix and copy to lower triangular matrix
-        for (uint64_t i = 0; i < coo.m; i++) {
-            for (uint64_t j = i; j < coo.n; j++) {
-                if (coo.get_elem(i, j) != 0) {
-                    coo.add_elem(j, i, coo.get_elem(i, j));
-                }
-            }
-        }
+        // for (uint64_t i = 0; i < coo.m; i++) {
+        //     for (uint64_t j = i; j < coo.n; j++) {
+        //         if (coo.get_elem(i, j) != 0) {
+        //             coo.add_elem(j, i, coo.get_elem(i, j));
+        //         }
+        //     }
+        // }
 
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;

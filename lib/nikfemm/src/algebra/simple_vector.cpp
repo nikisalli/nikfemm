@@ -8,6 +8,9 @@ namespace nikfemm {
     CV::CV(uint64_t size) {
         val.reserve(size);
         m = size;
+        for (uint64_t i = 0; i < size; i++) {
+            val.push_back(0);
+        }
     }
 
     CV::~CV() {
@@ -17,7 +20,7 @@ namespace nikfemm {
     void CV::print() {
         printf("[");
         for (uint64_t i = 0; i < m; i++) {
-            printf("%f ", val[i]);
+            printf("%.17g ", val[i]);
         }
         printf("]");
         printf("\n");
@@ -40,8 +43,6 @@ namespace nikfemm {
     }
 
     void CV::mult(CV& result, const MatCSR& mat, const CV& cv) {
-        assert(mat.m == cv.m);
-        assert(mat.n == result.m);
         for (uint64_t i = 0; i < mat.m; i++) {
             result[i] = 0;
             for (uint64_t j = mat.IA[i]; j < mat.IA[i + 1]; j++) {
@@ -49,11 +50,29 @@ namespace nikfemm {
             }
         }
     }
+    
+    void CV::mult(CV& result, const MatSSS& mat, const CV& cv) {
+        // SSS is symmetric, so we can use the lower triangular part only
+        for (uint64_t i = 0; i < mat.m; i++) {
+            result[i] = mat.diag[i] * cv[i];
+            for (uint64_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
+                result[i] += mat.val[j] * cv[mat.col_ind[j]];
+            }
+            for (uint64_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
+                result[mat.col_ind[j]] += mat.val[j] * cv[i];
+            }
+        }
+    }
 
     void CV::mult(CV& result, const double d, const CV& cv) {
-        assert(cv.m == result.m);
         for (uint64_t i = 0; i < cv.m; i++) {
             result[i] = d * cv[i];
+        }
+    }
+
+    void CV::mult(CV& result, const CV& cv1, const CV& cv2) {
+        for (uint64_t i = 0; i < cv1.m; i++) {
+            result[i] = cv1[i] * cv2[i];
         }
     }
 
@@ -137,5 +156,10 @@ namespace nikfemm {
     void CV::add_elem(uint64_t _m, double d) {
         if (_m > m) m = _m;
         this->val[_m] += d;
+    }
+
+    void CV::set_elem(uint64_t _m, double d) {
+        if (_m > m) m = _m;
+        this->val[_m] = d;
     }
 }

@@ -1,5 +1,5 @@
-#ifndef NIK_CSR_HPP
-#define NIK_CSR_HPP
+#ifndef NIK_SSS_HPP
+#define NIK_SSS_HPP
 
 #include <cstdint>
 
@@ -9,24 +9,23 @@
 namespace nikfemm {
     struct CV;
 
-    struct MatCSR {
-        uint64_t* IA;
-        uint64_t* JA;
-        double* A;
+    struct MatSSS {
+        uint64_t* row_ptr;
+        uint64_t* col_ind;
+        double* val;
+        double* diag;
 
         uint64_t nnz;
         uint64_t m, n;  // I, J  // rows,  columns
 
-        MatCSR(MatCOO& coo);
-        ~MatCSR();
+        MatSSS(MatCOO& coo);
+        ~MatSSS();
 
-        void printCSR();
+        void printSSS();
         void print();
         void write_to_file(const char *filename);
 
         double operator()(uint64_t i, uint64_t j) const;
-        
-        CV operator*(const CV& cv) const;
         
         CV getInverseDiagonal() const;
 

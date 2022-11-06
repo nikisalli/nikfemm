@@ -1,29 +1,33 @@
 #include <math.h>
 
+#include "assert.h"
+
 #include "SDL2/SDL.h"
 
 #include "coo.hpp"
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
-    MatCOO::MatCOO() {
-        m = 0;
-        n = 0;
+    MatCOO::MatCOO(uint64_t m, uint64_t n) {
+        this->m = m;
+        this->n = n;
     }
 
     MatCOO::~MatCOO() {
     }
 
     void MatCOO::set_elem(uint32_t _m, uint32_t _n, double val) {
-        if (_m + 1 > m) m = _m + 1;
-        if (_n + 1 > n) n = _n + 1;
+        // assert(_m < m);
+        // assert(_n < n);
+        // assert(_m <= n);
         elems[(uint64_t)_m << 32 | (uint64_t)_n] = val;
     }
 
     void MatCOO::add_elem(uint32_t _m, uint32_t _n, double val) {
-        if (_m + 1 > m) m = _m + 1;
-        if (_n + 1 > n) n = _n + 1;
         // is element in matrix?
+        // assert(_m < m);
+        // assert(_n < n);
+        // assert(_m <= n);
         if (elems.find((uint64_t)_m << 32 | (uint64_t)_n) != elems.end()) {
             elems[(uint64_t)_m << 32 | (uint64_t)_n] += val;
         } else {
@@ -32,6 +36,9 @@ namespace nikfemm {
     }
 
     double MatCOO::get_elem(uint32_t _m, uint32_t _n) {
+        // assert(_m < m);
+        // assert(_n < n);
+        // assert(_m <= n);
         if (elems.find((uint64_t)_m << 32 | (uint64_t)_n) != elems.end()) {
             return elems[(uint64_t)_m << 32 | (uint64_t)_n];
         } else {
@@ -81,6 +88,10 @@ namespace nikfemm {
                     rect.y = y_offset + _m * y_scale;
                     rect.w = x_scale;
                     rect.h = y_scale;
+                    SDL_RenderFillRect(rend, &rect);
+                    // plot the symmetrical element with respect to the diagonal
+                    rect.x = x_offset + _m * x_scale;
+                    rect.y = y_offset + _n * y_scale;
                     SDL_RenderFillRect(rend, &rect);
                 }
             }
