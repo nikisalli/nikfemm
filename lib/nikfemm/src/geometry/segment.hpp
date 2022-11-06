@@ -10,7 +10,7 @@ namespace nikfemm {
         Point p2;
 
         Segment(Point p1, Point p2);
-        double length();
+        float length();
         static inline bool segmentsIntersect(Segment s1, Segment s2);
         static bool segmentsIntersect(Point s1p1, Point s1p2, Point s2p1, Point s2p2);
         static bool pointOnSegment(Point p, Segment s);

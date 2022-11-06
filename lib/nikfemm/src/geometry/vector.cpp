@@ -6,7 +6,7 @@
 
 namespace nikfemm {
 
-    Vector::Vector(double x, double y) : Point(x, y) {
+    Vector::Vector(float x, float y) : Point(x, y) {
         this->x = x;
         this->y = y;
     }
@@ -14,12 +14,12 @@ namespace nikfemm {
     Vector::Vector() : Point() {
     }
 
-    double Vector::magnitude() {
+    float Vector::magnitude() {
         return sqrt(x * x + y * y);
     }
 
     Vector Vector::versor() {
-        double mag = magnitude();
+        float mag = magnitude();
         return Vector(x / mag, y / mag);
     }
 }

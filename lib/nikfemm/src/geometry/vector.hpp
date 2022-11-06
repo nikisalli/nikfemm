@@ -5,10 +5,10 @@
 
 namespace nikfemm {
     struct Vector : Point {
-        Vector(double x, double y);
+        Vector(float x, float y);
         Vector();
 
-        double magnitude();
+        float magnitude();
         Vector versor();
     };
 }
