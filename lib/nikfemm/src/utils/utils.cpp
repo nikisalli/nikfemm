@@ -42,9 +42,9 @@ namespace nikfemm {
         }
     }
 
-    SDL_Color val2jet(double v, double vmin, double vmax) {
+    SDL_Color val2jet(float v, float vmin, float vmax) {
         SDL_Color c = {255, 255, 255, 255}; // white
-        double dv;
+        float dv;
 
         if (v < vmin)
             v = vmin;
