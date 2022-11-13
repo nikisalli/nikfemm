@@ -8,18 +8,34 @@
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
-    MatCOO::MatCOO(uint32_t m, uint32_t n) {
+    MatCOO::MatCOO(uint32_t m) {
         this->m = m;
-        this->n = n;
     }
 
     MatCOO::~MatCOO() {
+    }
+
+    double MatCOO::operator()(uint32_t _m, uint32_t _n) const {
+        // swap indices if _m > _n
+        if (_m > _n) {
+            std::swap(_m, _n);
+        }
+        uint64_t key = (uint64_t)_m << 32 | (uint64_t)_n;
+        if (elems.find(key) != elems.end()) {
+            return elems.at(key);
+        } else {
+            return 0.0;
+        }
     }
 
     void MatCOO::set_elem(uint32_t _m, uint32_t _n, double val) {
         // assert(_m < m);
         // assert(_n < n);
         // assert(_m <= n);
+        // if _m > _n, swap indices
+        if (_m > _n) {
+            std::swap(_m, _n);
+        }
         elems[(uint64_t)_m << 32 | (uint64_t)_n] = val;
     }
 
@@ -28,6 +44,10 @@ namespace nikfemm {
         // assert(_m < m);
         // assert(_n < n);
         // assert(_m <= n);
+        // if _m > _n, swap indices
+        if (_m > _n) {
+            std::swap(_m, _n);
+        }
         if (elems.find((uint64_t)_m << 32 | (uint64_t)_n) != elems.end()) {
             elems[(uint64_t)_m << 32 | (uint64_t)_n] += val;
         } else {
@@ -39,10 +59,25 @@ namespace nikfemm {
         // assert(_m < m);
         // assert(_n < n);
         // assert(_m <= n);
+        // if _m > _n, swap indices
+        if (_m > _n) {
+            std::swap(_m, _n);
+        }
         if (elems.find((uint64_t)_m << 32 | (uint64_t)_n) != elems.end()) {
             return elems[(uint64_t)_m << 32 | (uint64_t)_n];
         } else {
             return 0.0;
+        }
+    }
+
+    void MatCOO::print() {
+        uint32_t prev_m = 0;
+        uint32_t prev_n = 0;
+        for (uint32_t i = 0; i < m; i++) {
+            for (uint32_t j = 0; j < m; j++) {
+                printf("%.1f ", (*this)(i, j));
+            }
+            printf("\n");
         }
     }
 
@@ -101,7 +136,7 @@ namespace nikfemm {
             rect.x = x_offset;
             rect.y = y_offset;
             rect.w = m * x_scale;
-            rect.h = n * y_scale;
+            rect.h = m * y_scale;
             SDL_RenderDrawRect(rend, &rect);
 
             SDL_RenderPresent(rend);

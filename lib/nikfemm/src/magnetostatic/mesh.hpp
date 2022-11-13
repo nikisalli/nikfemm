@@ -87,11 +87,11 @@ namespace nikfemm {
         double min_A = std::numeric_limits<double>::max();
 
         for (uint32_t i = 0; i < A.m; i++) {
-            if (A.val[i] > max_A) {
-                max_A = A.val[i];
+            if (A[i] > max_A) {
+                max_A = A[i];
             }
-            if (A.val[i] < min_A) {
-                min_A = A.val[i];
+            if (A[i] < min_A) {
+                min_A = A[i];
             }
         }
 
@@ -128,7 +128,7 @@ namespace nikfemm {
             auto points = std::vector<SDL_Vertex>();
 
             // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
-            SDL_Color c = val2jet(A.val[i], min_A, max_A);
+            SDL_Color c = val2jet(A[i], min_A, max_A);
             // printf("A: %f, c: %d, %d, %d\n", A.val[i], c.r, c.g, c.b);
                             
             // find the triangles that contain the Vertex<MagnetostaticProp> and then

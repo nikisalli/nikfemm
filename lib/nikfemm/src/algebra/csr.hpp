@@ -10,12 +10,13 @@ namespace nikfemm {
     struct CV;
 
     struct MatCSR {
-        uint32_t* IA;
-        uint32_t* JA;
-        float* A;
+        uint32_t* row_ptr;
+        uint32_t* col_ind;
+        double* val;
+        double* diag;
 
         uint32_t nnz;
-        uint32_t m, n;  // I, J  // rows,  columns
+        uint32_t m;  // i, j  // rows,  columns
 
         MatCSR(MatCOO& coo);
         ~MatCSR();
@@ -24,14 +25,13 @@ namespace nikfemm {
         void print();
         void write_to_file(const char *filename);
 
-        float operator()(uint32_t i, uint32_t j) const;
-        
-        CV operator*(const CV& cv) const;
-        
-        CV getInverseDiagonal() const;
+        double operator()(uint32_t i, uint32_t j) const;
+                
+        void multSSORPreconditioner(CV& result, const CV& cv, double omega);
 
-        void conjugateGradientSolve(CV& b, CV& x0, float maxError, uint32_t maxIterations);
-        void preconditionedConjugateGradientSolve(CV& b, CV& x0, float maxError, uint32_t maxIterations);
+        void conjugateGradientSolver(CV& b, CV& x0, double maxError, uint32_t maxIterations);
+        void preconditionedJacobiConjugateGradientSolver(CV& b, CV& x0, double maxError, uint32_t maxIterations);
+        void preconditionedSSORConjugateGradientSolver(CV& b, CV& x0, double omega, double maxError, uint32_t maxIterations);
     };
 }
 

@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
+#include <math.h>
 
 #include "simple_vector.hpp"
 
 namespace nikfemm {
     CV::CV(uint32_t size) {
-        val = new double[size]();
+        val = new double[size](0);
         m = size;
     }
 
@@ -14,7 +16,7 @@ namespace nikfemm {
 
     }
 
-    void CV::print() {
+    void CV::print() const {
         printf("[");
         for (uint32_t i = 0; i < m; i++) {
             printf("%.17g ", val[i]);
@@ -42,14 +44,14 @@ namespace nikfemm {
     void CV::mult(CV& result, const MatCSR& mat, const CV& cv) {
         for (uint32_t i = 0; i < mat.m; i++) {
             result[i] = 0;
-            for (uint32_t j = mat.IA[i]; j < mat.IA[i + 1]; j++) {
-                result[i] += mat.A[j] * cv[mat.JA[j]];
+            for (uint32_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
+                result[i] += mat.val[j] * cv[mat.col_ind[j]];
             }
         }
     }
     
     void CV::mult(CV& result, const MatSSS& mat, const CV& cv) {
-        // SSS is symmetric, so we can use the lower triangular part only
+        // memset(result.val, 0, result.m * sizeof(double));
         for (uint32_t i = 0; i < mat.m; i++) {
             result[i] = mat.diag[i] * cv[i];
             for (uint32_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
@@ -146,6 +148,10 @@ namespace nikfemm {
             result += cv[i] * cv[i];
         }
         return result;
+    }
+
+    double CV::norm(const CV& cv) {
+        return sqrt(CV::squareSum(cv));
     }
 
     void CV::add_elem(uint32_t _m, double d) {

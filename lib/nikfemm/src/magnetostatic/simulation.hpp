@@ -16,7 +16,6 @@
 #include "../magnetostatic/mesh.hpp"
 #include "mesh.hpp"
 
-
 namespace nikfemm {
     class MagnetostaticSimulation {
         protected:

@@ -9,39 +9,38 @@ BOOST_AUTO_TEST_SUITE( csr_tests )
 
 BOOST_AUTO_TEST_CASE( csr_index )
 {
-    MatCOO coo(3, 3);
-    // [1, 2, 0; 0, 3, 4; 5, 0, 6]
-    coo.add_elem(0, 0, 1);
-    coo.add_elem(0, 1, 2);
-    coo.add_elem(1, 1, 3);
-    coo.add_elem(1, 2, 4);
-    coo.add_elem(2, 0, 5);
-    coo.add_elem(2, 2, 6);
+    MatCOO coo(3);
+    coo.set_elem(0, 0, 1);
+    coo.set_elem(0, 1, 2);
+    coo.set_elem(1, 0, 2);
+    coo.set_elem(1, 2, 4);
+    coo.set_elem(2, 1, 4);
+    coo.set_elem(1, 1, 5);
+    coo.set_elem(2, 2, 6);
 
     MatCSR csr(coo);
 
+    coo.print();
     csr.print();
     csr.printCSR();
 
     BOOST_CHECK_EQUAL(csr(0, 0), 1);
     BOOST_CHECK_EQUAL(csr(0, 1), 2);
-    BOOST_CHECK_EQUAL(csr(0, 2), 0);
-    BOOST_CHECK_EQUAL(csr(1, 0), 0);
-    BOOST_CHECK_EQUAL(csr(1, 1), 3);
+    BOOST_CHECK_EQUAL(csr(1, 0), 2);
     BOOST_CHECK_EQUAL(csr(1, 2), 4);
-    BOOST_CHECK_EQUAL(csr(2, 0), 5);
-    BOOST_CHECK_EQUAL(csr(2, 1), 0);
+    BOOST_CHECK_EQUAL(csr(2, 1), 4);
+    BOOST_CHECK_EQUAL(csr(1, 1), 5);
     BOOST_CHECK_EQUAL(csr(2, 2), 6);
 }
 
 BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 {
-    MatCOO coo(2, 2);
+    MatCOO coo(2);
     // [1, 2, 0; 0, 3, 4; 5, 0, 6]
-    coo.add_elem(0, 0, 3);
-    coo.add_elem(0, 1, 1);
-    coo.add_elem(1, 0, 1);
-    coo.add_elem(1, 1, 2);
+    coo.set_elem(0, 0, 3);
+    coo.set_elem(0, 1, 1);
+    coo.set_elem(1, 0, 1);
+    coo.set_elem(1, 1, 2);
 
     CV b(2);
     b[0] = -1;
@@ -53,7 +52,7 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 
     MatCSR csr(coo);
 
-    csr.conjugateGradientSolve(b, x0, 1e-6, 100);
+    csr.conjugateGradientSolver(b, x0, 1e-6, 100);
 
     x0.print();
 }
@@ -63,33 +62,34 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_AUTO_TEST_SUITE( sss_tests )
 
 BOOST_AUTO_TEST_CASE( sss_index ) {
-    MatCOO coo(8, 8);
+    MatCOO coo(8);
     // [1, 2, 0; 0, 3, 4; 5, 0, 6]
-    coo.add_elem(0, 0, 1);
-    coo.add_elem(1, 1, 2);
-    coo.add_elem(2, 2, 3);
-    coo.add_elem(3, 3, 4);
-    coo.add_elem(4, 4, 5);
-    coo.add_elem(5, 5, 6);
-    coo.add_elem(6, 6, 7);
-    coo.add_elem(7, 7, 8);
-    coo.add_elem(2, 0, 9);
-    coo.add_elem(6, 0, 10);
-    coo.add_elem(5, 2, 11);
-    coo.add_elem(7, 4, 12);
+    coo.set_elem(0, 0, 1);
+    coo.set_elem(1, 1, 2);
+    coo.set_elem(2, 2, 3);
+    coo.set_elem(3, 3, 4);
+    coo.set_elem(4, 4, 5);
+    coo.set_elem(5, 5, 6);
+    coo.set_elem(6, 6, 7);
+    coo.set_elem(7, 7, 8);
+    coo.set_elem(2, 0, 9);
+    coo.set_elem(6, 0, 10);
+    coo.set_elem(5, 2, 11);
+    coo.set_elem(7, 4, 12);
 
     MatSSS sss(coo);
+    coo.print();
 
     sss.printSSS();
     sss.print();
 
     BOOST_CHECK_EQUAL(sss(0, 0), 1);
     BOOST_CHECK_EQUAL(sss(0, 1), 0);
-    BOOST_CHECK_EQUAL(sss(0, 2), 0);
+    BOOST_CHECK_EQUAL(sss(0, 2), 9);
     BOOST_CHECK_EQUAL(sss(0, 3), 0);
     BOOST_CHECK_EQUAL(sss(0, 4), 0);
     BOOST_CHECK_EQUAL(sss(0, 5), 0);
-    BOOST_CHECK_EQUAL(sss(0, 6), 0);
+    BOOST_CHECK_EQUAL(sss(0, 6), 10);
     BOOST_CHECK_EQUAL(sss(0, 7), 0);
     BOOST_CHECK_EQUAL(sss(1, 0), 0);
     BOOST_CHECK_EQUAL(sss(1, 1), 2);
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE( sss_index ) {
     BOOST_CHECK_EQUAL(sss(2, 2), 3);
     BOOST_CHECK_EQUAL(sss(2, 3), 0);
     BOOST_CHECK_EQUAL(sss(2, 4), 0);
-    BOOST_CHECK_EQUAL(sss(2, 5), 0);
+    BOOST_CHECK_EQUAL(sss(2, 5), 11);
     BOOST_CHECK_EQUAL(sss(2, 6), 0);
     BOOST_CHECK_EQUAL(sss(2, 7), 0);
     BOOST_CHECK_EQUAL(sss(3, 0), 0);
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE( sss_index ) {
     BOOST_CHECK_EQUAL(sss(4, 4), 5);
     BOOST_CHECK_EQUAL(sss(4, 5), 0);
     BOOST_CHECK_EQUAL(sss(4, 6), 0);
-    BOOST_CHECK_EQUAL(sss(4, 7), 0);
+    BOOST_CHECK_EQUAL(sss(4, 7), 12);
     BOOST_CHECK_EQUAL(sss(5, 0), 0);
     BOOST_CHECK_EQUAL(sss(5, 1), 0);
     BOOST_CHECK_EQUAL(sss(5, 2), 11);
@@ -150,26 +150,26 @@ BOOST_AUTO_TEST_CASE( sss_index ) {
 }
 
 BOOST_AUTO_TEST_CASE( sss_cv_mult ) {
-    MatCOO coo(8, 8);
+    MatCOO coo(8);
     // [1, 2, 0; 0, 3, 4; 5, 0, 6]
-    coo.add_elem(0, 0, 1);
-    coo.add_elem(1, 1, 2);
-    coo.add_elem(2, 2, 3);
-    coo.add_elem(3, 3, 4);
-    coo.add_elem(4, 4, 5);
-    coo.add_elem(5, 5, 6);
-    coo.add_elem(6, 6, 7);
-    coo.add_elem(7, 7, 8);
+    coo.set_elem(0, 0, 1);
+    coo.set_elem(1, 1, 2);
+    coo.set_elem(2, 2, 3);
+    coo.set_elem(3, 3, 4);
+    coo.set_elem(4, 4, 5);
+    coo.set_elem(5, 5, 6);
+    coo.set_elem(6, 6, 7);
+    coo.set_elem(7, 7, 8);
 
-    coo.add_elem(2, 0, 9);
-    coo.add_elem(6, 0, 10);
-    coo.add_elem(5, 2, 11);
-    coo.add_elem(7, 4, 12);
+    coo.set_elem(2, 0, 9);
+    coo.set_elem(6, 0, 10);
+    coo.set_elem(5, 2, 11);
+    coo.set_elem(7, 4, 12);
 
-    coo.add_elem(0, 2, 9);
-    coo.add_elem(0, 6, 10);
-    coo.add_elem(2, 5, 11);
-    coo.add_elem(4, 7, 12);
+    coo.set_elem(0, 2, 9);
+    coo.set_elem(0, 6, 10);
+    coo.set_elem(2, 5, 11);
+    coo.set_elem(4, 7, 12);
 
     MatSSS sss(coo);
 
@@ -191,7 +191,6 @@ BOOST_AUTO_TEST_CASE( sss_cv_mult ) {
     
     cv_res.print();
 }
-
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE( cv_tests )
@@ -210,14 +209,14 @@ BOOST_AUTO_TEST_CASE( cv_index )
 
 BOOST_AUTO_TEST_CASE( cv_mult )
 {
-    MatCOO coo(3, 3);
-    // [1, 2, 0; 0, 3, 4; 5, 0, 6]
-    coo.add_elem(0, 0, 1);
-    coo.add_elem(0, 1, 2);
-    coo.add_elem(1, 1, 3);
-    coo.add_elem(1, 2, 4);
-    coo.add_elem(2, 0, 5);
-    coo.add_elem(2, 2, 6);
+    MatCOO coo(3);
+    coo.set_elem(0, 0, 1);
+    coo.set_elem(0, 1, 2);
+    coo.set_elem(1, 0, 2);
+    coo.set_elem(1, 2, 4);
+    coo.set_elem(2, 1, 4);
+    coo.set_elem(1, 1, 5);
+    coo.set_elem(2, 2, 6);
 
     MatCSR csr(coo);
 
@@ -231,8 +230,8 @@ BOOST_AUTO_TEST_CASE( cv_mult )
     CV::mult(y, csr, x);
 
     BOOST_CHECK_EQUAL(y[0], 5);
-    BOOST_CHECK_EQUAL(y[1], 18);
-    BOOST_CHECK_EQUAL(y[2], 23);
+    BOOST_CHECK_EQUAL(y[1], 24);
+    BOOST_CHECK_EQUAL(y[2], 26);
 }
 
 BOOST_AUTO_TEST_CASE( cv_mult_scalar )
