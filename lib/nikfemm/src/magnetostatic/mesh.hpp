@@ -21,7 +21,6 @@
 #include "../mesh/mesh.hpp"
 #include "../algebra/simple_vector.hpp"
 #include "../algebra/csr.hpp"
-#include "../algebra/sss.hpp"
 #include "../algebra/coo.hpp"
 #include "../constants.hpp"
 #include "properties.hpp"

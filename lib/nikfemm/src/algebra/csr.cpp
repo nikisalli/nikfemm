@@ -16,17 +16,10 @@ namespace nikfemm {
         m = coo.m;
 
         std::vector<std::pair<uint64_t, double>> elems;
-        elems.reserve(coo.elems.size() - m);
+        elems.reserve(coo.elems.size());
 
         for (auto const& [key, value] : coo.elems) {
-            uint64_t _m = key >> 32;
-            uint64_t _n = key & 0xFFFFFFFF;
-            if (_m < _n) {  // lower triangle
-                elems.push_back(std::make_pair(key, value));
-                elems.push_back(std::make_pair((_n << 32) | _m, value));  // make symmetric
-            } else if (_m == _n) {
-                elems.push_back(std::make_pair(key, value));
-            }
+            elems.push_back(std::make_pair(key, value));
         }
 
         // sort elems by key
@@ -34,7 +27,7 @@ namespace nikfemm {
             return a.first < b.first;
         });
 
-        nnz = elems.size();
+        nnz = elems.size() - m;
 
         row_ptr = new uint32_t[m + 1]();
         col_ind = new uint32_t[nnz];
@@ -47,11 +40,12 @@ namespace nikfemm {
             uint32_t _n = key & 0xFFFFFFFF;
             if (_m == _n) {
                 diag[_m] = value;
+            } else {
+                col_ind[i] = _n;
+                val[i] = value;
+                row_ptr[_m + 1]++;
+                i++;
             }
-            col_ind[i] = _n;
-            val[i] = value;
-            row_ptr[_m + 1]++;
-            i++;
         }
 
         for (uint32_t i = 0; i < m; i++) {
@@ -63,6 +57,7 @@ namespace nikfemm {
         delete[] row_ptr;
         delete[] col_ind;
         delete[] val;
+        delete[] diag;
     }
 
     void MatCSR::printCSR() {
@@ -82,6 +77,11 @@ namespace nikfemm {
             printf("%.1f ", val[i]);
         }
         printf("\n");
+        printf("diag: ");
+        for (uint32_t i = 0; i < m; i++) {
+            printf("%.1f ", diag[i]);
+        }
+        printf("\n");
     }
 
     void MatCSR::print() {
@@ -96,17 +96,18 @@ namespace nikfemm {
     }
 
     double MatCSR::operator()(uint32_t i, uint32_t j) const {
-        assert(i <= m && j <= m);
         if (i == j) {
             return diag[i];
-        } else {
+        } else if (i < j) {
             for (uint32_t k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
                 if (col_ind[k] == j) {
                     return val[k];
                 }
             }
+        } else {
+            return (*this)(j, i);
         }
-        return 0;
+        return 0.0;
     }
 
     void MatCSR::write_to_file(const char *filename) {
@@ -137,13 +138,10 @@ namespace nikfemm {
             result[i] /= diag[i];
             // printf("i: %lu, diag[i]: %.1f, result[i]: %.1f\n", i, diag[i], result[i]);
             for (uint32_t k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
-                if (col_ind[k] > i) {
-                    // printf("- k: %lu, col_ind[k]: %lu, val[k]: %.1f\n", k, col_ind[k], val[k]);
-                    result[col_ind[k]] -= val[k] * result[i] * omega;
-                }
+                // printf("- k: %lu, col_ind[k]: %lu, val[k]: %.1f\n", k, col_ind[k], val[k]);
+                result[col_ind[k]] -= val[k] * result[i] * omega;
             }
         }
-
 
         for (uint32_t i = 0; i < m; i++) {
             result[i] *= diag[i];
@@ -152,9 +150,7 @@ namespace nikfemm {
         // invert upper triangle
         for (int64_t i = m - 1; i >= 0; i--) {
             for (uint32_t k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
-                if (col_ind[k] > i) {
-                    result[i] -= val[k] * result[col_ind[k]] * omega;
-                }
+                result[i] -= val[k] * result[col_ind[k]] * omega;
             }
             result[i] /= diag[i];
         }
@@ -200,7 +196,7 @@ namespace nikfemm {
         CV::sub(r, b, r);
         CV P(b.m);
         for (uint32_t i = 0; i < m; i++) {
-            P[i] = 1 / (*this)(i, i);
+            P[i] = 1 / diag[i];
         }
         CV z(b.m);
         CV::mult(z, P, r);

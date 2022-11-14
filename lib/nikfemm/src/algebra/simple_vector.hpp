@@ -5,11 +5,9 @@
 #include <vector>
 
 #include "csr.hpp"
-#include "sss.hpp"
 
 namespace nikfemm {
     struct MatCSR;
-    struct MatSSS;
     struct CV {
         protected:
         double* val;
@@ -27,7 +25,6 @@ namespace nikfemm {
         double operator[](uint32_t i) const;
 
         static void mult(CV& result, const MatCSR& mat, const CV& cv);
-        static void mult(CV& result, const MatSSS& mat, const CV& cv);
         static void mult(CV& result, const double d, const CV& cv);
         static void mult(CV& result, const CV& cv1, const CV& cv2);
         static void add(CV& result, const CV& cv1, const CV& cv2);

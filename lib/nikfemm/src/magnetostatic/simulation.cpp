@@ -16,7 +16,6 @@
 #include "../geometry/point.hpp"
 #include "../algebra/coo.hpp"
 #include "../algebra/csr.hpp"
-#include "../algebra/sss.hpp"
 #include "../algebra/simple_vector.hpp"
 
 namespace nikfemm {
@@ -83,8 +82,6 @@ namespace nikfemm {
 #endif
 
         MatCSR A(coo);
-        // MatSSS A(coo);
-        // sss.write_to_file("A");
         // b.write_to_file("b");
         auto start8 = std::chrono::high_resolution_clock::now();
 

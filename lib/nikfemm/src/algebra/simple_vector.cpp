@@ -42,17 +42,7 @@ namespace nikfemm {
     }
 
     void CV::mult(CV& result, const MatCSR& mat, const CV& cv) {
-        for (uint32_t i = 0; i < mat.m; i++) {
-            result[i] = 0;
-            for (uint32_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
-                result[i] += mat.val[j] * cv[mat.col_ind[j]];
-            }
-        }
-    }
-    
-    void CV::mult(CV& result, const MatSSS& mat, const CV& cv) {
-        // memset(result.val, 0, result.m * sizeof(double));
-        for (uint32_t i = 0; i < mat.m; i++) {
+        for (uint32_t i = mat.m; i-- > 0;) {
             result[i] = mat.diag[i] * cv[i];
             for (uint32_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
                 result[i] += mat.val[j] * cv[mat.col_ind[j]];
