@@ -60,14 +60,14 @@ namespace nikfemm {
         auto start2 = std::chrono::high_resolution_clock::now();
         mesh.mesh();
         auto start3 = std::chrono::high_resolution_clock::now();
-#ifdef DEBUG_PRINT
+        #ifdef DEBUG_PRINT
         // mesh.plot();
-#endif
+        #endif
         mesh.addKelvinBoundaryConditions();
         auto start4 = std::chrono::high_resolution_clock::now();
-#ifdef DEBUG_PRINT
+        #ifdef DEBUG_PRINT
         // mesh.plot();
-#endif
+        #endif
         MatCOO coo(mesh.data.numberofpoints);
         CV b(mesh.data.numberofpoints);
         CV x(mesh.data.numberofpoints);
@@ -78,20 +78,20 @@ namespace nikfemm {
         mesh.addDirichletBoundaryConditions(coo, b);
         auto start7 = std::chrono::high_resolution_clock::now();
 
-#ifdef DEBUG_PRINT
+        #ifdef DEBUG_PRINT
         printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
-#endif
+        #endif
 
         MatCSRSymmetric A(coo);
         // b.write_to_file("b");
         auto start8 = std::chrono::high_resolution_clock::now();
 
-#ifdef DEBUG_PRINT
+        #ifdef DEBUG_PRINT
         // csr.print();
         // coo.plot();
         // x.print();
         // b.print();
-#endif
+        #endif
 
         // conjugateGradientSolver(A, b, x, 1e-7, 10000);
         preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
@@ -100,15 +100,15 @@ namespace nikfemm {
         auto start9 = std::chrono::high_resolution_clock::now();
 
         auto end = std::chrono::high_resolution_clock::now();
-        printf("%f translate and fix mesh\n", std::chrono::duration_cast<std::chrono::duration<double>>(start2 - start1).count()*1000);
-        printf("%f mesh\n", std::chrono::duration_cast<std::chrono::duration<double>>(start3 - start2).count()*1000);
-        printf("%f kelvin boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<double>>(start4 - start3).count()*1000);
-        printf("%f allocate vectors b x and coo\n", std::chrono::duration_cast<std::chrono::duration<double>>(start5 - start4).count()*1000);
-        printf("%f get fem system\n", std::chrono::duration_cast<std::chrono::duration<double>>(start6 - start5).count()*1000);
-        printf("%f add dirichlet boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<double>>(start7 - start6).count()*1000);
-        printf("%f convert to csr\n", std::chrono::duration_cast<std::chrono::duration<double>>(start8 - start7).count()*1000);
-        printf("%f solve\n", std::chrono::duration_cast<std::chrono::duration<double>>(start9 - start8).count()*1000);
-        printf("%f total\n", std::chrono::duration_cast<std::chrono::duration<double>>(start9 - start1).count()*1000);
+        printf("%f translate and fix mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start2 - start1).count()*1000);
+        printf("%f mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start3 - start2).count()*1000);
+        printf("%f kelvin boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<float>>(start4 - start3).count()*1000);
+        printf("%f allocate vectors b x and coo\n", std::chrono::duration_cast<std::chrono::duration<float>>(start5 - start4).count()*1000);
+        printf("%f get fem system\n", std::chrono::duration_cast<std::chrono::duration<float>>(start6 - start5).count()*1000);
+        printf("%f add dirichlet boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<float>>(start7 - start6).count()*1000);
+        printf("%f convert to csr\n", std::chrono::duration_cast<std::chrono::duration<float>>(start8 - start7).count()*1000);
+        printf("%f solve\n", std::chrono::duration_cast<std::chrono::duration<float>>(start9 - start8).count()*1000);
+        printf("%f total\n", std::chrono::duration_cast<std::chrono::duration<float>>(start9 - start1).count()*1000);
 
         mesh.Aplot(x);
         // return;

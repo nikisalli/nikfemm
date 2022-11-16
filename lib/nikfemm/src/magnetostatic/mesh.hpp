@@ -454,11 +454,11 @@ namespace nikfemm {
     void MagnetostaticMesh::getFemSystem(MatCOO &coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
 
-#ifdef DEBUG_PRINT
+        #ifdef DEBUG_PRINT
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             printf("%d %d\n", i, (int)drawing.getRegionFromId(data.triangleattributelist[i]).mu);
         }
-#endif
+        #endif
 
         auto adjelems_ids = new uint32_t[data.numberofpoints][18];
         auto adjelems_props = new MagnetostaticProp[data.numberofpoints][18];

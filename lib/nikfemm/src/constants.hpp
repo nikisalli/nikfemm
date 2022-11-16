@@ -9,4 +9,6 @@
 
 // #define DEBUG_PRINT
 
+#define NIK_SIMD
+
 #endif

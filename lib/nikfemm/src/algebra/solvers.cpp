@@ -147,11 +147,11 @@ namespace nikfemm {
             double rTrNew = CV::squareSum(r);
             printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
             if (rTrNew < maxError * maxError) {
-#ifdef DEBUG_PRINT
+            #ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
                 printf("x:\n");
                 x.print();
-#endif
+            #endif
                 break;
             }
             double beta = rTrNew / rTr;
@@ -187,11 +187,11 @@ namespace nikfemm {
             double squareError = CV::squareSum(r);
             printf("iteration %lu, error: %f\n", i, sqrt(squareError));
             if (squareError < maxError * maxError) {
-#ifdef DEBUG_PRINT
+                #ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
                 printf("x:\n");
                 x.print();
-#endif
+                #endif
                 break;
             }
             CV::mult(z, P, r);
@@ -224,10 +224,10 @@ namespace nikfemm {
             printf("iteration %lu, error: %f\n", i, sqrt(squareError));
             if (squareError < maxError * maxError) {
                 printf("converged after %lu iterations\n", i);
-#ifdef DEBUG_PRINT
+                #ifdef DEBUG_PRINT
                 printf("x:\n");
                 x.print();
-#endif
+                #endif
                 break;
             }
             multSSORPreconditioner(A, z, r, omega);
@@ -243,8 +243,8 @@ namespace nikfemm {
         CV z(b.m);
         CV tmp(b.m);
         MatCSRLowerTri L = incompleteCholeskyDecomposition(A);
-        CV::mult(tmp, (MatCSRUpperTri)L, r);
-        CV::mult(z, (MatCSRLowerTri)L, tmp);
+        CV::mult(tmp, (MatCSRLowerTri)L, r);
+        CV::mult(z, (MatCSRUpperTri)L, tmp);
         CV p(b.m);
         CV::copy(p, z);
         CV Ap(b.m);
@@ -263,14 +263,14 @@ namespace nikfemm {
             printf("iteration %lu, error: %f\n", i, sqrt(squareError));
             if (squareError < maxError * maxError) {
                 printf("converged after %lu iterations\n", i);
-#ifdef DEBUG_PRINT
+                #ifdef DEBUG_PRINT
                 printf("x:\n");
                 x.print();
-#endif
+                #endif
                 break;
             }
-            CV::mult(tmp, (MatCSRUpperTri)L, r);
-            CV::mult(z, (MatCSRLowerTri)L, tmp);
+            CV::mult(tmp, (MatCSRLowerTri)L, r);
+            CV::mult(z, (MatCSRUpperTri)L, tmp);
             double beta = CV::dot(r, z) / rTzold;
             CV::addScaled(p, z, beta, p);
         }

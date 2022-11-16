@@ -4,6 +4,11 @@
 #include <string.h>
 #include <math.h>
 
+// SSE SIMD intrinsics
+#include <xmmintrin.h>
+// AVX SIMD intrinsics
+#include <immintrin.h>
+
 #include "simple_vector.hpp"
 
 namespace nikfemm {

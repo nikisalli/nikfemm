@@ -274,9 +274,9 @@ namespace nikfemm {
                 double dist = geomDistance(v, center);
                 if (dist < max_x) {
                 // if (false) {
-#ifdef DEBUG_PRINT
+                    #ifdef DEBUG_PRINT
                     printf("kelvin transform too large\n");
-#endif
+                    #endif
                     data.pointlist[i] = v * ((radius * max_radius_coeff) / dist);
                 } else {
                     data.pointlist[i] = v * scale;
