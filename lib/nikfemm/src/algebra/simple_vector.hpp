@@ -7,7 +7,10 @@
 #include "csr.hpp"
 
 namespace nikfemm {
-    struct MatCSR;
+    struct MatCSRSymmetric;
+    struct MatCSRLowerTri;
+    struct MatCSRUpperTri;
+
     struct CV {
         protected:
         double* val;
@@ -24,7 +27,9 @@ namespace nikfemm {
         double& operator[](uint32_t i);
         double operator[](uint32_t i) const;
 
-        static void mult(CV& result, const MatCSR& mat, const CV& cv);
+        static void mult(CV& result, const MatCSRSymmetric& mat, const CV& cv);
+        static void mult(CV& result, const MatCSRLowerTri& mat, const CV& cv);
+        static void mult(CV& result, const MatCSRUpperTri& mat, const CV& cv);
         static void mult(CV& result, const double d, const CV& cv);
         static void mult(CV& result, const CV& cv1, const CV& cv2);
         static void add(CV& result, const CV& cv1, const CV& cv2);

@@ -17,6 +17,7 @@
 #include "../algebra/coo.hpp"
 #include "../algebra/csr.hpp"
 #include "../algebra/simple_vector.hpp"
+#include "../algebra/solvers.hpp"
 
 namespace nikfemm {
     MagnetostaticSimulation::MagnetostaticSimulation() {
@@ -81,7 +82,7 @@ namespace nikfemm {
         printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
 #endif
 
-        MatCSR A(coo);
+        MatCSRSymmetric A(coo);
         // b.write_to_file("b");
         auto start8 = std::chrono::high_resolution_clock::now();
 
@@ -92,10 +93,10 @@ namespace nikfemm {
         // b.print();
 #endif
 
-        // A.conjugateGradientSolver(b, x, 1e-7, 10000);
-        // A.preconditionedJacobiConjugateGradientSolver(b, x, 1e-7, 1000);
-        // A.preconditionedSORConjugateGradientSolver(b, x, 1, 1e-7, 1000);
-        A.preconditionedSSORConjugateGradientSolver(b, x, 1.5, 1e-7, 1000);
+        // conjugateGradientSolver(A, b, x, 1e-7, 10000);
+        preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
+        // preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 1000);
+        // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
         auto start9 = std::chrono::high_resolution_clock::now();
 
         auto end = std::chrono::high_resolution_clock::now();

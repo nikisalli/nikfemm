@@ -12,7 +12,31 @@
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
-    MatCSR::MatCSR(MatCOO& coo) {
+    void BaseCSR::printCSR() {
+        printf("m: %lu, nnz: %lu\n", m, nnz);
+        printf("row_ptr: ");
+        for (uint32_t i = 0; i < m + 1; i++) {
+            printf("%lu ", row_ptr[i]);
+        }
+        printf("\n");
+        printf("col_ind: ");
+        for (uint32_t i = 0; i < nnz; i++) {
+            printf("%lu ", col_ind[i]);
+        }
+        printf("\n");
+        printf("A: ");
+        for (uint32_t i = 0; i < nnz; i++) {
+            printf("%.1f ", val[i]);
+        }
+        printf("\n");
+        printf("diag: ");
+        for (uint32_t i = 0; i < m; i++) {
+            printf("%.1f ", diag[i]);
+        }
+        printf("\n");
+    }
+
+    BaseCSR::BaseCSR(MatCOO& coo) {
         m = coo.m;
 
         std::vector<std::pair<uint64_t, double>> elems;
@@ -53,38 +77,31 @@ namespace nikfemm {
         }
     }
 
-    MatCSR::~MatCSR() {
+    BaseCSR::BaseCSR(const BaseCSR& csr) {
+        m = csr.m;
+        nnz = csr.nnz;
+
+        row_ptr = new uint32_t[m + 1];
+        col_ind = new uint32_t[nnz];
+        val = new double[nnz];
+        diag = new double[m];
+
+        memcpy(row_ptr, csr.row_ptr, (m + 1) * sizeof(uint32_t));
+        memcpy(col_ind, csr.col_ind, nnz * sizeof(uint32_t));
+        memcpy(val, csr.val, nnz * sizeof(double));
+        memcpy(diag, csr.diag, m * sizeof(double));
+    }
+
+    BaseCSR::~BaseCSR() {
         delete[] row_ptr;
         delete[] col_ind;
         delete[] val;
         delete[] diag;
     }
 
-    void MatCSR::printCSR() {
-        printf("m: %lu, nnz: %lu\n", m, nnz);
-        printf("row_ptr: ");
-        for (uint32_t i = 0; i < m + 1; i++) {
-            printf("%lu ", row_ptr[i]);
-        }
-        printf("\n");
-        printf("col_ind: ");
-        for (uint32_t i = 0; i < nnz; i++) {
-            printf("%lu ", col_ind[i]);
-        }
-        printf("\n");
-        printf("A: ");
-        for (uint32_t i = 0; i < nnz; i++) {
-            printf("%.1f ", val[i]);
-        }
-        printf("\n");
-        printf("diag: ");
-        for (uint32_t i = 0; i < m; i++) {
-            printf("%.1f ", diag[i]);
-        }
-        printf("\n");
-    }
+    // MatCSRSymmetric
 
-    void MatCSR::print() {
+    void MatCSRSymmetric::print() {
         // iterate over CSR elements
         uint32_t idx = 0;
         for (uint32_t i = 0; i < m; i++) {
@@ -95,7 +112,7 @@ namespace nikfemm {
         }
     }
 
-    double MatCSR::operator()(uint32_t i, uint32_t j) const {
+    double MatCSRSymmetric::operator()(uint32_t i, uint32_t j) const {
         if (i == j) {
             return diag[i];
         } else if (i < j) {
@@ -110,7 +127,7 @@ namespace nikfemm {
         return 0.0;
     }
 
-    void MatCSR::write_to_file(const char *filename) {
+    void MatCSRSymmetric::write_to_file(const char *filename) {
         FILE *f = fopen(filename, "w");
         if (f == NULL) {
             nexit("Error opening file!\n");
@@ -127,142 +144,89 @@ namespace nikfemm {
         fclose(f);
     }
 
-    void MatCSR::multSSORPreconditioner(CV& result, const CV& cv, double omega) {
-        double temp = omega * (2 - omega);
+    // MatCSRLowerTri
+
+    void MatCSRLowerTri::print() {
+        // iterate over CSR elements
+        uint32_t idx = 0;
         for (uint32_t i = 0; i < m; i++) {
-            result[i] = cv[i] * temp;
+            for (uint32_t j = 0; j < m; j++) {
+                printf("%.4f ", (*this)(i, j));
+            }
+            printf("\n");
+        }
+    }
+
+    double MatCSRLowerTri::operator()(uint32_t i, uint32_t j) const {
+        if (i == j) {
+            return diag[i];
+        } else {
+            for (uint32_t k = row_ptr[j]; k < row_ptr[j + 1]; k++) {
+                if (col_ind[k] == i) {
+                    return val[k];
+                }
+            }
+        }
+        return 0.0;
+    }
+
+    void MatCSRLowerTri::write_to_file(const char *filename) {
+        FILE *f = fopen(filename, "w");
+        if (f == NULL) {
+            nexit("Error opening file!\n");
         }
 
-        // invert lower triangle
+        // iterate over CSR elements
+        uint64_t idx = 0;
+        for (uint64_t i = 0; i < m; i++) {
+            for (uint64_t j = 0; j < m; j++) {
+                fprintf(f, "%.17g ", (*this)(i, j));
+            }
+            fprintf(f, "\n");
+        }
+        fclose(f);
+    }
+
+    // MatCSRUpperTri
+
+    void MatCSRUpperTri::print() {
+        // iterate over CSR elements
+        uint32_t idx = 0;
         for (uint32_t i = 0; i < m; i++) {
-            result[i] /= diag[i];
-            // printf("i: %lu, diag[i]: %.1f, result[i]: %.1f\n", i, diag[i], result[i]);
+            for (uint32_t j = 0; j < m; j++) {
+                printf("%.4f ", (*this)(i, j));
+            }
+            printf("\n");
+        }
+    }
+
+    double MatCSRUpperTri::operator()(uint32_t i, uint32_t j) const {
+        if (i == j) {
+            return diag[i];
+        } else {
             for (uint32_t k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
-                // printf("- k: %lu, col_ind[k]: %lu, val[k]: %.1f\n", k, col_ind[k], val[k]);
-                result[col_ind[k]] -= val[k] * result[i] * omega;
+                if (col_ind[k] == j) {
+                    return val[k];
+                }
             }
         }
-
-        for (uint32_t i = 0; i < m; i++) {
-            result[i] *= diag[i];
-        }
-
-        // invert upper triangle
-        for (int64_t i = m - 1; i >= 0; i--) {
-            for (uint32_t k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
-                result[i] -= val[k] * result[col_ind[k]] * omega;
-            }
-            result[i] /= diag[i];
-        }
+        return 0.0;
     }
 
-    void MatCSR::conjugateGradientSolver(CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.m);
-        CV p(b.m);
-        CV Ap(b.m);
-        CV::mult(r, *this, x);
-        CV::sub(r, b, r);
-        CV::copy(p, r);
-        double rTr = CV::squareSum(r);
-        for (uint32_t i = 0; i < maxIterations; i++) {
-            CV::mult(Ap, *this, p);
-            double pAp = CV::dot(p, Ap);
-            if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
-                pAp = std::numeric_limits<double>::epsilon();
-                printf("warning: pAp is zero. approximating with epsilon");
-            }
-            double alpha = rTr / pAp;
-            CV::addScaled(x, x, alpha, p);
-            CV::addScaled(r, r, -alpha, Ap);
-            double rTrNew = CV::squareSum(r);
-            printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
-            if (rTrNew < maxError * maxError) {
-#ifdef DEBUG_PRINT
-                printf("converged after %lu iterations\n", i);
-                printf("x:\n");
-                x.print();
-#endif
-                break;
-            }
-            double beta = rTrNew / rTr;
-            CV::addScaled(p, r, beta, p);
-            rTr = rTrNew;
+    void MatCSRUpperTri::write_to_file(const char *filename) {
+        FILE *f = fopen(filename, "w");
+        if (f == NULL) {
+            nexit("Error opening file!\n");
         }
-    }
 
-    void MatCSR::preconditionedJacobiConjugateGradientSolver(CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.m);
-        CV::mult(r, *this, x);
-        CV::sub(r, b, r);
-        CV P(b.m);
-        for (uint32_t i = 0; i < m; i++) {
-            P[i] = 1 / diag[i];
+        // iterate over CSR elements
+        uint64_t idx = 0;
+        for (uint64_t i = 0; i < m; i++) {
+            for (uint64_t j = 0; j < m; j++) {
+                fprintf(f, "%.17g ", (*this)(i, j));
+            }
+            fprintf(f, "\n");
         }
-        CV z(b.m);
-        CV::mult(z, P, r);
-        CV p(b.m);
-        CV::copy(p, z);
-        CV Ap(b.m);
-        double rTzold;
-        for (uint32_t i = 0; i < maxIterations; i++) {
-            CV::mult(Ap, *this, p);
-            double alpha = CV::dot(r, z) / CV::dot(p, Ap);
-            if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
-                alpha = std::numeric_limits<double>::epsilon();
-                printf("warning: alpha is zero. approximating with epsilon\n");
-            }
-            rTzold = CV::dot(r, z);
-            CV::addScaled(x, x, alpha, p);
-            CV::addScaled(r, r, -alpha, Ap);
-            double squareError = CV::squareSum(r);
-            printf("iteration %lu, error: %f\n", i, sqrt(squareError));
-            if (squareError < maxError * maxError) {
-#ifdef DEBUG_PRINT
-                printf("converged after %lu iterations\n", i);
-                printf("x:\n");
-                x.print();
-#endif
-                break;
-            }
-            CV::mult(z, P, r);
-            double beta = CV::dot(r, z) / rTzold;
-            CV::addScaled(p, z, beta, p);
-        }
-    }
-
-    void MatCSR::preconditionedSSORConjugateGradientSolver(CV& b, CV& x, double omega, double maxError, uint32_t maxIterations) {
-        CV r(b.m);
-        CV::mult(r, *this, x);
-        CV::sub(r, b, r);
-        CV z(b.m);
-        MatCSR::multSSORPreconditioner(z, r, omega);
-        CV p(b.m);
-        CV::copy(p, z);
-        CV Ap(b.m);
-        double rTzold;
-        for (uint32_t i = 0; i < maxIterations; i++) {
-            CV::mult(Ap, *this, p);
-            double alpha = CV::dot(r, z) / CV::dot(p, Ap);
-            if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
-                alpha = std::numeric_limits<double>::epsilon();
-                printf("warning: alpha is zero. approximating with epsilon\n");
-            }
-            rTzold = CV::dot(r, z);
-            CV::addScaled(x, x, alpha, p);
-            CV::addScaled(r, r, -alpha, Ap);
-            double squareError = CV::squareSum(r);
-            printf("iteration %lu, error: %f\n", i, sqrt(squareError));
-            if (squareError < maxError * maxError) {
-                printf("converged after %lu iterations\n", i);
-#ifdef DEBUG_PRINT
-                printf("x:\n");
-                x.print();
-#endif
-                break;
-            }
-            MatCSR::multSSORPreconditioner(z, r, omega);
-            double beta = CV::dot(r, z) / rTzold;
-            CV::addScaled(p, z, beta, p);
-        }
+        fclose(f);
     }
 }

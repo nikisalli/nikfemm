@@ -5,7 +5,7 @@
 using namespace nikfemm;
 
 int main(int argc, char** argv) {
-    MatCOO coo(8, 8);
+    MatCOO coo(8);
     //   182     0    36     0     0    99    80     0
     //     0     4     0     0     0     0     0     0
     //    36     0   211     0     0    99    90     0
@@ -47,9 +47,11 @@ int main(int argc, char** argv) {
 
     CV x(8);
     
-    MatCSR csr(coo);
-    csr.preconditionedJacobiConjugateGradientSolver(x, b, 1e-6, 10);
+    MatCSRSymmetric csr(coo);
+    
+    // csr.preconditionedJacobiConjugateGradientSolver(x, b, 1e-6, 10);
     // csr.preconditionedSSORConjugateGradientSolver(b, x, 1, 1e-7, 100);
-
+    preconditionedIncompleteCholeskyConjugateGradientSolver(csr, b, x, 1e-7, 100);
+    printf("csr:\n");
     csr.print();
 }

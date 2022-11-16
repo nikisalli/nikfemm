@@ -18,7 +18,7 @@ BOOST_AUTO_TEST_CASE( csr_index )
     coo.set_elem(1, 1, 5);
     coo.set_elem(2, 2, 6);
 
-    MatCSR csr(coo);
+    MatCSRSymmetric csr(coo);
 
     coo.print();
     csr.print();
@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE( csr_cv_mult )
     coo.set_elem(1, 1, 5);
     coo.set_elem(2, 2, 6);
 
-    MatCSR csr(coo);
+    MatCSRSymmetric csr(coo);
 
     coo.print();
     csr.print();
@@ -61,6 +61,18 @@ BOOST_AUTO_TEST_CASE( csr_cv_mult )
     BOOST_CHECK_EQUAL(x[0], 5);
     BOOST_CHECK_EQUAL(x[1], 24);
     BOOST_CHECK_EQUAL(x[2], 26);
+
+    CV::mult(x, (MatCSRLowerTri)csr, b);
+
+    BOOST_CHECK_EQUAL(x[0], 1);
+    BOOST_CHECK_EQUAL(x[1], 12);
+    BOOST_CHECK_EQUAL(x[2], 26);
+
+    CV::mult(x, (MatCSRUpperTri)csr, b);
+
+    BOOST_CHECK_EQUAL(x[0], 5);
+    BOOST_CHECK_EQUAL(x[1], 22);
+    BOOST_CHECK_EQUAL(x[2], 18);
 }
 
 BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
@@ -80,9 +92,9 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
     x0[0] = 2;
     x0[1] = 1;
 
-    MatCSR csr(coo);
+    MatCSRSymmetric csr(coo);
 
-    csr.conjugateGradientSolver(b, x0, 1e-6, 10);
+    conjugateGradientSolver(csr, b, x0, 1e-6, 10);
 
     x0.print();
 }
@@ -114,7 +126,7 @@ BOOST_AUTO_TEST_CASE( cv_mult )
     coo.set_elem(1, 1, 5);
     coo.set_elem(2, 2, 6);
 
-    MatCSR csr(coo);
+    MatCSRSymmetric csr(coo);
 
     CV x(3);
     x[0] = 1;
