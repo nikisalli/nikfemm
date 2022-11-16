@@ -96,10 +96,10 @@ namespace nikfemm {
         SDL_RenderClear(rend);
 
         // get mesh enclosing rectangle
-        double min_x = 1000000;
-        double min_y = 1000000;
-        double max_x = -1000000;
-        double max_y = -1000000;
+        float min_x = 1000000;
+        float min_y = 1000000;
+        float max_x = -1000000;
+        float max_y = -1000000;
         for (uint32_t i = 0; i < data.numberofpoints; i++) {
             Point p = data.pointlist[i];
             if (p.x < min_x) min_x = p.x;
@@ -109,16 +109,16 @@ namespace nikfemm {
         }
 
         // object to window ratio
-        double ratio = 0.9;
+        float ratio = 0.9;
 
         // x scale factor to loosely fit mesh in window (equal in x and y)
-        double x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
         // y scale factor to loosely fit mesh in window
-        double y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
         // x offset to center mesh in window
-        double x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
+        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
         // y offset to center mesh in window
-        double y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
+        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
 
         // render
 

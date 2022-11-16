@@ -94,8 +94,8 @@ namespace nikfemm {
         #endif
 
         // conjugateGradientSolver(A, b, x, 1e-7, 10000);
-        preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
-        // preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 1000);
+        // preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
+        preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 1000);
         // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
         auto start9 = std::chrono::high_resolution_clock::now();
 

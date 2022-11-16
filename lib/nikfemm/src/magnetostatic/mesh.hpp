@@ -65,25 +65,25 @@ namespace nikfemm {
 
         // get mesh enclosing rectangle
 
-        double min_x = -2 * radius;
-        double min_y = -2 * radius;
-        double max_x = 2 * radius;
-        double max_y = 2 * radius;
+        float min_x = -2 * radius;
+        float min_y = -2 * radius;
+        float max_x = 2 * radius;
+        float max_y = 2 * radius;
 
         // object to window ratio
-        double ratio = 0.9;
+        float ratio = 0.9;
 
         // x scale factor to loosely fit mesh in window (equal in x and y)
-        double x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
         // y scale factor to loosely fit mesh in window
-        double y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
         // x offset to center mesh in window
-        double x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
+        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
         // y offset to center mesh in window
-        double y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
+        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
 
-        double max_A = std::numeric_limits<double>::min();
-        double min_A = std::numeric_limits<double>::max();
+        float max_A = std::numeric_limits<float>::min();
+        float min_A = std::numeric_limits<float>::max();
 
         for (uint32_t i = 0; i < A.m; i++) {
             if (A[i] > max_A) {
@@ -254,29 +254,29 @@ namespace nikfemm {
 
         // get mesh enclosing rectangle
 
-        double min_x = -2 * radius;
-        double min_y = -2 * radius;
-        double max_x = 2 * radius;
-        double max_y = 2 * radius;
+        float min_x = -2 * radius;
+        float min_y = -2 * radius;
+        float max_x = 2 * radius;
+        float max_y = 2 * radius;
 
         // object to window ratio
-        double ratio = 0.9;
+        float ratio = 0.9;
 
         // x scale factor to loosely fit mesh in window (equal in x and y)
-        double x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
         // y scale factor to loosely fit mesh in window
-        double y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
         // x offset to center mesh in window
-        double x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
+        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
         // y offset to center mesh in window
-        double y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
+        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
 
         
-        double max_A = std::numeric_limits<double>::min();
-        double min_A = std::numeric_limits<double>::max();
+        float max_A = std::numeric_limits<float>::min();
+        float min_A = std::numeric_limits<float>::max();
 
         for (auto v : vertices) {
-            double b_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
+            float b_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
             // printf("bx: %f by: %f b_mod: %f\n", v->B.x, v->B.y, b_mod);
             if (b_mod > max_A) {
                 max_A = b_mod;
@@ -309,7 +309,7 @@ namespace nikfemm {
                 points.reserve(v->adjvert_count);
 
                 // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
-                double B_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
+                float B_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
                 SDL_Color c = val2jet(B_mod, min_A, max_A);
                 // printf("A: %f, c: %d, %d, %d\n", v->A, c.r, c.g, c.b);
                                 

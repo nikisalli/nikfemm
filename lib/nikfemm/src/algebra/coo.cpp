@@ -103,10 +103,10 @@ namespace nikfemm {
         // clears the window
         SDL_RenderClear(rend);
 
-        double x_scale = 1;
-        double y_scale = 1;
-        double x_offset = 0;
-        double y_offset = 0;
+        float x_scale = 1;
+        float y_scale = 1;
+        float x_offset = 0;
+        float y_offset = 0;
 
         // draw the matrix as a grid of squares where if the value is non-zero, the square is filled. make it zoomable and pannable
         while(true){
@@ -116,7 +116,7 @@ namespace nikfemm {
             for (auto elem : elems) {
                 uint32_t _m = elem.first >> 32;
                 uint32_t _n = elem.first & 0xFFFFFFFF;
-                double val = elem.second;
+                float val = elem.second;
                 if (val != 0) {
                     SDL_Rect rect;
                     rect.x = x_offset + _n * x_scale;
