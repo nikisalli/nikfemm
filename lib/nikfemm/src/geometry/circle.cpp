@@ -20,7 +20,7 @@ namespace nikfemm {
     }
 
     bool Circle::operator==(const Circle& c) const {
-        return fabs(this->radius - c.radius) < EPSILON && fabs(this->center.x - c.center.x) < EPSILON && fabs(this->center.y - c.center.y) < EPSILON;
+        return (center == c.center) && (radius == c.radius);
     }
 
     bool Circle::operator!=(const Circle& c) const {

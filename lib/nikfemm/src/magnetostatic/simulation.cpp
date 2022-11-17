@@ -54,7 +54,7 @@ namespace nikfemm {
         Circle boundary_circle = Circle(Point(0, 0), 2 * smallest_circle.radius);
         mesh.drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
         // add region near the edge of the circle
-        mesh.drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), vacuum_prop);
+        mesh.drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
         // add the boundary 
         // mesh.drawing.plot();
         auto start2 = std::chrono::high_resolution_clock::now();

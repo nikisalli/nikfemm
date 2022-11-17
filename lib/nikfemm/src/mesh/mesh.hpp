@@ -2,6 +2,7 @@
 #define NIK_VIRTUAL_MESH_HPP
 
 #include <cstdint>
+#include <map>
 
 #include "../algebra/coo.hpp"
 #include "../algebra/simple_vector.hpp"

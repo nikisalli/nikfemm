@@ -13,4 +13,11 @@ namespace nikfemm {
     };
 }
 
+template <>
+struct std::hash<nikfemm::Vector> {
+    inline std::size_t operator()(const nikfemm::Vector& v) const {
+        return std::hash<float>()(v.x) ^ std::hash<float>()(v.y);
+    }
+};
+
 #endif

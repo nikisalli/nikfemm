@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include <cstdint>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +29,7 @@ namespace nikfemm {
 
     template<typename Prop>
     struct Drawing {
-        std::map<Prop, uint32_t> region_map;
+        std::unordered_map<Prop, uint32_t> region_map;
         std::vector<DrawingRegion> regions;
         std::vector<Point> points;
         std::unordered_set<DrawingSegment> segments;

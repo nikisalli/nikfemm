@@ -29,7 +29,7 @@ namespace nikfemm {
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
         MagnetostaticMesh() {
             // default material property
-            default_prop = vacuum_prop;
+            default_prop = {0, {0, 0}, materials::air};
         }
 
         ~MagnetostaticMesh() {
