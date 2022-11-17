@@ -45,6 +45,8 @@ namespace nikfemm {
             void drawCircle(Circle c, uint32_t n_segments);
             void drawPolygon(Point* points, uint32_t n_points);
             void drawPolyLine(Point* points, uint32_t n_points);  // same as drawPolygon, but doesn't close the figure
+            void drawPolygon(const std::vector<Point>& points);
+            void drawPolyLine(const std::vector<Point>& points);  // same as drawPolygon, but doesn't close the figure
             void drawRegion(Point p, Prop val);
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
@@ -118,10 +120,20 @@ namespace nikfemm {
     }
 
     template <typename Prop>
+    void Drawing<Prop>::drawPolygon(const std::vector<Point>& points) {
+        drawPolygon((Point*) points.data(), points.size());
+    }
+
+    template <typename Prop>
     void Drawing<Prop>::drawPolyLine(Point* points, uint32_t n_points) {
         for (uint32_t i = 0; i < n_points - 1; i++) {
             drawSegment(points[i], points[i + 1]);
         }
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::drawPolyLine(const std::vector<Point>& points) {
+        drawPolyLine((Point*) points.data(), points.size());
     }
 
     template <typename Prop>

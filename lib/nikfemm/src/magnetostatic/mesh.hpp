@@ -37,10 +37,10 @@ namespace nikfemm {
         }
 
         void Aplot(CV &A);
-        void Bplot();
+        void Bplot(std::vector<Vector>& B);
         void getFemSystem(MatCOO &coo, CV &b);
         void addDirichletBoundaryConditions(MatCOO &coo, CV &b);
-        // void computeCurl();
+        void computeCurl(std::vector<Vector>& B, CV &A);
     };
 
     // templated member functions must be defined in the header file
@@ -232,8 +232,7 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticMesh::Bplot() {
-        /*
+    void MagnetostaticMesh::Bplot(std::vector<Vector>& B) {
         if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
             nexit("error initializing SDL: %s\n");
         }
@@ -241,7 +240,7 @@ namespace nikfemm {
                                         SDL_WINDOWPOS_CENTERED,
                                         SDL_WINDOWPOS_CENTERED,
                                         2000, 2000, 0);
-            
+
         // triggers the program that controls
         // your graphics hardware and sets flags
         Uint32 render_flags = SDL_RENDERER_ACCELERATED;
@@ -271,120 +270,90 @@ namespace nikfemm {
         // y offset to center mesh in window
         float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
 
-        
-        float max_A = std::numeric_limits<float>::min();
-        float min_A = std::numeric_limits<float>::max();
+        double max_B = std::numeric_limits<float>::min();
+        double min_B = std::numeric_limits<float>::max();
 
-        for (auto v : vertices) {
-            float b_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
-            // printf("bx: %f by: %f b_mod: %f\n", v->B.x, v->B.y, b_mod);
-            if (b_mod > max_A) {
-                max_A = b_mod;
+        for (uint32_t i = 0; i < B.size(); i++) {
+            double B_mag = B[i].magnitude();
+            if (B_mag > max_B) {
+                max_B = B_mag;
             }
-            if (b_mod < min_A) {
-                min_A = b_mod;
+            if (B_mag < min_B) {
+                min_B = B_mag;
             }
         }
 
-        // printf("max_A: %f min_A: %f\n", max_A, min_A);
-        
+        printf("max B: %f\n", max_B);
+        printf("min B: %f\n", min_B);
+
+        // max_B = 1e-6;
 
         // render
 
         uint32_t frame = 0;
-        while(true){
-            // clears the window
-            SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-            SDL_RenderClear(rend);
-            // draw the points
-            uint32_t i = 0;
-            for (auto v : vertices) {
+        // clears the window
+        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+        SDL_RenderClear(rend);
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            // get the triangle
+            Elem e = data.trianglelist[i];
+            // get the vertices
+            Point v1 = data.pointlist[e.verts[0]];
+            Point v2 = data.pointlist[e.verts[1]];
+            Point v3 = data.pointlist[e.verts[2]];
 
-                if (geomDistance(v->p, Point(0, 0)) > radius * 2) {
-                    continue;
-                }
-
-                // verts
-                auto points = std::vector<SDL_Vertex>();
-                points.reserve(v->adjvert_count);
-
-                // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
-                float B_mod = sqrt(v->prop.B.x * v->prop.B.x + v->prop.B.y * v->prop.B.y);
-                SDL_Color c = val2jet(B_mod, min_A, max_A);
-                // printf("A: %f, c: %d, %d, %d\n", v->A, c.r, c.g, c.b);
-                                
-                // find the triangles that contain the Vertex<MagnetostaticProp> and then
-                // for every triangle find the barycenter and add it to the points vector
-                for (uint8_t i = 0; i < v->adjvert_count; i++) {
-                    for (uint8_t j = 0; j < v->adjvert[i]->adjvert_count; j++) {
-                        if (v->adjvert[i]->adjvert[j] == v) {
-                            continue;
-                        }
-                        for (uint8_t k = 0; k < v->adjvert[i]->adjvert[j]->adjvert_count; k++) {
-                            if (v->adjvert[i]->adjvert[j]->adjvert[k] == v) {
-                                SDL_Vertex new_v;
-                                Point barycenter = {
-                                    (v->p.x + v->adjvert[i]->p.x + v->adjvert[i]->adjvert[j]->p.x) / 3,
-                                    (v->p.y + v->adjvert[i]->p.y + v->adjvert[i]->adjvert[j]->p.y) / 3
-                                };
-                                new_v.position.x = x_offset + barycenter.x * x_scale;
-                                new_v.position.y = y_offset + barycenter.y * y_scale;
-                                new_v.color = c;
-                                // check if already in points
-                                bool already_in = false;
-                                for (auto p : points) {
-                                    if (p.position.x == new_v.position.x && p.position.y == new_v.position.y) {
-                                        already_in = true;
-                                        break;
-                                    }
-                                }
-                                if (already_in) {
-                                    continue;
-                                }
-                                points.push_back(new_v);
-                            }
-                        }
-                    }
-                }
-                
-                // find the center of the points
-                SDL_FPoint center = {0, 0};
-                for (uint8_t i = 0; i < points.size(); i++) {
-                    center.x += points[i].position.x;
-                    center.y += points[i].position.y;
-                }
-                // printf("count: %d\n", points.size());
-                center.x /= points.size();
-                center.y /= points.size();
-                // printf("center: %d %d\n", center.x, center.y);
-
-                // sort the points by angle
-                std::sort(points.begin(), points.end(), [center](SDL_Vertex a, SDL_Vertex b) {
-                    return atan2(a.position.y - center.y, a.position.x - center.x) < atan2(b.position.y - center.y, b.position.x - center.x);
-                });
-
-                // print the points
-
-                SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-                for (uint8_t i = 0; i < points.size(); i++) {
-                    SDL_Vertex v1 = points[i];
-                    SDL_Vertex v2 = points[(i + 1) % points.size()];
-                    // draw triangle between center and two points
-                    SDL_Vertex verts[3] = {
-                        {center.x, center.y, c.r, c.g, c.b, c.a},
-                        {v1.position.x, v1.position.y, c.r, c.g, c.b, c.a},
-                        {v2.position.x, v2.position.y, c.r, c.g, c.b, c.a}
-                    };
-                    SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
-                }
-                if (i == frame) {
-                    // break;
-                }
-                i++;
+            if (geomDistance(v1, Point(0, 0)) > 2 * radius || geomDistance(v2, Point(0, 0)) > 2 * radius || geomDistance(v3, Point(0, 0)) > 2 * radius) {
+                continue;
             }
 
-            SDL_RenderPresent(rend);
+            // get the B vectors
+            Vector Bv = B[i];
+            SDL_Color c = val2jet(Bv.magnitude(), min_B, max_B);
+            // get the vertices in window coordinates
+            SDL_Vertex verts[3] = {
+                {x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, c.r, c.g, c.b, c.a},
+                {x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset, c.r, c.g, c.b, c.a},
+                {x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset, c.r, c.g, c.b, c.a}
+            };
+            // draw the triangle
+            SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
+        }
 
+        // draw the geometry
+        // draw the segments
+        SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+        for (DrawingSegment s : drawing.segments) {
+            SDL_RenderDrawLine(rend, x_scale * drawing.points[s.p1].x + x_offset, y_scale * drawing.points[s.p1].y + y_offset, x_scale * drawing.points[s.p2].x + x_offset, y_scale * drawing.points[s.p2].y + y_offset);
+        }
+
+
+        // draw the points
+        // for (auto v : drawing.points) {
+        //     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+        //     // draw a square centered at the point
+        //     SDL_Rect rect;
+        //     rect.x = x_offset + v.x * x_scale - 2;
+        //     rect.y = y_offset + v.y * y_scale - 2;
+        //     rect.w = 4;
+        //     rect.h = 4;
+        //     SDL_RenderFillRect(rend, &rect);
+        // }
+
+        // draw the regions
+        // for (DrawingRegion r : drawing.regions) {
+        //     SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+        //     // draw a square centered at the point
+        //     SDL_Rect rect;
+        //     rect.x = x_offset + r.first.x * x_scale - 4;
+        //     rect.y = y_offset + r.first.y * y_scale - 4;
+        //     rect.w = 8;
+        //     rect.h = 8;
+        //     SDL_RenderFillRect(rend, &rect);
+        // }
+
+        SDL_RenderPresent(rend);
+
+        while(true){
             SDL_Event event;
             if (SDL_PollEvent(&event)) {
                 if (event.type == SDL_QUIT) {
@@ -424,31 +393,10 @@ namespace nikfemm {
                 y_scale = 1;
                 x_offset = 0;
                 y_offset = 0;
-            } else if (key.keysym.sym == SDLK_SPACE) {
-                frame++;
-                printf("frame: %d\n", frame);
-                Vertex<MagnetostaticProp>* v = vertices[frame];
-                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
-            } else if (key.keysym.sym == SDLK_BACKSPACE) {
-                frame--;
-                printf("frame: %d\n", frame);
-                Vertex<MagnetostaticProp>* v = vertices[frame];
-                SDL_Color c = val2jet(v->prop.A, min_A, max_A);
-                printf("A: %f %d %d %d\n", v->prop.A, c.r, c.g, c.b);
-            } else if (key.keysym.sym == SDLK_f) {
-                max_A += 0.1;
-            } else if (key.keysym.sym == SDLK_v) {
-                max_A -= 0.1;
-            } else if (key.keysym.sym == SDLK_g) {
-                min_A += 0.1;
-            } else if (key.keysym.sym == SDLK_b) {
-                min_A -= 0.1;
             }
 
             // sleep for 1 second
         }
-        */
     }
 
     void MagnetostaticMesh::getFemSystem(MatCOO &coo, CV &b) {
@@ -569,57 +517,39 @@ namespace nikfemm {
         coo.set_elem(p3, p3, 1);
     }
 
-    /*void MagnetostaticMesh::computeCurl() {
-        for (auto v : vertices) {
-            // find the vertices and their neighbors that are adjacent to v
-            std::set<Vertex<MagnetostaticProp>*> adjverts;
-            for (uint8_t i = 0; i < v->adjvert_count; i++) {
-                Vertex<MagnetostaticProp>* adj_v = v->adjvert[i];
-                adjverts.insert(adj_v);
-                for (uint8_t j = 0; j < adj_v->adjvert_count; j++) {
-                    Vertex<MagnetostaticProp>* adj_adj_v = adj_v->adjvert[j];
-                    if (adj_adj_v != v) {
-                        adjverts.insert(adj_adj_v);
-                    }
-                }
-            }
+    void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) {
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Elem myelem = data.trianglelist[i];
+            double x1 = data.pointlist[myelem.verts[0]].x;
+            double y1 = data.pointlist[myelem.verts[0]].y;
+            double z1 = A[myelem.verts[0]];
+            double x2 = data.pointlist[myelem.verts[1]].x;
+            double y2 = data.pointlist[myelem.verts[1]].y;
+            double z2 = A[myelem.verts[1]];
+            double x3 = data.pointlist[myelem.verts[2]].x;
+            double y3 = data.pointlist[myelem.verts[2]].y;
+            double z3 = A[myelem.verts[2]];
 
-            uint8_t N = adjverts.size();
-            cv::Mat S = cv::Mat(N, 5, CV_64F);
-            cv::Mat b = cv::Mat(N, 1, CV_64F);
-            double xi = v->p.x;
-            double yi = v->p.y;
-            // printf("xi = %f, yi = %f\n", xi, yi);
-            uint32_t i = 0;
-            for (auto vj : adjverts) {
-                double xj = vj->p.x;
-                double yj = vj->p.y;
+            // fit z = a + bx + cy to the three points
+            double a1 = x2 - x1;
+            double b1 = y2 - y1;
+            double c1 = z2 - z1;
+            double a2 = x3 - x1;
+            double b2 = y3 - y1;
+            double c2 = z3 - z1;
 
-                double xjmxi = xj - xi;
-                double yjmyi = yj - yi;
-                // printf("xj = %f, yj = %f - {%f, %f, %f}\n", xj, yj, xjmxi, yjmyi, vj->A - v->A);
+            double a = b1 * c2 - b2 * c1;
+            double b = a2 * c1 - a1 * c2;
+            double c = a1 * b2 - b1 * a2;
 
-                S.at<double>(i, 0) = xjmxi;
-                S.at<double>(i, 1) = yjmyi;
-                S.at<double>(i, 2) = xjmxi * yjmyi;
-                S.at<double>(i, 3) = xjmxi * xjmxi * 0.5;
-                S.at<double>(i, 4) = yjmyi * yjmyi * 0.5;
+            double dx = -a / c;
+            double dy = -b / c;
+            
+            // printf("dx = %.17g dy = %.17g for elem (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g)\n", dx, dy, x1, y1, z1, x2, y2, z2, x3, y3, z3);
 
-                b.at<double>(i, 0) = vj->prop.A - v->prop.A;
-                i++;
-            }
-            // std::cout << S << std::endl;
-            // std::cout << b << std::endl;
-            cv::invert(S, S, cv::DECOMP_SVD);
-            cv::Mat x = S * b;
-            // x contains the coefficients of the polynomial in the following order:
-            // ax + by + cxy + dx^2 + ey^2
-            // the gradient of the polynomial in 0, 0 is a, b
-            v->prop.B.x = x.at<double>(1, 0);
-            v->prop.B.y = - x.at<double>(0, 0);
-            // printf("B = {%f, %f}\n", -v->B.y, v->B.x);
+            B.push_back(Vector(-dy, dx));
         }
-    }*/
+    }
 }
 
 #endif

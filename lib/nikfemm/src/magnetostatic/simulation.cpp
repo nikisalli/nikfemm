@@ -99,6 +99,10 @@ namespace nikfemm {
         // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
         auto start9 = std::chrono::high_resolution_clock::now();
 
+        std::vector<Vector> B;
+        B.reserve(mesh.data.numberoftriangles);
+        mesh.computeCurl(B, x);
+
         auto end = std::chrono::high_resolution_clock::now();
         printf("%f translate and fix mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start2 - start1).count()*1000);
         printf("%f mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start3 - start2).count()*1000);
@@ -111,6 +115,7 @@ namespace nikfemm {
         printf("%f total\n", std::chrono::duration_cast<std::chrono::duration<float>>(start9 - start1).count()*1000);
 
         mesh.Aplot(x);
+        mesh.Bplot(B);
         // return;
         /*
         mesh.Bplot();
