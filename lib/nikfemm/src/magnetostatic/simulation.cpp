@@ -68,12 +68,14 @@ namespace nikfemm {
         #ifdef DEBUG_PRINT
         // mesh.plot();
         #endif
-        MatCOO coo(mesh.data.numberofpoints);
+        MatCOO<MagnetostaticNonLinearExpression> coo(mesh.data.numberofpoints);
         CV b(mesh.data.numberofpoints);
         CV x(mesh.data.numberofpoints);
+        std::vector<Vector> B(mesh.data.numberoftriangles, {0, 0});
+
         auto start5 = std::chrono::high_resolution_clock::now();
 
-        mesh.getFemSystem(coo, b);
+        mesh.getFemSystem(coo, b, B);
         auto start6 = std::chrono::high_resolution_clock::now();
         mesh.addDirichletBoundaryConditions(coo, b);
         auto start7 = std::chrono::high_resolution_clock::now();
@@ -82,7 +84,7 @@ namespace nikfemm {
         printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
         #endif
 
-        MatCSRSymmetric A(coo);
+        MagnetostaticMatCSRSymmetric A(coo);
         // b.write_to_file("b");
         auto start8 = std::chrono::high_resolution_clock::now();
 
@@ -93,14 +95,19 @@ namespace nikfemm {
         // b.print();
         #endif
 
+        A.updateNonLinearCoefficients(B);
+
         // conjugateGradientSolver(A, b, x, 1e-7, 10000);
         // preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
         preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 1000);
         // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
+        for (uint32_t i = 0; i < 100; i++) {
+
+        }
+
+
         auto start9 = std::chrono::high_resolution_clock::now();
 
-        std::vector<Vector> B;
-        B.reserve(mesh.data.numberoftriangles);
         mesh.computeCurl(B, x);
 
         auto end = std::chrono::high_resolution_clock::now();

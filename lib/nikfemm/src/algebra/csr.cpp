@@ -12,6 +12,15 @@
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
+    BaseCSR::BaseCSR() {
+        row_ptr = NULL;
+        col_ind = NULL;
+        val = NULL;
+        diag = NULL;
+        nnz = 0;
+        m = 0;
+    }
+
     void BaseCSR::printCSR() {
         printf("m: %lu, nnz: %lu\n", m, nnz);
         printf("row_ptr: ");
@@ -36,7 +45,7 @@ namespace nikfemm {
         printf("\n");
     }
 
-    BaseCSR::BaseCSR(MatCOO& coo) {
+    BaseCSR::BaseCSR(MatCOO<double>& coo) {
         m = coo.m;
 
         std::vector<std::pair<uint64_t, double>> elems;
@@ -101,6 +110,8 @@ namespace nikfemm {
 
     // MatCSRSymmetric
 
+    MatCSRSymmetric::MatCSRSymmetric() : BaseCSR() {}
+
     void MatCSRSymmetric::print() {
         // iterate over CSR elements
         uint32_t idx = 0;
@@ -146,6 +157,8 @@ namespace nikfemm {
 
     // MatCSRLowerTri
 
+    MatCSRLowerTri::MatCSRLowerTri() : BaseCSR() {}
+
     void MatCSRLowerTri::print() {
         // iterate over CSR elements
         uint32_t idx = 0;
@@ -188,6 +201,8 @@ namespace nikfemm {
     }
 
     // MatCSRUpperTri
+
+    MatCSRUpperTri::MatCSRUpperTri() : BaseCSR() {}
 
     void MatCSRUpperTri::print() {
         // iterate over CSR elements

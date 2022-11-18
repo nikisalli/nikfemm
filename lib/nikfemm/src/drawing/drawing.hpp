@@ -51,6 +51,7 @@ namespace nikfemm {
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
             Prop getRegionFromId(uint32_t id);
+            const Prop* getRegionPtrFromId(uint32_t id);
             uint32_t getRegionId(Prop val);
         
             void plot();
@@ -150,6 +151,18 @@ namespace nikfemm {
         for (auto it = region_map.begin(); it != region_map.end(); it++) {
             if (it->second == id) {
                 return it->first;
+            }
+        }
+        nexit("Error: region id not found");
+        // unreachable
+        exit(1);
+    }
+
+    template <typename Prop>
+    const Prop* Drawing<Prop>::getRegionPtrFromId(uint32_t id) {
+        for (auto it = region_map.begin(); it != region_map.end(); it++) {
+            if (it->second == id) {
+                return &(it->first);
             }
         }
         nexit("Error: region id not found");

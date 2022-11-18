@@ -35,6 +35,8 @@ namespace nikfemm {
         BH_Curve bh_curve; // BH curve
         float A; // magnetic vector potential
         Vector B; // magnetic flux density
+
+        float getMu(float B) const;
     };
 
     // default material property

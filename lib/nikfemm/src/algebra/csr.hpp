@@ -18,7 +18,8 @@ namespace nikfemm {
         uint32_t nnz;
         uint32_t m;  // i, j  // rows,  columns
 
-        BaseCSR(MatCOO& coo);
+        BaseCSR();
+        BaseCSR(MatCOO<double>& coo);
         BaseCSR(const BaseCSR& csr);
         ~BaseCSR();
         void printCSR();
@@ -29,7 +30,8 @@ namespace nikfemm {
     struct MatCSRUpperTri;
 
     struct MatCSRSymmetric : virtual BaseCSR {
-        MatCSRSymmetric(MatCOO& coo) : BaseCSR(coo) {}
+        MatCSRSymmetric();
+        MatCSRSymmetric(MatCOO<double>& coo) : BaseCSR(coo) {}
         MatCSRSymmetric(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRSymmetric() {}
 
@@ -40,7 +42,8 @@ namespace nikfemm {
     };
 
     struct MatCSRLowerTri : virtual BaseCSR {
-        MatCSRLowerTri(MatCOO& coo) : BaseCSR(coo) {}
+        MatCSRLowerTri();
+        MatCSRLowerTri(MatCOO<double>& coo) : BaseCSR(coo) {}
         MatCSRLowerTri(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRLowerTri() {}
 
@@ -51,7 +54,8 @@ namespace nikfemm {
     };
 
     struct MatCSRUpperTri : virtual BaseCSR {
-        MatCSRUpperTri(MatCOO& coo) : BaseCSR(coo) {}
+        MatCSRUpperTri();
+        MatCSRUpperTri(MatCOO<double>& coo) : BaseCSR(coo) {}
         MatCSRUpperTri(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRUpperTri() {}
 
