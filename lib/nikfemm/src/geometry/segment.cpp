@@ -22,6 +22,45 @@ namespace nikfemm {
                 p.y <= std::max(s.p1.y, s.p2.y) && p.y >= std::min(s.p1.y, s.p2.y));
     }
 
+    double Segment::pointSegmentDistance(Point p, Segment s) {
+        double x = p.x;
+        double y = p.y;
+        double x1 = s.p1.x;
+        double y1 = s.p1.y;
+        double x2 = s.p2.x;
+        double y2 = s.p2.y;
+
+        double A = x - x1;
+        double B = y - y1;
+        double C = x2 - x1;
+        double D = y2 - y1;
+
+        double dot = A * C + B * D;
+        double len_sq = C * C + D * D;
+        double param = -1;
+        if (len_sq != 0) //in case of 0 length line
+            param = dot / len_sq;
+
+        double xx, yy;
+
+        if (param < 0) {
+            xx = x1;
+            yy = y1;
+        }
+        else if (param > 1) {
+            xx = x2;
+            yy = y2;
+        }
+        else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+        }
+
+        double dx = x - xx;
+        double dy = y - yy;
+        return sqrt(dx * dx + dy * dy);
+    }
+
     bool Segment::segmentsIntersect(Point s1p1, Point s1p2, Point s2p1, Point s2p2) {
         // Find the four orientations needed for general and
         // special cases

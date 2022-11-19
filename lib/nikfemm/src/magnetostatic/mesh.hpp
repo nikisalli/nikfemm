@@ -67,10 +67,10 @@ namespace nikfemm {
 
         // get mesh enclosing rectangle
 
-        float min_x = -2 * radius;
-        float min_y = -2 * radius;
-        float max_x = 2 * radius;
-        float max_y = 2 * radius;
+        float min_x = -1.1 * radius;
+        float min_y = -1.1 * radius;
+        float max_x = 1.1 * radius;
+        float max_y = 1.1 * radius;
 
         // object to window ratio
         float ratio = 0.9;
@@ -121,7 +121,7 @@ namespace nikfemm {
             
             Point p = data.pointlist[i];
 
-            if (geomDistance(p, Point(0, 0)) > radius * 2) {
+            if (geomDistance(p, Point(0, 0)) > radius * 1) {
                 continue;
             }
 
@@ -255,10 +255,10 @@ namespace nikfemm {
 
         // get mesh enclosing rectangle
 
-        float min_x = -2 * radius;
-        float min_y = -2 * radius;
-        float max_x = 2 * radius;
-        float max_y = 2 * radius;
+        float min_x = -1.1 * radius;
+        float min_y = -1.1 * radius;
+        float max_x = 1.1 * radius;
+        float max_y = 1.1 * radius;
 
         // object to window ratio
         float ratio = 0.9;
@@ -304,7 +304,7 @@ namespace nikfemm {
             Point v2 = data.pointlist[e.verts[1]];
             Point v3 = data.pointlist[e.verts[2]];
 
-            if (geomDistance(v1, Point(0, 0)) > 2 * radius || geomDistance(v2, Point(0, 0)) > 2 * radius || geomDistance(v3, Point(0, 0)) > 2 * radius) {
+            if (geomDistance(v1, Point(0, 0)) > radius || geomDistance(v2, Point(0, 0)) > radius || geomDistance(v3, Point(0, 0)) > radius) {
                 continue;
             }
 
@@ -319,6 +319,15 @@ namespace nikfemm {
             };
             // draw the triangle
             SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
+
+            // draw mesh edges
+            // draw lines from v1 to v2
+            // SDL_SetRenderDrawColor(rend, 0, 0, 0, 127);
+            // SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset);
+            // // draw lines from v2 to v3
+            // SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset, x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset);
+            // // draw lines from v3 to v1
+            // SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset, x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset);
         }
 
         // draw the geometry

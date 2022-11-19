@@ -53,6 +53,7 @@ namespace nikfemm {
             Prop getRegionFromId(uint32_t id);
             const Prop* getRegionPtrFromId(uint32_t id);
             uint32_t getRegionId(Prop val);
+            void addRefiningPoints();
         
             void plot();
     };
@@ -208,6 +209,53 @@ namespace nikfemm {
     template <typename Prop>
     void Drawing<Prop>::drawSegment(Segment s) {
         drawSegment(s.p1, s.p2);
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::addRefiningPoints() {
+        // find shortest segment first
+        double length = std::numeric_limits<double>::max();
+        for (auto it = segments.begin(); it != segments.end(); it++) {
+            double len= geomDistance(points[it->p1], points[it->p2]);
+            if (len < length) {
+                length = len;
+            }
+        }
+
+        length /= 100;
+
+        uint32_t n_points = points.size();
+
+        // for each corner, add as many points as possible and make sure they are at least 20 degrees apart
+        // points should also stay away from the segments
+        for (uint32_t i = 0; i < n_points; i++) {
+            // find all segments that contain this point
+            std::vector<DrawingSegment> segments_containing_point;
+            for (auto it = segments.begin(); it != segments.end(); it++) {
+                if (it->p1 == i || it->p2 == i) {
+                    segments_containing_point.push_back(*it);
+                }
+            }
+
+            // printf("point %u has %lu segments\n", i, segments_containing_point.size());
+
+            for (uint32_t j = 0; j < 18; j++) {
+                double angle = j * M_PI / 9;
+                Point p = Point(points[i].x + length * cos(angle), points[i].y + length * sin(angle));
+                
+                // check distance to segments
+                bool too_close = false;
+                for (uint32_t k = 0; k < segments_containing_point.size(); k++) {
+                    if (Segment::pointSegmentDistance(p, Segment(points[segments_containing_point[k].p1], points[segments_containing_point[k].p2])) < length / 2) {
+                        too_close = true;
+                        break;
+                    }
+                }
+                if (!too_close) {
+                    points.push_back(p);
+                }
+            }
+        }
     }
 
     template <typename Prop>

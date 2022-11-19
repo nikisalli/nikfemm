@@ -30,6 +30,7 @@ namespace nikfemm {
 
     void MagnetostaticSimulation::generateMesh() {
         // get time in milliseconds
+        mesh.drawing.addRefiningPoints();
 
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
@@ -68,6 +69,7 @@ namespace nikfemm {
         #ifdef DEBUG_PRINT
         // mesh.plot();
         #endif
+        printf("the mesh has %lu nodes and %lu elements\n", mesh.data.numberofpoints, mesh.data.numberoftriangles);
         MatCOO<MagnetostaticNonLinearExpression> coo(mesh.data.numberofpoints);
         CV b(mesh.data.numberofpoints);
         CV x(mesh.data.numberofpoints);

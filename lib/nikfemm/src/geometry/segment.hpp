@@ -14,6 +14,7 @@ namespace nikfemm {
         static inline bool segmentsIntersect(Segment s1, Segment s2);
         static bool segmentsIntersect(Point s1p1, Point s1p2, Point s2p1, Point s2p2);
         static bool pointOnSegment(Point p, Segment s);
+        static double pointSegmentDistance(Point p, Segment s);
 
         bool operator==(const Segment& s) const;
         bool operator!=(const Segment& s) const;
