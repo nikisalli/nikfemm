@@ -37,6 +37,7 @@ namespace nikfemm {
         Vector B; // magnetic flux density
 
         float getMu(float B) const;
+        bool isLinear() const;
     };
 
     // default material property

@@ -53,17 +53,30 @@ namespace nikfemm {
         delete[] diag_expr;
     }
 
-    void MagnetostaticMatCSRSymmetric::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B) {
+    void MagnetostaticMatCSRSymmetric::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter) {
         assert(mu.size() == B.size());
+        double kalman_scemo = exp(-((double)iter) / 10.);
+        // printf("kalman_scemo: %.17g\n", kalman_scemo);
+        // printf("exp(-(iter + 1) / 100): %.17g\n", exp(-((double)iter + 1.) / 100.));
+        // printf("- (iter + 1) / 100: %.17g\n", - ((double)iter + 1.) / 100.);
+        
         for (uint32_t i = 0; i < B.size(); i++) {
             float Bmag = B[i].magnitude();
-            mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;
+            if (props[i]->isLinear()) {
+                mu[i] = props[i]->getMu(Bmag);
+            } else {
+                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + materials::vacuum * residual) * (1 - kalman_scemo)); 
+                // mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;  // mu += (mu_new - mu) * 0.1
+                // mu[i] += props[i]->getMu(Bmag);  // pure newton-raphson
+            }
         }
     }
 
     void MagnetostaticMatCSRSymmetric::updateMat(std::vector<float>& mu) {
         // diagonal
+        uint32_t same = 0;
         for (uint32_t i = 0; i < m; i++) {
+            double old_diag = diag[i];
             diag[i] = 0;
             for (auto term : diag_expr[i].terms) {
                 if (term.is_boundary_condition) {
@@ -73,9 +86,13 @@ namespace nikfemm {
                     // printf("diag[%d] += %.17g / mu[%d] (%.17g) = %.17g\n", i, term.linear_coefficient, term.nonlinear_coefficient_element_index, mu[term.nonlinear_coefficient_element_index], diag[i]);
                 }
             }
+            if (diag[i] == old_diag) {
+                same++;
+            }
         }
         // off-diagonal
         for (uint32_t i = 0; i < nnz; i++) {
+            double old_val = val[i];
             val[i] = 0;
             for (auto term : expr[i].terms) {
                 if (term.is_boundary_condition) {
@@ -85,6 +102,10 @@ namespace nikfemm {
                     // printf("val[%d] += %.17g / mu[%d] (%.17g) = %.17g\n", i, term.linear_coefficient, term.nonlinear_coefficient_element_index, mu[term.nonlinear_coefficient_element_index], diag[i]);
                 }
             }
+            if (val[i] == old_val) {
+                same++;
+            }
         }
+        // printf("same: %d / %d, changed: %d / %d\n", same, m + nnz, m + nnz - same, m + nnz);
     }
 }

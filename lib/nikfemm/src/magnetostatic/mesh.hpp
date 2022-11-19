@@ -39,6 +39,7 @@ namespace nikfemm {
 
         void Aplot(CV& A);
         void Bplot(std::vector<Vector>& B);
+        void muplot(std::vector<float>& mu);
         void getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void computeCurl(std::vector<Vector>& B, CV& A);
@@ -310,6 +311,171 @@ namespace nikfemm {
             // get the B vectors
             Vector Bv = B[i];
             SDL_Color c = val2jet(Bv.magnitude(), min_B, max_B);
+            // get the vertices in window coordinates
+            SDL_Vertex verts[3] = {
+                {x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, c.r, c.g, c.b, c.a},
+                {x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset, c.r, c.g, c.b, c.a},
+                {x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset, c.r, c.g, c.b, c.a}
+            };
+            // draw the triangle
+            SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
+        }
+
+        // draw the geometry
+        // draw the segments
+        SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
+        for (DrawingSegment s : drawing.segments) {
+            SDL_RenderDrawLine(rend, x_scale * drawing.points[s.p1].x + x_offset, y_scale * drawing.points[s.p1].y + y_offset, x_scale * drawing.points[s.p2].x + x_offset, y_scale * drawing.points[s.p2].y + y_offset);
+        }
+
+
+        // draw the points
+        // for (auto v : drawing.points) {
+        //     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+        //     // draw a square centered at the point
+        //     SDL_Rect rect;
+        //     rect.x = x_offset + v.x * x_scale - 2;
+        //     rect.y = y_offset + v.y * y_scale - 2;
+        //     rect.w = 4;
+        //     rect.h = 4;
+        //     SDL_RenderFillRect(rend, &rect);
+        // }
+
+        // draw the regions
+        // for (DrawingRegion r : drawing.regions) {
+        //     SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
+        //     // draw a square centered at the point
+        //     SDL_Rect rect;
+        //     rect.x = x_offset + r.first.x * x_scale - 4;
+        //     rect.y = y_offset + r.first.y * y_scale - 4;
+        //     rect.w = 8;
+        //     rect.h = 8;
+        //     SDL_RenderFillRect(rend, &rect);
+        // }
+
+        SDL_RenderPresent(rend);
+
+        while(true){
+            SDL_Event event;
+            if (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) {
+                    // destroy the window
+                    SDL_DestroyWindow(win);
+                    // clean up
+                    SDL_Quit();
+                    break;
+                }
+            }
+
+            SDL_KeyboardEvent key = event.key;
+            if (key.keysym.sym == SDLK_UP) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_DOWN) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_LEFT) {
+                x_offset += 10;
+            } else if (key.keysym.sym == SDLK_RIGHT) {
+                x_offset -= 10;
+            } else if (key.keysym.sym == SDLK_w) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_s) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_a) {
+                y_offset += 10;
+            } else if (key.keysym.sym == SDLK_d) {
+                y_offset -= 10;
+            } else if (key.keysym.sym == SDLK_q) {
+                x_scale *= 0.9;
+                y_scale *= 0.9;
+            } else if (key.keysym.sym == SDLK_e) {
+                x_scale *= 1.1;
+                y_scale *= 1.1;
+            } else if (key.keysym.sym == SDLK_r) {
+                x_scale = 1;
+                y_scale = 1;
+                x_offset = 0;
+                y_offset = 0;
+            }
+
+            // sleep for 1 second
+        }
+    }
+
+    void MagnetostaticMesh::muplot(std::vector<float>& mu) {
+        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
+            nexit("error initializing SDL: %s\n");
+        }
+        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
+                                        SDL_WINDOWPOS_CENTERED,
+                                        SDL_WINDOWPOS_CENTERED,
+                                        2000, 2000, 0);
+
+        // triggers the program that controls
+        // your graphics hardware and sets flags
+        Uint32 render_flags = SDL_RENDERER_ACCELERATED;
+    
+        // creates a renderer to render our images
+        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
+
+        // clears the window
+        SDL_RenderClear(rend);
+
+        // get mesh enclosing rectangle
+
+        float min_x = -2 * radius;
+        float min_y = -2 * radius;
+        float max_x = 2 * radius;
+        float max_y = 2 * radius;
+
+        // object to window ratio
+        float ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
+
+        double max_mu = std::numeric_limits<float>::min();
+        double min_mu = std::numeric_limits<float>::max();
+
+        for (uint32_t i = 0; i < mu.size(); i++) {
+            if (mu[i] > max_mu) {
+                max_mu = mu[i];
+            }
+            if (mu[i] < min_mu) {
+                min_mu = mu[i];
+            }
+        }
+
+        printf("max mu: %f\n", max_mu);
+        printf("min mu: %f\n", min_mu);
+
+        // max_B = 1e-6;
+
+        // render
+
+        uint32_t frame = 0;
+        // clears the window
+        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
+        SDL_RenderClear(rend);
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            // get the triangle
+            Elem e = data.trianglelist[i];
+            // get the vertices
+            Point v1 = data.pointlist[e.verts[0]];
+            Point v2 = data.pointlist[e.verts[1]];
+            Point v3 = data.pointlist[e.verts[2]];
+
+            if (geomDistance(v1, Point(0, 0)) > 2 * radius || geomDistance(v2, Point(0, 0)) > 2 * radius || geomDistance(v3, Point(0, 0)) > 2 * radius) {
+                continue;
+            }
+
+            // get the B vectors
+            SDL_Color c = val2jet(mu[i], min_mu, max_mu);
             // get the vertices in window coordinates
             SDL_Vertex verts[3] = {
                 {x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, c.r, c.g, c.b, c.a},

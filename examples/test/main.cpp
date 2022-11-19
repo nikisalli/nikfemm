@@ -35,8 +35,8 @@ int main(int argc, char** argv) {
         }
     );
 
-    simulation.mesh.drawing.drawRegion(nikfemm::Point(0.5, 0.5), {1000000, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Point(0.5, 2.5), {-1000000, {0, 0}, nikfemm::materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Point(0.5, 0.5), {1, {0, 0}, nikfemm::materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Point(0.5, 2.5), {-1, {0, 0}, nikfemm::materials::air});
     simulation.mesh.drawing.drawRegion(nikfemm::Point(0, 1.5), {0, {0, 0}, 0, nikfemm::materials::iron});
     simulation.mesh.drawing.drawRegion(nikfemm::Point(0, 5), {0, {0, 0}, 0, nikfemm::materials::iron});
 

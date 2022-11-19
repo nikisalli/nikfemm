@@ -23,7 +23,7 @@ namespace nikfemm {
         MagnetostaticMatCSRSymmetric(MatCOO<MagnetostaticNonLinearExpression>& coo);
         ~MagnetostaticMatCSRSymmetric();
 
-        void updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B);
+        void updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter);
         void updateMat(std::vector<float>& mu);
     };
 }

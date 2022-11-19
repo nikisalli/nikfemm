@@ -102,31 +102,44 @@ namespace nikfemm {
         // b.print();
         #endif
 
-        A.updateMu(props, mu, B);
+        // initialize mu
+        for (uint32_t i = 0; i < B.size(); i++) {
+            mu[i] = props[i]->getMu(0);
+        }
         A.updateMat(mu);
 
         CV r(b.m);  // residual
 
-        for (uint32_t i = 0; i < 1000; i++) {
+        double old_residual = 0;
+        double residual = 1e10;
+        for (uint32_t i = 0; i < 500; i++) {
             // conjugateGradientSolver(A, b, x, 1e-7, 10000);
             // preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
-            preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 1000);
+            preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 50);
+            // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
             // mesh.Aplot(x);
             // mesh.Bplot(B);
-            // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
 
             mesh.computeCurl(B, x);
             // mesh.Bplot(B);
-            A.updateMu(props, mu, B);
-            A.updateMat(mu);
 
             // check if the solution is correct
+            A.updateMu(props, mu, B, residual, i);
+            A.updateMat(mu);
             CV::mult(r, A, x);
             CV::sub(r, b, r);
-            double residual = CV::norm(r);
-            printf("nonlinear iteration %d, residual: %f\n", i, residual);
+            old_residual = residual;
+            residual = CV::norm(r);
+            if (residual < 1e-7) {
+                printf("Converged in %d iterations\n", i);
+                break;
+            }
+            // printf("%.17g, %.17g; ", K, residual);
+            printf("nonlinear iteration %d, residual: %.17g\n", i, residual);
+            // print mu
+            // printf("%f,", residual);
+            fflush(stdout);
         }
-
 
         auto start9 = std::chrono::high_resolution_clock::now();
 
@@ -145,6 +158,7 @@ namespace nikfemm {
 
         mesh.Aplot(x);
         mesh.Bplot(B);
+        // mesh.muplot(mu);
         // return;
         /*
         mesh.Bplot();

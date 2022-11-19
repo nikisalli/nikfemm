@@ -210,6 +210,7 @@ namespace nikfemm {
         CV::copy(p, z);
         CV Ap(b.m);
         double rTzold;
+        double squareError;
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
@@ -220,20 +221,21 @@ namespace nikfemm {
             rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
-            double squareError = CV::squareSum(r);
-            printf("iteration %lu, error: %f\n", i, sqrt(squareError));
+            squareError = CV::squareSum(r);
+            // printf("iteration %lu, error: %f\n", i, sqrt(squareError));
             if (squareError < maxError * maxError) {
-                printf("converged after %lu iterations\n", i);
                 #ifdef DEBUG_PRINT
+                printf("converged after %lu iterations\n", i);
                 printf("x:\n");
                 x.print();
                 #endif
-                break;
+                return;
             }
             multSSORPreconditioner(A, z, r, omega);
             double beta = CV::dot(r, z) / rTzold;
             CV::addScaled(p, z, beta, p);
         }
+        // printf("didn't converge, last error: %f\n", sqrt(squareError));
     }
 
     void preconditionedIncompleteCholeskyConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {
