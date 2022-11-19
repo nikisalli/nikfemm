@@ -230,7 +230,7 @@ namespace nikfemm {
             i++;
         }
         // printf("----------------------\n");
-        char switches[] = "pzq20AQa0.01";
+        char switches[] = "pzq20AQa0.1";
 
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */

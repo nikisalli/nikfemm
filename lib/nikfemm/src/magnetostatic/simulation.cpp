@@ -72,10 +72,17 @@ namespace nikfemm {
         CV b(mesh.data.numberofpoints);
         CV x(mesh.data.numberofpoints);
         std::vector<Vector> B(mesh.data.numberoftriangles, {0, 0});
+        std::vector<float> mu(mesh.data.numberoftriangles, 0);
+        std::vector<const MagnetostaticProp*> props(mesh.data.numberoftriangles);
+
+        // fill props
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            props[i] = mesh.drawing.getRegionPtrFromId(mesh.data.triangleattributelist[i]);
+        }
 
         auto start5 = std::chrono::high_resolution_clock::now();
 
-        mesh.getFemSystem(coo, b, B);
+        mesh.getFemSystem(coo, b);
         auto start6 = std::chrono::high_resolution_clock::now();
         mesh.addDirichletBoundaryConditions(coo, b);
         auto start7 = std::chrono::high_resolution_clock::now();
@@ -95,14 +102,29 @@ namespace nikfemm {
         // b.print();
         #endif
 
-        A.updateNonLinearCoefficients(B);
+        A.updateMu(props, mu, B);
+        A.updateMat(mu);
 
-        // conjugateGradientSolver(A, b, x, 1e-7, 10000);
-        // preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
-        preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 1000);
-        // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
-        for (uint32_t i = 0; i < 100; i++) {
+        CV r(b.m);  // residual
 
+        for (uint32_t i = 0; i < 1000; i++) {
+            // conjugateGradientSolver(A, b, x, 1e-7, 10000);
+            // preconditionedJacobiConjugateGradientSolver(A, b, x, 1e-7, 1000);
+            preconditionedSSORConjugateGradientSolver(A, b, x, 1.5, 1e-7, 1000);
+            // mesh.Aplot(x);
+            // mesh.Bplot(B);
+            // preconditionedIncompleteCholeskyConjugateGradientSolver(A, b, x, 1e-7, 1000);
+
+            mesh.computeCurl(B, x);
+            // mesh.Bplot(B);
+            A.updateMu(props, mu, B);
+            A.updateMat(mu);
+
+            // check if the solution is correct
+            CV::mult(r, A, x);
+            CV::sub(r, b, r);
+            double residual = CV::norm(r);
+            printf("nonlinear iteration %d, residual: %f\n", i, residual);
         }
 
 

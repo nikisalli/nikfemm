@@ -8,8 +8,8 @@
 namespace nikfemm {
     struct MagnetostaticNonLinearTerm {
         double linear_coefficient;
-        const MagnetostaticProp* nonlinear_coefficient;
         uint32_t nonlinear_coefficient_element_index;
+        bool is_boundary_condition;
     };
 
     struct MagnetostaticNonLinearExpression {
@@ -23,7 +23,8 @@ namespace nikfemm {
         MagnetostaticMatCSRSymmetric(MatCOO<MagnetostaticNonLinearExpression>& coo);
         ~MagnetostaticMatCSRSymmetric();
 
-        void updateNonLinearCoefficients(std::vector<Vector>& B);
+        void updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B);
+        void updateMat(std::vector<float>& mu);
     };
 }
 

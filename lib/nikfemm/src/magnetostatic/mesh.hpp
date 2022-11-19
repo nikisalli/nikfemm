@@ -39,7 +39,7 @@ namespace nikfemm {
 
         void Aplot(CV& A);
         void Bplot(std::vector<Vector>& B);
-        void getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b, std::vector<Vector>& B);
+        void getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void computeCurl(std::vector<Vector>& B, CV& A);
     };
@@ -400,7 +400,7 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticMesh::getFemSystem(MatCOO<MagnetostaticNonLinearExpression>&coo, CV &b, std::vector<Vector> &B) {
+    void MagnetostaticMesh::getFemSystem(MatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
 
         #ifdef DEBUG_PRINT
@@ -457,8 +457,8 @@ namespace nikfemm {
                 coo.elems[key].terms.push_back(
                     {
                         (area * (b1 * b1 + c1 * c1) * 0.5),
-                        adjelems_props[i][j],
-                        adjelems_ids[i][j]
+                        adjelems_ids[i][j],
+                        false
                     }
                 );
                 if (v2 <= i) {
@@ -472,8 +472,8 @@ namespace nikfemm {
                     coo.elems[key].terms.push_back(
                         {
                             (area * (b2 * b1 + c2 * c1) * 0.5),
-                            adjelems_props[i][j],
-                            adjelems_ids[i][j]
+                            adjelems_ids[i][j],
+                            false
                         }
                     );
                 }
@@ -488,8 +488,8 @@ namespace nikfemm {
                     coo.elems[MatCOO<int>::get_key(i, v3)].terms.push_back(
                         {
                             (area * (b3 * b1 + c3 * c1) * 0.5),
-                            adjelems_props[i][j],
-                            adjelems_ids[i][j]
+                            adjelems_ids[i][j],
+                            false
                         }
                     );
                 }
@@ -541,20 +541,20 @@ namespace nikfemm {
             uint32_t n = elem.first & 0xFFFFFFFF;
             if (m == p1 || m == p2 || m == p3) {
                 coo.elems[MatCOO<int>::get_key(m, n)].terms.clear();
-                coo.elems[MatCOO<int>::get_key(m, n)].terms.push_back({0, nullptr, 0});
+                coo.elems[MatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
             }
             if (n == p1 || n == p2 || n == p3) {
                 coo.elems[MatCOO<int>::get_key(m, n)].terms.clear();
-                coo.elems[MatCOO<int>::get_key(m, n)].terms.push_back({0, nullptr, 0});
+                coo.elems[MatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
             }
         }
 
         coo.elems[MatCOO<int>::get_key(p1, p1)].terms.clear();
-        coo.elems[MatCOO<int>::get_key(p1, p1)].terms.push_back({ 1, nullptr, 0});
+        coo.elems[MatCOO<int>::get_key(p1, p1)].terms.push_back({ 1, 0, true});
         coo.elems[MatCOO<int>::get_key(p2, p2)].terms.clear();
-        coo.elems[MatCOO<int>::get_key(p2, p2)].terms.push_back({ 1, nullptr, 0});
+        coo.elems[MatCOO<int>::get_key(p2, p2)].terms.push_back({ 1, 0, true});
         coo.elems[MatCOO<int>::get_key(p3, p3)].terms.clear();
-        coo.elems[MatCOO<int>::get_key(p3, p3)].terms.push_back({ 1, nullptr, 0});
+        coo.elems[MatCOO<int>::get_key(p3, p3)].terms.push_back({ 1, 0, true});
         // since we are setting the potential to zero at the three points, we do not need to subtract anything from the b vector
     }
 

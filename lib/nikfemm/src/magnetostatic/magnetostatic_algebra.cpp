@@ -53,16 +53,24 @@ namespace nikfemm {
         delete[] diag_expr;
     }
 
-    void MagnetostaticMatCSRSymmetric::updateNonLinearCoefficients(std::vector<Vector>& B) {
+    void MagnetostaticMatCSRSymmetric::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B) {
+        assert(mu.size() == B.size());
+        for (uint32_t i = 0; i < B.size(); i++) {
+            float Bmag = B[i].magnitude();
+            mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;
+        }
+    }
+
+    void MagnetostaticMatCSRSymmetric::updateMat(std::vector<float>& mu) {
         // diagonal
         for (uint32_t i = 0; i < m; i++) {
             diag[i] = 0;
             for (auto term : diag_expr[i].terms) {
-                if (term.nonlinear_coefficient != nullptr) {
-                    double Bmag = B[term.nonlinear_coefficient_element_index].magnitude();
-                    diag[i] += term.linear_coefficient / term.nonlinear_coefficient->getMu(Bmag);
-                } else {
+                if (term.is_boundary_condition) {
                     diag[i] = term.linear_coefficient;
+                } else {
+                    diag[i] += term.linear_coefficient / mu[term.nonlinear_coefficient_element_index];
+                    // printf("diag[%d] += %.17g / mu[%d] (%.17g) = %.17g\n", i, term.linear_coefficient, term.nonlinear_coefficient_element_index, mu[term.nonlinear_coefficient_element_index], diag[i]);
                 }
             }
         }
@@ -70,11 +78,11 @@ namespace nikfemm {
         for (uint32_t i = 0; i < nnz; i++) {
             val[i] = 0;
             for (auto term : expr[i].terms) {
-                if (term.nonlinear_coefficient != nullptr) {
-                    double Bmag = B[term.nonlinear_coefficient_element_index].magnitude();
-                    val[i] += term.linear_coefficient / term.nonlinear_coefficient->getMu(Bmag);
-                } else {
+                if (term.is_boundary_condition) {
                     val[i] = term.linear_coefficient;
+                } else {
+                    val[i] += term.linear_coefficient / mu[term.nonlinear_coefficient_element_index];
+                    // printf("val[%d] += %.17g / mu[%d] (%.17g) = %.17g\n", i, term.linear_coefficient, term.nonlinear_coefficient_element_index, mu[term.nonlinear_coefficient_element_index], diag[i]);
                 }
             }
         }
