@@ -29,10 +29,10 @@ namespace nikfemm {
 
     template<typename Prop>
     struct Drawing {
-        std::unordered_map<Prop, uint32_t> region_map;
+        std::vector<Prop> region_map;
         std::vector<DrawingRegion> regions;
         std::vector<Point> points;
-        std::unordered_set<DrawingSegment> segments;
+        std::vector<DrawingSegment> segments;
 
         Drawing();
         ~Drawing();
@@ -50,8 +50,8 @@ namespace nikfemm {
             void drawRegion(Point p, Prop val);
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
-            Prop getRegionFromId(uint32_t id);
-            const Prop* getRegionPtrFromId(uint32_t id);
+            Prop getRegionFromId(uint32_t id) const;
+            const Prop* getRegionPtrFromId(uint32_t id) const;
             uint32_t getRegionId(Prop val);
             void addRefiningPoints();
         
@@ -140,15 +140,17 @@ namespace nikfemm {
 
     template <typename Prop>
     uint32_t Drawing<Prop>::getRegionId(Prop val) {
-        if (region_map.find(val) == region_map.end()) {
-            region_map[val] = region_map.size();
-            // printf("region %f has id %lu\n", val, region_map[val]);
+        for (uint32_t i = 0; i < region_map.size(); i++) {
+            if (region_map[i] == val) {
+                return i;
+            }
         }
-        return region_map[val];
+        region_map.push_back(val);
+        return region_map.size() - 1;
     }
 
     template <typename Prop>
-    Prop Drawing<Prop>::getRegionFromId(uint32_t id) {
+    Prop Drawing<Prop>::getRegionFromId(uint32_t id) const {
         for (auto it = region_map.begin(); it != region_map.end(); it++) {
             if (it->second == id) {
                 return it->first;
@@ -160,13 +162,12 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    const Prop* Drawing<Prop>::getRegionPtrFromId(uint32_t id) {
-        for (auto it = region_map.begin(); it != region_map.end(); it++) {
-            if (it->second == id) {
-                return &(it->first);
-            }
+    const Prop* Drawing<Prop>::getRegionPtrFromId(uint32_t id) const {
+        if (id >= region_map.size()) {
+            nexit("Error: region id not found");
         }
-        nexit("Error: region id not found");
+        
+        return &region_map.at(id);
         // unreachable
         exit(1);
     }
@@ -203,7 +204,16 @@ namespace nikfemm {
             points.push_back(p2);
         }
         
-        segments.insert(DrawingSegment(p1_id, p2_id));
+        for (auto s : segments) {
+            if (s.p1 == p1_id && s.p2 == p2_id) {
+                printf("Warning: segment already exists\n");
+                return;
+            }
+            if (Segment::segmentsIntersect(p1, p2, points[s.p1], points[s.p2]) && s.p1 != p1_id && s.p1 != p2_id && s.p2 != p1_id && s.p2 != p2_id) {
+                nexit("Error: segment intersects another segment");
+            }
+        }
+        segments.push_back(DrawingSegment(p1_id, p2_id));
     }
 
     template <typename Prop>

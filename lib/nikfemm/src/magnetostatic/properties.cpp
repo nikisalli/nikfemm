@@ -2,6 +2,10 @@
 #include "../utils/utils.hpp"
 
 namespace nikfemm {
+    bool BH_Point::operator==(const BH_Point& p) const {
+        return this->B == p.B && this->H == p.H;
+    }
+
     bool MagnetostaticProp::isLinear() const {
         return bh_curve.size() == 0;
     }
@@ -50,5 +54,13 @@ namespace nikfemm {
             // printf("B is in the middle of the curve, returning mu %.17g\n", m);
             return m;
         }
+    }
+
+    bool MagnetostaticProp::operator==(const MagnetostaticProp& p) const {
+        return mu == p.mu && J == p.J && M == p.M && A == p.A && B == p.B && bh_curve == p.bh_curve;
+    }
+
+    bool MagnetostaticProp::operator!=(const MagnetostaticProp& p) const {
+        return !(*this == p);
     }
 }

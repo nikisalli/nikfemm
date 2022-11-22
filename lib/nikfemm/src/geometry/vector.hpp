@@ -10,6 +10,17 @@ namespace nikfemm {
 
         float magnitude();
         Vector versor();
+
+        bool operator==(const Vector& v) const;
+        bool operator!=(const Vector& v) const;
+        Vector operator+(const Vector& v) const;
+        Vector operator-(const Vector& v) const;
+        Vector operator*(float f) const;
+        Vector operator/(float f) const;
+        Vector& operator+=(const Vector& v);
+        Vector& operator-=(const Vector& v);
+        Vector& operator*=(float f);
+        Vector& operator/=(float f);
     };
 }
 

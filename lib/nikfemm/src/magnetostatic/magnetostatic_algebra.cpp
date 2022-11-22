@@ -55,7 +55,7 @@ namespace nikfemm {
 
     void MagnetostaticMatCSRSymmetric::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter) {
         assert(mu.size() == B.size());
-        double kalman_scemo = exp(-((double)iter) / 10.);
+        double kalman_scemo = exp(-((double)iter) / 5.);
         // printf("kalman_scemo: %.17g\n", kalman_scemo);
         // printf("exp(-(iter + 1) / 100): %.17g\n", exp(-((double)iter + 1.) / 100.));
         // printf("- (iter + 1) / 100: %.17g\n", - ((double)iter + 1.) / 100.);
@@ -65,7 +65,7 @@ namespace nikfemm {
             if (props[i]->isLinear()) {
                 mu[i] = props[i]->getMu(Bmag);
             } else {
-                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + materials::vacuum * residual) * (1 - kalman_scemo)); 
+                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + materials::vacuum * residual * residual) * (1 - kalman_scemo)); 
                 // mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;  // mu += (mu_new - mu) * 0.1
                 // mu[i] += props[i]->getMu(Bmag);  // pure newton-raphson
             }

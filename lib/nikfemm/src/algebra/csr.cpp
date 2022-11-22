@@ -22,15 +22,15 @@ namespace nikfemm {
     }
 
     void BaseCSR::printCSR() {
-        printf("m: %lu, nnz: %lu\n", m, nnz);
+        printf("m: %u, nnz: %u\n", m, nnz);
         printf("row_ptr: ");
         for (uint32_t i = 0; i < m + 1; i++) {
-            printf("%lu ", row_ptr[i]);
+            printf("%u ", row_ptr[i]);
         }
         printf("\n");
         printf("col_ind: ");
         for (uint32_t i = 0; i < nnz; i++) {
-            printf("%lu ", col_ind[i]);
+            printf("%u ", col_ind[i]);
         }
         printf("\n");
         printf("A: ");
@@ -114,7 +114,6 @@ namespace nikfemm {
 
     void MatCSRSymmetric::print() {
         // iterate over CSR elements
-        uint32_t idx = 0;
         for (uint32_t i = 0; i < m; i++) {
             for (uint32_t j = 0; j < m; j++) {
                 printf("%.1f ", (*this)(i, j));
@@ -145,7 +144,6 @@ namespace nikfemm {
         }
 
         // iterate over CSR elements
-        uint64_t idx = 0;
         for (uint64_t i = 0; i < m; i++) {
             for (uint64_t j = 0; j < m; j++) {
                 fprintf(f, "%.17g ", (*this)(i, j));
@@ -161,7 +159,6 @@ namespace nikfemm {
 
     void MatCSRLowerTri::print() {
         // iterate over CSR elements
-        uint32_t idx = 0;
         for (uint32_t i = 0; i < m; i++) {
             for (uint32_t j = 0; j < m; j++) {
                 printf("%.4f ", (*this)(i, j));
@@ -190,7 +187,6 @@ namespace nikfemm {
         }
 
         // iterate over CSR elements
-        uint64_t idx = 0;
         for (uint64_t i = 0; i < m; i++) {
             for (uint64_t j = 0; j < m; j++) {
                 fprintf(f, "%.17g ", (*this)(i, j));
@@ -206,7 +202,6 @@ namespace nikfemm {
 
     void MatCSRUpperTri::print() {
         // iterate over CSR elements
-        uint32_t idx = 0;
         for (uint32_t i = 0; i < m; i++) {
             for (uint32_t j = 0; j < m; j++) {
                 printf("%.4f ", (*this)(i, j));
@@ -235,7 +230,6 @@ namespace nikfemm {
         }
 
         // iterate over CSR elements
-        uint64_t idx = 0;
         for (uint64_t i = 0; i < m; i++) {
             for (uint64_t j = 0; j < m; j++) {
                 fprintf(f, "%.17g ", (*this)(i, j));

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include <math.h>
+#include <algorithm>
 
 #include "assert.h"
 
@@ -23,13 +24,8 @@ namespace nikfemm {
         MatCOO(uint32_t m);
         ~MatCOO();
 
-        static inline uint64_t get_key(uint32_t i, uint32_t j) {
-            // swap i, j if i > j
-            if (i > j) {
-                std::swap(i, j);
-            }
-            return (uint64_t) i << 32 | (uint64_t)j;
-        }
+        static inline uint64_t get_key(uint32_t i, uint32_t j);
+        void set_elem(uint32_t i, uint32_t j, T val);
 
         double operator()(uint32_t _m, uint32_t _n) const;
     };
@@ -41,6 +37,21 @@ namespace nikfemm {
 
     template <typename T>
     MatCOO<T>::~MatCOO() {
+    }
+
+    template <typename T>
+    inline uint64_t MatCOO<T>::get_key(uint32_t i, uint32_t j) {
+        // swap i, j if i > j
+        if (i > j) {
+            std::swap(i, j);
+        }
+        return (uint64_t) i << 32 | (uint64_t)j;
+    }
+
+    template <typename T>
+    void MatCOO<T>::set_elem(uint32_t i, uint32_t j, T val) {
+        uint64_t key = get_key(i, j);
+        elems[key] = val;
     }
 
     template <typename T>

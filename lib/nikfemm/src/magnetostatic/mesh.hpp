@@ -2,6 +2,7 @@
 #define NIK_MAGNETOSTATICMESH_HPP
 
 #include <unordered_set>
+#include <unordered_map>
 #include <vector>
 #include <algorithm>
 #include <stdexcept>
@@ -30,7 +31,7 @@ namespace nikfemm {
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
         MagnetostaticMesh() {
             // default material property
-            default_prop = {0, {0, 0}, materials::air};
+            default_prop = {0, {0, 0}, materials::air, {}, 0, {0, 0}};
         }
 
         ~MagnetostaticMesh() {
@@ -39,7 +40,6 @@ namespace nikfemm {
 
         void Aplot(CV& A);
         void Bplot(std::vector<Vector>& B);
-        void muplot(std::vector<float>& mu);
         void getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void computeCurl(std::vector<Vector>& B, CV& A);
@@ -57,7 +57,7 @@ namespace nikfemm {
             
         // triggers the program that controls
         // your graphics hardware and sets flags
-        Uint32 render_flags = SDL_RENDERER_ACCELERATED;
+        // Uint32 render_flags = SDL_RENDERER_ACCELERATED;
     
         // creates a renderer to render our images
         SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
@@ -98,13 +98,11 @@ namespace nikfemm {
 
         // render
 
-        uint32_t frame = 0;
         // clears the window
         SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
         SDL_RenderClear(rend);
         // draw the points
-        uint32_t i = 0;
-        for (uint32_t i = 0; i < data.numberofpoints; i++) {
+        for (int64_t i = 0; i < data.numberofpoints; i++) {
             
             // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
             // // draw a square centered at the point
@@ -134,7 +132,7 @@ namespace nikfemm {
                             
             // find the triangles that contain the Vertex<MagnetostaticProp> and then
             // for every triangle find the barycenter and add it to the points vector
-            for (uint32_t j = 0; j < data.numberoftriangles; j++) {
+            for (int32_t j = 0; j < data.numberoftriangles; j++) {
                 if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
                     SDL_Vertex new_v;
                     Point barycenter = {
@@ -245,7 +243,7 @@ namespace nikfemm {
 
         // triggers the program that controls
         // your graphics hardware and sets flags
-        Uint32 render_flags = SDL_RENDERER_ACCELERATED;
+        // Uint32 render_flags = SDL_RENDERER_ACCELERATED;
     
         // creates a renderer to render our images
         SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
@@ -292,7 +290,6 @@ namespace nikfemm {
 
         // render
 
-        uint32_t frame = 0;
         // clears the window
         SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
         SDL_RenderClear(rend);
@@ -410,171 +407,6 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticMesh::muplot(std::vector<float>& mu) {
-        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            nexit("error initializing SDL: %s\n");
-        }
-        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
-                                        SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED,
-                                        2000, 2000, 0);
-
-        // triggers the program that controls
-        // your graphics hardware and sets flags
-        Uint32 render_flags = SDL_RENDERER_ACCELERATED;
-    
-        // creates a renderer to render our images
-        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
-
-        // clears the window
-        SDL_RenderClear(rend);
-
-        // get mesh enclosing rectangle
-
-        float min_x = -2 * radius;
-        float min_y = -2 * radius;
-        float max_x = 2 * radius;
-        float max_y = 2 * radius;
-
-        // object to window ratio
-        float ratio = 0.9;
-
-        // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // x offset to center mesh in window
-        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
-        // y offset to center mesh in window
-        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
-
-        double max_mu = std::numeric_limits<float>::min();
-        double min_mu = std::numeric_limits<float>::max();
-
-        for (uint32_t i = 0; i < mu.size(); i++) {
-            if (mu[i] > max_mu) {
-                max_mu = mu[i];
-            }
-            if (mu[i] < min_mu) {
-                min_mu = mu[i];
-            }
-        }
-
-        printf("max mu: %f\n", max_mu);
-        printf("min mu: %f\n", min_mu);
-
-        // max_B = 1e-6;
-
-        // render
-
-        uint32_t frame = 0;
-        // clears the window
-        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        SDL_RenderClear(rend);
-        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
-            // get the triangle
-            Elem e = data.trianglelist[i];
-            // get the vertices
-            Point v1 = data.pointlist[e.verts[0]];
-            Point v2 = data.pointlist[e.verts[1]];
-            Point v3 = data.pointlist[e.verts[2]];
-
-            if (geomDistance(v1, Point(0, 0)) > 2 * radius || geomDistance(v2, Point(0, 0)) > 2 * radius || geomDistance(v3, Point(0, 0)) > 2 * radius) {
-                continue;
-            }
-
-            // get the B vectors
-            SDL_Color c = val2jet(mu[i], min_mu, max_mu);
-            // get the vertices in window coordinates
-            SDL_Vertex verts[3] = {
-                {x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, c.r, c.g, c.b, c.a},
-                {x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset, c.r, c.g, c.b, c.a},
-                {x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset, c.r, c.g, c.b, c.a}
-            };
-            // draw the triangle
-            SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
-        }
-
-        // draw the geometry
-        // draw the segments
-        SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-        for (DrawingSegment s : drawing.segments) {
-            SDL_RenderDrawLine(rend, x_scale * drawing.points[s.p1].x + x_offset, y_scale * drawing.points[s.p1].y + y_offset, x_scale * drawing.points[s.p2].x + x_offset, y_scale * drawing.points[s.p2].y + y_offset);
-        }
-
-
-        // draw the points
-        // for (auto v : drawing.points) {
-        //     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        //     // draw a square centered at the point
-        //     SDL_Rect rect;
-        //     rect.x = x_offset + v.x * x_scale - 2;
-        //     rect.y = y_offset + v.y * y_scale - 2;
-        //     rect.w = 4;
-        //     rect.h = 4;
-        //     SDL_RenderFillRect(rend, &rect);
-        // }
-
-        // draw the regions
-        // for (DrawingRegion r : drawing.regions) {
-        //     SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
-        //     // draw a square centered at the point
-        //     SDL_Rect rect;
-        //     rect.x = x_offset + r.first.x * x_scale - 4;
-        //     rect.y = y_offset + r.first.y * y_scale - 4;
-        //     rect.w = 8;
-        //     rect.h = 8;
-        //     SDL_RenderFillRect(rend, &rect);
-        // }
-
-        SDL_RenderPresent(rend);
-
-        while(true){
-            SDL_Event event;
-            if (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    // destroy the window
-                    SDL_DestroyWindow(win);
-                    // clean up
-                    SDL_Quit();
-                    break;
-                }
-            }
-
-            SDL_KeyboardEvent key = event.key;
-            if (key.keysym.sym == SDLK_UP) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_DOWN) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_LEFT) {
-                x_offset += 10;
-            } else if (key.keysym.sym == SDLK_RIGHT) {
-                x_offset -= 10;
-            } else if (key.keysym.sym == SDLK_w) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_s) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_a) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_d) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_q) {
-                x_scale *= 0.9;
-                y_scale *= 0.9;
-            } else if (key.keysym.sym == SDLK_e) {
-                x_scale *= 1.1;
-                y_scale *= 1.1;
-            } else if (key.keysym.sym == SDLK_r) {
-                x_scale = 1;
-                y_scale = 1;
-                x_offset = 0;
-                y_offset = 0;
-            }
-
-            // sleep for 1 second
-        }
-    }
-
     void MagnetostaticMesh::getFemSystem(MatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -583,6 +415,88 @@ namespace nikfemm {
             printf("%d %d\n", i, (int)drawing.getRegionFromId(data.triangleattributelist[i]).mu);
         }
         #endif
+
+        auto eadjelems_ids = new uint32_t[data.numberoftriangles][3];
+        auto eadjelems_props = new const MagnetostaticProp*[data.numberoftriangles][3];
+        auto Jm = new double[data.numberoftriangles];
+        struct EAdjElem {
+            uint8_t size = 0;
+            uint32_t ids[2];
+        };
+        std::unordered_map<uint64_t, EAdjElem> eadjmap((data.numberofpoints - 2) * 3);
+
+        // get the edge adjacent elements
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            for (uint8_t j = 0; j < 3; j++) {
+                uint32_t v1 = data.trianglelist[i].verts[j];
+                uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
+
+                uint64_t e = (((uint64_t)v1 << 32) | v2) * (v1 > v2) + (((uint64_t)v2 << 32) | v1) * (v1 < v2);
+
+                eadjmap[e].ids[eadjmap[e].size++] = i;
+            }
+        }
+
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            for (uint8_t j = 0; j < 3; j++) {
+                uint32_t v1 = data.trianglelist[i].verts[j];
+                uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
+
+                uint64_t e = (((uint64_t)v1 << 32) | v2) * (v1 > v2) + (((uint64_t)v2 << 32) | v1) * (v1 < v2);
+
+                eadjelems_ids[i][j] = eadjmap[e].ids[0] * (eadjmap[e].ids[0] != i) + eadjmap[e].ids[1] * (eadjmap[e].ids[1] != i);
+                eadjelems_props[i][j] = drawing.getRegionPtrFromId(data.triangleattributelist[eadjelems_ids[i][j]]);
+            }
+        }
+
+        // compute curl
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            // get barycenter of adjacent elements
+            Point barycenters[3];
+            for (uint8_t j = 0; j < 3; j++) {
+                barycenters[j] = (data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[0]] +
+                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[1]] +
+                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[2]]) / 3;
+            }
+
+            Point barycenter = (data.pointlist[data.trianglelist[i].verts[0]] +
+                                data.pointlist[data.trianglelist[i].verts[1]] +
+                                data.pointlist[data.trianglelist[i].verts[2]]) / 3;
+
+            // get difference of magnetization vector components, adjmag - mag
+            const MagnetostaticProp* mag = drawing.getRegionPtrFromId(data.triangleattributelist[i]);
+
+            double dx1 = barycenters[0].x - barycenter.x;
+            double dy1 = barycenters[0].y - barycenter.y;
+            double dx2 = barycenters[1].x - barycenter.x;
+            double dy2 = barycenters[1].y - barycenter.y;
+            double dx3 = barycenters[2].x - barycenter.x;
+            double dy3 = barycenters[2].y - barycenter.y;
+
+            double dfx1 = eadjelems_props[i][0]->M.x - mag->M.x;
+            double dfy1 = eadjelems_props[i][0]->M.y - mag->M.y;
+            double dfx2 = eadjelems_props[i][1]->M.x - mag->M.x;
+            double dfy2 = eadjelems_props[i][1]->M.y - mag->M.y;
+            double dfx3 = eadjelems_props[i][2]->M.x - mag->M.x;
+            double dfy3 = eadjelems_props[i][2]->M.y - mag->M.y;
+
+            Jm[i] = (dfx1*(dx1*(dx1*dy1 + dx2*dy2 + dx3*dy3) -
+                    dy1*(pow(dx1, 2) + pow(dx2, 2) + pow(dx3, 2))) +
+                    dfx2*(dx2*(dx1*dy1 + dx2*dy2 + dx3*dy3) -
+                    dy2*(pow(dx1, 2) + pow(dx2, 2) + pow(dx3, 2))) +
+                    dfx3*(dx3*(dx1*dy1 + dx2*dy2 + dx3*dy3) -
+                    dy3*(pow(dx1, 2) + pow(dx2, 2) + pow(dx3, 2))) +
+                    dfy1*(dx1*(pow(dy1, 2) + pow(dy2, 2) + pow(dy3, 2)) -
+                    dy1*(dx1*dy1 + dx2*dy2 + dx3*dy3)) +
+                    dfy2*(dx2*(pow(dy1, 2) + pow(dy2, 2) + pow(dy3, 2)) -
+                    dy2*(dx1*dy1 + dx2*dy2 + dx3*dy3)) +
+                    dfy3*(dx3*(pow(dy1, 2) + pow(dy2, 2) + pow(dy3, 2)) - 
+                    dy3*(dx1*dy1 + dx2*dy2 + dx3*dy3)))/(pow(dx1, 2)*pow(dy2, 2) + 
+                    pow(dx1, 2)*pow(dy3, 2) - 2*dx1*dx2*dy1*dy2 - 
+                    2*dx1*dx3*dy1*dy3 + pow(dx2, 2)*pow(dy1, 2) + 
+                    pow(dx2, 2)*pow(dy3, 2) - 2*dx2*dx3*dy2*dy3 + 
+                    pow(dx3, 2)*pow(dy1, 2) + pow(dx3, 2)*pow(dy2, 2));
+        }
 
         auto adjelems_ids = new uint32_t[data.numberofpoints][18];
         auto adjelems_props = new const MagnetostaticProp*[data.numberofpoints][18];
@@ -670,9 +584,13 @@ namespace nikfemm {
                 }
 
                 // set the b vector
-                b.add_elem(i, (area * adjelems_props[i][j]->J) / 6);
+                b.add_elem(i, (area * (adjelems_props[i][j]->J + Jm[adjelems_ids[i][j]])) / 6);
             }
         }
+
+        delete[] adjelems_ids;
+        delete[] adjelems_props;
+        delete[] adjelems_count;
 
         // iterate over upper triangular matrix and copy to lower triangular matrix
         // for (uint32_t i = 0; i < coo.m; i++) {

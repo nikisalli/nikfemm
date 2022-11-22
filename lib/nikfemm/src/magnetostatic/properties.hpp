@@ -9,6 +9,9 @@ namespace nikfemm {
     struct BH_Point {
         float B;
         float H;
+
+        bool operator==(const BH_Point& p) const;
+        bool operator!=(const BH_Point& p) const;
     };
 }
 
@@ -38,6 +41,9 @@ namespace nikfemm {
 
         float getMu(float B) const;
         bool isLinear() const;
+
+        bool operator==(const MagnetostaticProp& p) const;
+        bool operator!=(const MagnetostaticProp& p) const;
     };
 
     // default material property
@@ -59,7 +65,7 @@ struct std::hash<nikfemm::MagnetostaticProp> {
 template <>
 struct std::equal_to<nikfemm::MagnetostaticProp> {
     inline bool operator()(const nikfemm::MagnetostaticProp& p1, const nikfemm::MagnetostaticProp& p2) const {
-        return (p1.mu - p2.mu) < EPSILON && (p1.J - p2.J) < EPSILON && p1.M == p2.M && (p1.A - p2.A) < EPSILON && p1.B == p2.B;
+        return p1.mu == p2.mu && p1.J == p2.J && p1.M == p2.M && p1.A == p2.A && p1.B == p2.B && p1.bh_curve == p2.bh_curve;
     }
 };
 

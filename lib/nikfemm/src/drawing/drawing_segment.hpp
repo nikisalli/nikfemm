@@ -24,13 +24,6 @@ namespace nikfemm {
 
 namespace std {
     template <>
-    struct hash<nikfemm::DrawingSegment> {
-        inline std::size_t operator()(const nikfemm::DrawingSegment& s) const {
-            return hash<uint32_t>()(s.p1) ^ hash<uint32_t>()(s.p2);
-        }
-    };
-
-    template <>
     struct equal_to<nikfemm::DrawingSegment> {
         inline bool operator()(const nikfemm::DrawingSegment& s1, const nikfemm::DrawingSegment& s2) const {
             return (s1.p1 == s2.p1 && s1.p2 == s2.p2) || (s1.p1 == s2.p2 && s1.p2 == s2.p1);

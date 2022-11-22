@@ -55,6 +55,10 @@ namespace nikfemm {
                 return true;
             }
 
+            inline double circumference() {
+                return 2 * PI * radius;
+            }
+
             static Circle trivialCircleFromPoints(std::vector<Point> points);
 
         protected:

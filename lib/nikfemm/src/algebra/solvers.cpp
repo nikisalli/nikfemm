@@ -134,6 +134,14 @@ namespace nikfemm {
         CV::sub(r, b, r);
         CV::copy(p, r);
         double rTr = CV::squareSum(r);
+        double squareError = CV::squareSum(r);
+        if (squareError < maxError * maxError) {
+            #ifdef DEBUG_PRINT
+            printf("converged after %lu iterations\n", i);
+            printf("x:\n");
+            x.print();
+            #endif
+        }
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
             double pAp = CV::dot(p, Ap);
@@ -145,7 +153,7 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             double rTrNew = CV::squareSum(r);
-            printf("iteration %lu, error: %f\n", i, sqrt(rTrNew));
+            printf("iteration %u, error: %f\n", i, sqrt(rTrNew));
             if (rTrNew < maxError * maxError) {
             #ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
@@ -174,6 +182,14 @@ namespace nikfemm {
         CV::copy(p, z);
         CV Ap(b.m);
         double rTzold;
+        double squareError = CV::squareSum(r);
+        if (squareError < maxError * maxError) {
+            #ifdef DEBUG_PRINT
+            printf("converged after %lu iterations\n", i);
+            printf("x:\n");
+            x.print();
+            #endif
+        }
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
@@ -184,8 +200,8 @@ namespace nikfemm {
             rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
-            double squareError = CV::squareSum(r);
-            printf("iteration %lu, error: %f\n", i, sqrt(squareError));
+            squareError = CV::squareSum(r);
+            printf("iteration %u, error: %f\n", i, sqrt(squareError));
             if (squareError < maxError * maxError) {
                 #ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
@@ -210,7 +226,15 @@ namespace nikfemm {
         CV::copy(p, z);
         CV Ap(b.m);
         double rTzold;
-        double squareError;
+        double squareError = CV::squareSum(r);
+        if (squareError < maxError * maxError) {
+            #ifdef DEBUG_PRINT
+            printf("converged after 0 iterations\n");
+            printf("x:\n");
+            x.print();
+            #endif
+            return;
+        }
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
@@ -251,6 +275,15 @@ namespace nikfemm {
         CV::copy(p, z);
         CV Ap(b.m);
         double rTzold;
+        double squareError = CV::squareSum(r);
+        if (squareError < maxError * maxError) {
+            #ifdef DEBUG_PRINT
+            printf("converged after 0 iterations\n");
+            printf("x:\n");
+            x.print();
+            #endif
+            return;
+        }
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
@@ -261,10 +294,10 @@ namespace nikfemm {
             rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
-            double squareError = CV::squareSum(r);
-            printf("iteration %lu, error: %f\n", i, sqrt(squareError));
+            squareError = CV::squareSum(r);
+            printf("iteration %u, error: %f\n", i, sqrt(squareError));
             if (squareError < maxError * maxError) {
-                printf("converged after %lu iterations\n", i);
+                printf("converged after %u iterations\n", i);
                 #ifdef DEBUG_PRINT
                 printf("x:\n");
                 x.print();

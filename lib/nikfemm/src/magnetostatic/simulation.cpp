@@ -53,7 +53,10 @@ namespace nikfemm {
         mesh.radius = smallest_circle.radius * 2;
         // make circle double the size of the smallest circle
         Circle boundary_circle = Circle(Point(0, 0), 2 * smallest_circle.radius);
-        mesh.drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
+        double circumferential_length = boundary_circle.circumference();
+        uint32_t boundary_points = (uint32_t)((circumferential_length / sqrt((MAX_TRIANGLE_AREA * 4) / sqrt(3))) * 2);
+        printf("boundary points: %d\n", boundary_points);
+        mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
         mesh.drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
         // add the boundary 
@@ -64,12 +67,12 @@ namespace nikfemm {
         #ifdef DEBUG_PRINT
         // mesh.plot();
         #endif
-        mesh.addKelvinBoundaryConditions();
+        mesh.addKelvinBoundaryConditions(boundary_points);
         auto start4 = std::chrono::high_resolution_clock::now();
         #ifdef DEBUG_PRINT
         // mesh.plot();
         #endif
-        printf("the mesh has %lu nodes and %lu elements\n", mesh.data.numberofpoints, mesh.data.numberoftriangles);
+        printf("the mesh has %u nodes and %u elements\n", mesh.data.numberofpoints, mesh.data.numberoftriangles);
         MatCOO<MagnetostaticNonLinearExpression> coo(mesh.data.numberofpoints);
         CV b(mesh.data.numberofpoints);
         CV x(mesh.data.numberofpoints);
@@ -112,7 +115,6 @@ namespace nikfemm {
 
         CV r(b.m);  // residual
 
-        double old_residual = 0;
         double residual = 1e10;
         for (uint32_t i = 0; i < 500; i++) {
             // conjugateGradientSolver(A, b, x, 1e-7, 10000);
@@ -130,7 +132,6 @@ namespace nikfemm {
             A.updateMat(mu);
             CV::mult(r, A, x);
             CV::sub(r, b, r);
-            old_residual = residual;
             residual = CV::norm(r);
             if (residual < 1e-7) {
                 printf("Converged in %d iterations\n", i);
@@ -147,7 +148,6 @@ namespace nikfemm {
 
         mesh.computeCurl(B, x);
 
-        auto end = std::chrono::high_resolution_clock::now();
         printf("%f translate and fix mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start2 - start1).count()*1000);
         printf("%f mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start3 - start2).count()*1000);
         printf("%f kelvin boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<float>>(start4 - start3).count()*1000);

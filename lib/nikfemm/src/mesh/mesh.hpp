@@ -61,7 +61,7 @@ namespace nikfemm {
 
         void plot();
         void mesh();
-        void addKelvinBoundaryConditions();
+        void addKelvinBoundaryConditions(uint32_t boundary_points);
         void kelvinTransformCentered();
     };
 
@@ -230,7 +230,9 @@ namespace nikfemm {
             i++;
         }
         // printf("----------------------\n");
-        char switches[] = "pzq32AQ";
+        char switches[30];
+        sprintf(switches, "pzq33AQa%.17f", MAX_TRIANGLE_AREA);
+        
 
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */
@@ -287,7 +289,7 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Mesh<Prop>::addKelvinBoundaryConditions() {
+    void Mesh<Prop>::addKelvinBoundaryConditions(uint32_t boundary_points) {
         // kelvin mesh = km
         // this mesh = tm
         // kelvin mesh boundary vertices = kmb
@@ -298,7 +300,7 @@ namespace nikfemm {
         Mesh<Prop> kelvin_mesh;
 
         Circle boundary_circle = Circle(Point(0, 0), radius);
-        kelvin_mesh.drawing.drawCircle(boundary_circle, BOUNDARY_VERTICES);
+        kelvin_mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
         kelvin_mesh.drawing.drawRegion(Point(0, 0), default_prop);
 
