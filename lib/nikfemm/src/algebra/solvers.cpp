@@ -127,9 +127,9 @@ namespace nikfemm {
     }
 
     void conjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.m);
-        CV p(b.m);
-        CV Ap(b.m);
+        CV r(b.val.size());
+        CV p(b.val.size());
+        CV Ap(b.val.size());
         CV::mult(r, A, x);
         CV::sub(r, b, r);
         CV::copy(p, r);
@@ -169,18 +169,18 @@ namespace nikfemm {
     }
 
     void preconditionedJacobiConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.m);
+        CV r(b.val.size());
         CV::mult(r, A, x);
         CV::sub(r, b, r);
-        CV P(b.m);
+        CV P(b.val.size());
         for (uint32_t i = 0; i < A.m; i++) {
             P[i] = 1 / A.diag[i];
         }
-        CV z(b.m);
+        CV z(b.val.size());
         CV::mult(z, P, r);
-        CV p(b.m);
+        CV p(b.val.size());
         CV::copy(p, z);
-        CV Ap(b.m);
+        CV Ap(b.val.size());
         double rTzold;
         double squareError = CV::squareSum(r);
         if (squareError < maxError * maxError) {
@@ -217,14 +217,14 @@ namespace nikfemm {
     }
 
     void preconditionedSSORConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double omega, double maxError, uint32_t maxIterations) {
-        CV r(b.m);
+        CV r(b.val.size());
         CV::mult(r, A, x);
         CV::sub(r, b, r);
-        CV z(b.m);
+        CV z(b.val.size());
         multSSORPreconditioner(A, z, r, omega);
-        CV p(b.m);
+        CV p(b.val.size());
         CV::copy(p, z);
-        CV Ap(b.m);
+        CV Ap(b.val.size());
         double rTzold;
         double squareError = CV::squareSum(r);
         if (squareError < maxError * maxError) {
@@ -263,17 +263,17 @@ namespace nikfemm {
     }
 
     void preconditionedIncompleteCholeskyConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.m);
+        CV r(b.val.size());
         CV::mult(r, A, x);
         CV::sub(r, b, r);
-        CV z(b.m);
-        CV tmp(b.m);
+        CV z(b.val.size());
+        CV tmp(b.val.size());
         MatCSRLowerTri L = incompleteCholeskyDecomposition(A);
         CV::mult(tmp, (MatCSRLowerTri)L, r);
         CV::mult(z, (MatCSRUpperTri)L, tmp);
-        CV p(b.m);
+        CV p(b.val.size());
         CV::copy(p, z);
-        CV Ap(b.m);
+        CV Ap(b.val.size());
         double rTzold;
         double squareError = CV::squareSum(r);
         if (squareError < maxError * maxError) {

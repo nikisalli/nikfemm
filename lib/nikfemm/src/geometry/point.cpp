@@ -4,6 +4,7 @@
 #include <constants.hpp>
 
 #include "point.hpp"
+#include "vector.hpp"
 
 namespace nikfemm {
     Point::Point(double x, double y) {
@@ -35,11 +36,15 @@ namespace nikfemm {
         return Point(x - p.x, y - p.y);
     }
 
-    Point Point::operator*(const double& d) const {
+    Point Point::operator*(const double d) const {
         return Point(x * d, y * d);
     }
 
-    Point Point::operator/(const double& d) const {
+    Point Point::operator/(const double d) const {
         return Point(x / d, y / d);
+    }
+
+    Point::operator Vector() const {
+        return Vector(x, y);
     }
 }

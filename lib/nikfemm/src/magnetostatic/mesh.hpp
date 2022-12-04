@@ -38,374 +38,11 @@ namespace nikfemm {
             
         }
 
-        void Aplot(CV& A);
-        void Bplot(std::vector<Vector>& B);
         void getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void computeCurl(std::vector<Vector>& B, CV& A);
+        std::vector<Vector> computeForceIntegrals(std::vector<Vector>& B);
     };
-
-    // templated member functions must be defined in the header file
-    void MagnetostaticMesh::Aplot(CV &A) {
-        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            nexit("error initializing SDL: %s\n");
-        }
-        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
-                                        SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED,
-                                        2000, 2000, 0);
-            
-        // triggers the program that controls
-        // your graphics hardware and sets flags
-        // Uint32 render_flags = SDL_RENDERER_ACCELERATED;
-    
-        // creates a renderer to render our images
-        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
-
-        // clears the window
-        SDL_RenderClear(rend);
-
-        // get mesh enclosing rectangle
-
-        float min_x = -1.1 * radius;
-        float min_y = -1.1 * radius;
-        float max_x = 1.1 * radius;
-        float max_y = 1.1 * radius;
-
-        // object to window ratio
-        float ratio = 0.9;
-
-        // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // x offset to center mesh in window
-        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
-        // y offset to center mesh in window
-        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
-
-        float max_A = std::numeric_limits<float>::min();
-        float min_A = std::numeric_limits<float>::max();
-
-        for (uint32_t i = 0; i < A.m; i++) {
-            if (A[i] > max_A) {
-                max_A = A[i];
-            }
-            if (A[i] < min_A) {
-                min_A = A[i];
-            }
-        }
-
-        // render
-
-        // clears the window
-        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        SDL_RenderClear(rend);
-        // draw the points
-        for (int64_t i = 0; i < data.numberofpoints; i++) {
-            
-            // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-            // // draw a square centered at the point
-            // SDL_Rect rect;
-            // rect.x = x_offset + v->p.x * x_scale - 2;
-            // rect.y = y_offset + v->p.y * y_scale - 2;
-            // rect.w = 4;
-            // rect.h = 4;
-            // SDL_RenderFillRect(rend, &rect);
-            // SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
-            // for (uint16_t i = 0; i < v->adjvert_count; i++) {
-            //     // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
-            // }
-            
-            Point p = data.pointlist[i];
-
-            if (geomDistance(p, Point(0, 0)) > radius * 1) {
-                continue;
-            }
-
-            // verts
-            auto points = std::vector<SDL_Vertex>();
-
-            // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
-            SDL_Color c = val2jet(A[i], min_A, max_A);
-            // printf("A: %f, c: %d, %d, %d\n", A.val[i], c.r, c.g, c.b);
-                            
-            // find the triangles that contain the Vertex<MagnetostaticProp> and then
-            // for every triangle find the barycenter and add it to the points vector
-            for (int32_t j = 0; j < data.numberoftriangles; j++) {
-                if (data.trianglelist[j].verts[0] == i || data.trianglelist[j].verts[1] == i || data.trianglelist[j].verts[2] == i) {
-                    SDL_Vertex new_v;
-                    Point barycenter = {
-                        (data.pointlist[data.trianglelist[j].verts[0]].x + data.pointlist[data.trianglelist[j].verts[1]].x + data.pointlist[data.trianglelist[j].verts[2]].x) / 3,
-                        (data.pointlist[data.trianglelist[j].verts[0]].y + data.pointlist[data.trianglelist[j].verts[1]].y + data.pointlist[data.trianglelist[j].verts[2]].y) / 3
-                    };
-                    new_v.position.x = x_offset + barycenter.x * x_scale;
-                    new_v.position.y = y_offset + barycenter.y * y_scale;
-                    new_v.color = c;
-
-                    points.push_back(new_v);
-                }
-            }
-            
-            // find the center of the points
-            SDL_FPoint center = {0, 0};
-            for (uint8_t j = 0; j < points.size(); j++) {
-                center.x += points[j].position.x;
-                center.y += points[j].position.y;
-            }
-            // printf("count: %d\n", points.size());
-            center.x /= points.size();
-            center.y /= points.size();
-            // printf("center: %d %d\n", center.x, center.y);
-
-            // sort the points by angle
-            std::sort(points.begin(), points.end(), [center](SDL_Vertex a, SDL_Vertex b) {
-                return atan2(a.position.y - center.y, a.position.x - center.x) < atan2(b.position.y - center.y, b.position.x - center.x);
-            });
-
-            // print the points
-            
-            // for (uint8_t i = 0; i < points.size(); i++) {
-            //     printf("%f %f\n", points[i].position.x, points[i].position.y);
-            // }
-            
-
-            SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-            for (uint8_t j = 0; j < points.size(); j++) {
-                SDL_Vertex v1 = points[j];
-                SDL_Vertex v2 = points[(j + 1) % points.size()];
-                // draw triangle between center and two points
-                SDL_Vertex verts[3] = {
-                    {center.x, center.y, c.r, c.g, c.b, c.a},
-                    {v1.position.x, v1.position.y, c.r, c.g, c.b, c.a},
-                    {v2.position.x, v2.position.y, c.r, c.g, c.b, c.a}
-                };
-                SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
-            }
-        }
-
-        SDL_RenderPresent(rend);
-
-        while(true){
-            SDL_Event event;
-            if (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    // destroy the window
-                    SDL_DestroyWindow(win);
-                    // clean up
-                    SDL_Quit();
-                    break;
-                }
-            }
-
-            SDL_KeyboardEvent key = event.key;
-            if (key.keysym.sym == SDLK_UP) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_DOWN) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_LEFT) {
-                x_offset += 10;
-            } else if (key.keysym.sym == SDLK_RIGHT) {
-                x_offset -= 10;
-            } else if (key.keysym.sym == SDLK_w) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_s) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_a) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_d) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_q) {
-                x_scale *= 0.9;
-                y_scale *= 0.9;
-            } else if (key.keysym.sym == SDLK_e) {
-                x_scale *= 1.1;
-                y_scale *= 1.1;
-            } else if (key.keysym.sym == SDLK_r) {
-                x_scale = 1;
-                y_scale = 1;
-                x_offset = 0;
-                y_offset = 0;
-            }
-
-            // sleep for 1 second
-        }
-    }
-
-    void MagnetostaticMesh::Bplot(std::vector<Vector>& B) {
-        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            nexit("error initializing SDL: %s\n");
-        }
-        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
-                                        SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED,
-                                        2000, 2000, 0);
-
-        // triggers the program that controls
-        // your graphics hardware and sets flags
-        // Uint32 render_flags = SDL_RENDERER_ACCELERATED;
-    
-        // creates a renderer to render our images
-        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
-
-        // clears the window
-        SDL_RenderClear(rend);
-
-        // get mesh enclosing rectangle
-
-        float min_x = -1.1 * radius;
-        float min_y = -1.1 * radius;
-        float max_x = 1.1 * radius;
-        float max_y = 1.1 * radius;
-
-        // object to window ratio
-        float ratio = 0.9;
-
-        // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // x offset to center mesh in window
-        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
-        // y offset to center mesh in window
-        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
-
-        double max_B = std::numeric_limits<float>::min();
-        double min_B = std::numeric_limits<float>::max();
-
-        for (uint32_t i = 0; i < B.size(); i++) {
-            double B_mag = B[i].magnitude();
-            if (B_mag > max_B) {
-                max_B = B_mag;
-            }
-            if (B_mag < min_B) {
-                min_B = B_mag;
-            }
-        }
-
-        printf("max B: %f\n", max_B);
-        printf("min B: %f\n", min_B);
-
-        // max_B = 1e-6;
-
-        // render
-
-        // clears the window
-        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        SDL_RenderClear(rend);
-        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
-            // get the triangle
-            Elem e = data.trianglelist[i];
-            // get the vertices
-            Point v1 = data.pointlist[e.verts[0]];
-            Point v2 = data.pointlist[e.verts[1]];
-            Point v3 = data.pointlist[e.verts[2]];
-
-            if (geomDistance(v1, Point(0, 0)) > radius || geomDistance(v2, Point(0, 0)) > radius || geomDistance(v3, Point(0, 0)) > radius) {
-                continue;
-            }
-
-            // get the B vectors
-            Vector Bv = B[i];
-            SDL_Color c = val2jet(Bv.magnitude(), min_B, max_B);
-            // get the vertices in window coordinates
-            SDL_Vertex verts[3] = {
-                {x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, c.r, c.g, c.b, c.a},
-                {x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset, c.r, c.g, c.b, c.a},
-                {x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset, c.r, c.g, c.b, c.a}
-            };
-            // draw the triangle
-            SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
-
-            // draw mesh edges
-            // draw lines from v1 to v2
-            // SDL_SetRenderDrawColor(rend, 0, 0, 0, 127);
-            // SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset);
-            // // draw lines from v2 to v3
-            // SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset, x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset);
-            // // draw lines from v3 to v1
-            // SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset, x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset);
-        }
-
-        // draw the geometry
-        // draw the segments
-        SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-        for (DrawingSegment s : drawing.segments) {
-            SDL_RenderDrawLine(rend, x_scale * drawing.points[s.p1].x + x_offset, y_scale * drawing.points[s.p1].y + y_offset, x_scale * drawing.points[s.p2].x + x_offset, y_scale * drawing.points[s.p2].y + y_offset);
-        }
-
-
-        // draw the points
-        // for (auto v : drawing.points) {
-        //     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        //     // draw a square centered at the point
-        //     SDL_Rect rect;
-        //     rect.x = x_offset + v.x * x_scale - 2;
-        //     rect.y = y_offset + v.y * y_scale - 2;
-        //     rect.w = 4;
-        //     rect.h = 4;
-        //     SDL_RenderFillRect(rend, &rect);
-        // }
-
-        // draw the regions
-        // for (DrawingRegion r : drawing.regions) {
-        //     SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
-        //     // draw a square centered at the point
-        //     SDL_Rect rect;
-        //     rect.x = x_offset + r.first.x * x_scale - 4;
-        //     rect.y = y_offset + r.first.y * y_scale - 4;
-        //     rect.w = 8;
-        //     rect.h = 8;
-        //     SDL_RenderFillRect(rend, &rect);
-        // }
-
-        SDL_RenderPresent(rend);
-
-        while(true){
-            SDL_Event event;
-            if (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    // destroy the window
-                    SDL_DestroyWindow(win);
-                    // clean up
-                    SDL_Quit();
-                    break;
-                }
-            }
-
-            SDL_KeyboardEvent key = event.key;
-            if (key.keysym.sym == SDLK_UP) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_DOWN) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_LEFT) {
-                x_offset += 10;
-            } else if (key.keysym.sym == SDLK_RIGHT) {
-                x_offset -= 10;
-            } else if (key.keysym.sym == SDLK_w) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_s) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_a) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_d) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_q) {
-                x_scale *= 0.9;
-                y_scale *= 0.9;
-            } else if (key.keysym.sym == SDLK_e) {
-                x_scale *= 1.1;
-                y_scale *= 1.1;
-            } else if (key.keysym.sym == SDLK_r) {
-                x_scale = 1;
-                y_scale = 1;
-                x_offset = 0;
-                y_offset = 0;
-            }
-
-            // sleep for 1 second
-        }
-    }
 
     void MagnetostaticMesh::getFemSystem(MatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -456,12 +93,12 @@ namespace nikfemm {
             for (uint8_t j = 0; j < 3; j++) {
                 barycenters[j] = (data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[0]] +
                                   data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[1]] +
-                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[2]]) / 3;
+                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[2]]) / 3.f;
             }
 
             Point barycenter = (data.pointlist[data.trianglelist[i].verts[0]] +
                                 data.pointlist[data.trianglelist[i].verts[1]] +
-                                data.pointlist[data.trianglelist[i].verts[2]]) / 3;
+                                data.pointlist[data.trianglelist[i].verts[2]]) / 3.f;
 
             // get difference of magnetization vector components, adjmag - mag
             const MagnetostaticProp* mag = drawing.getRegionPtrFromId(data.triangleattributelist[i]);
@@ -610,7 +247,7 @@ namespace nikfemm {
         uint32_t p1, p2, p3;
         double d1, d2, d3;
         for (uint32_t i = 0; i < data.numberofpoints; i++) {
-            double dist = geomDistance(data.pointlist[i], Point(0, 0));
+            double dist = Point::distance(data.pointlist[i], Point(0, 0));
             if (dist > d1) {
                 d3 = d2;
                 p3 = p2;
@@ -683,6 +320,83 @@ namespace nikfemm {
 
             B[i] = Vector(-dy, dx);
         }
+    }
+
+    std::vector<Vector> MagnetostaticMesh::computeForceIntegrals(std::vector<Vector>& B) {
+        std::vector<Vector> force_integrals(drawing.polygons.size());
+        // make epsilon a little smaller than the smallest distance
+        for (auto polygon : drawing.polygons) {
+            force_integrals.push_back(Vector(0, 0));
+            for (uint32_t i = 0; i < polygon.points.size(); i++) {
+                Point p1 = polygon.points[i];
+                Point p2 = polygon.points[(i + 1) % polygon.points.size()];
+                printf("p1 = (%.17g, %.17g) p2 = (%.17g, %.17g)\n", p1.x, p1.y, p2.x, p2.y);
+                // evaluate integral over line segment
+                Vector normal = Vector(p2.y - p1.y, p1.x - p2.x) / ((Vector)(p2 - p1)).magnitude();
+                std::vector<Point> integration_segment_mesh_intersection_points;
+                // find vertices that are on the line segment
+                for (uint32_t j = 0; j < data.numberofpoints; j++) {
+                    Point p = data.pointlist[j];
+                    double dist = Segment::pointSegmentDistance(p, p1, p2);
+                    if (dist < epsilon) {
+                        integration_segment_mesh_intersection_points.push_back(p);
+                    }
+                }
+                printf("size %d\n", integration_segment_mesh_intersection_points.size());
+                // sort vertices by distance from p1
+                std::sort(integration_segment_mesh_intersection_points.begin(), integration_segment_mesh_intersection_points.end(), [&p1](Point a, Point b) {
+                    return Point::distance(a, p1) < Point::distance(b, p1);
+                });
+                // find adj vertices to vertices that are on the line segment
+                std::vector<std::vector<Vector>> adj_values(integration_segment_mesh_intersection_points.size(), std::vector<Vector>()); 
+                for (uint32_t e = 0; e < data.numberoftriangles; e++) {
+                    Elem myelem = data.trianglelist[e];
+                    for (uint32_t j = 0; j < 3; j++) {
+                        Point p = data.pointlist[myelem.verts[j]];
+                        for (uint32_t k = 0; k < integration_segment_mesh_intersection_points.size(); k++) {
+                            if (Point::distance(p, integration_segment_mesh_intersection_points[k]) < epsilon) {
+                                adj_values[k].push_back(B[e]);
+                            }
+                        }
+                    }
+                }
+                // this could be a least squares fit but it's probably not necessary for now
+                std::vector<Vector> adj_values_avg(integration_segment_mesh_intersection_points.size(), {0, 0});
+                for (uint32_t i = 0; i < adj_values.size(); i++) {
+                    for (uint32_t j = 0; j < adj_values[i].size(); j++) {
+                        adj_values_avg[i] += adj_values[i][j];
+                    }
+                    adj_values_avg[i] /= adj_values[i].size();
+                }
+                // trapezoidal integration
+                for (uint32_t i = 0; i < integration_segment_mesh_intersection_points.size() - 1; i++) {
+                    Point p1 = integration_segment_mesh_intersection_points[i];
+                    Point p2 = integration_segment_mesh_intersection_points[i + 1];
+                    Vector v1 = adj_values_avg[i];
+                    Vector v2 = adj_values_avg[i + 1];
+                    MaxwellStressTensor stress_tensor1;
+                    // 1 / mu_0 * (BiBj - 1/2 * B*B * delta_ij)
+                    stress_tensor1[0][0] = (1. / MU_0) * (v1.x * v1.x - 0.5 * v1.magnitude() * v1.magnitude());
+                    stress_tensor1[0][1] = (1. / MU_0) * (v1.x * v1.y);
+                    stress_tensor1[1][0] = (1. / MU_0) * (v1.y * v1.x);
+                    stress_tensor1[1][1] = (1. / MU_0) * (v1.y * v1.y - 0.5 * v1.magnitude() * v1.magnitude());
+
+                    MaxwellStressTensor stress_tensor2;
+                    stress_tensor2[0][0] = (1. / MU_0) * (v2.x * v2.x - 0.5 * v2.magnitude() * v2.magnitude());
+                    stress_tensor2[0][1] = (1. / MU_0) * (v2.x * v2.y);
+                    stress_tensor2[1][0] = (1. / MU_0) * (v2.y * v2.x);
+                    stress_tensor2[1][1] = (1. / MU_0) * (v2.y * v2.y - 0.5 * v2.magnitude() * v2.magnitude());
+
+                    Vector force1(stress_tensor1[0][0] * normal.x + stress_tensor1[0][1] * normal.y, stress_tensor1[1][0] * normal.x + stress_tensor1[1][1] * normal.y);
+                    Vector force2(stress_tensor2[0][0] * normal.x + stress_tensor2[0][1] * normal.y, stress_tensor2[1][0] * normal.x + stress_tensor2[1][1] * normal.y);
+
+                    Vector force = (force1 + force2) * 0.5 * Point::distance(p1, p2);
+                    printf("point1 = (%.17g, %.17g) point2 = (%.17g, %.17g) force = (%.17g, %.17g)\n", p1.x, p1.y, p2.x, p2.y, force.x, force.y);
+                    force_integrals.back() += force;
+                }
+            }
+        }
+        return force_integrals;
     }
 }
 

@@ -23,6 +23,7 @@
 #include "drawing_segment.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/circle.hpp"
+#include "../geometry/polygon.hpp"
 
 namespace nikfemm {
     typedef std::pair<Point, uint32_t> DrawingRegion;
@@ -33,6 +34,7 @@ namespace nikfemm {
         std::vector<DrawingRegion> regions;
         std::vector<Point> points;
         std::vector<DrawingSegment> segments;
+        std::vector<Polygon> polygons;
 
         Drawing();
         ~Drawing();
@@ -44,18 +46,16 @@ namespace nikfemm {
             void drawCircle(Point p, double radius, uint32_t n_segments);
             void drawCircle(Circle c, uint32_t n_segments);
             void drawPolygon(Point* points, uint32_t n_points);
-            void drawPolyLine(Point* points, uint32_t n_points);  // same as drawPolygon, but doesn't close the figure
             void drawPolygon(const std::vector<Point>& points);
-            void drawPolyLine(const std::vector<Point>& points);  // same as drawPolygon, but doesn't close the figure
             void drawRegion(Point p, Prop val);
-            void drawSegment(Point p1, Point p2);
-            void drawSegment(Segment s);
-            Prop getRegionFromId(uint32_t id) const;
             const Prop* getRegionPtrFromId(uint32_t id) const;
+            Prop getRegionFromId(uint32_t id) const;
             uint32_t getRegionId(Prop val);
             void addRefiningPoints();
-        
             void plot();
+        private:
+            void drawSegment(Point p1, Point p2);
+            void drawSegment(Segment s);
     };
 
     // templated member functions must be defined in the header file
@@ -75,6 +75,7 @@ namespace nikfemm {
         drawSegment(Point(p2.x, p1.y), p2);
         drawSegment(p2, Point(p1.x, p2.y));
         drawSegment(Point(p1.x, p2.y), p1);
+        polygons.push_back(Polygon({p1, Point(p2.x, p1.y), p2, Point(p1.x, p2.y)}));
     }
 
     template <typename Prop>
@@ -88,12 +89,15 @@ namespace nikfemm {
         double angle_step = 2 * PI / n_segments;
         Point p1 = Point(p.x + radius, p.y);
         Point p2;
+        std::vector<Point> points;
         for (uint32_t i = 0; i < n_segments; i++) {
             angle += angle_step;
             p2 = Point(p.x + radius * cos(angle), p.y + radius * sin(angle));
             drawSegment(p1, p2);
             p1 = p2;
+            points.push_back(p2);
         }
+        polygons.push_back(Polygon(points));
     }
 
     template <typename Prop>
@@ -119,23 +123,12 @@ namespace nikfemm {
             drawSegment(points[i], points[i + 1]);
         }
         drawSegment(points[n_points - 1], points[0]);
+        polygons.push_back(Polygon(points, n_points));
     }
 
     template <typename Prop>
     void Drawing<Prop>::drawPolygon(const std::vector<Point>& points) {
         drawPolygon((Point*) points.data(), points.size());
-    }
-
-    template <typename Prop>
-    void Drawing<Prop>::drawPolyLine(Point* points, uint32_t n_points) {
-        for (uint32_t i = 0; i < n_points - 1; i++) {
-            drawSegment(points[i], points[i + 1]);
-        }
-    }
-
-    template <typename Prop>
-    void Drawing<Prop>::drawPolyLine(const std::vector<Point>& points) {
-        drawPolyLine((Point*) points.data(), points.size());
     }
 
     template <typename Prop>
@@ -226,7 +219,7 @@ namespace nikfemm {
         // find shortest segment first
         double length = std::numeric_limits<double>::max();
         for (auto it = segments.begin(); it != segments.end(); it++) {
-            double len= geomDistance(points[it->p1], points[it->p2]);
+            double len= Point::distance(points[it->p1], points[it->p2]);
             if (len < length) {
                 length = len;
             }

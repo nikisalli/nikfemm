@@ -31,6 +31,9 @@ struct std::equal_to<nikfemm::BH_Point> {
 
 namespace nikfemm {
     typedef std::set<BH_Point> BH_Curve;
+
+    typedef double MaxwellStressTensor[2][2];
+
     struct MagnetostaticProp {
         float J; // current density
         Vector M; // magnetization

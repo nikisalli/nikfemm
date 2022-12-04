@@ -52,6 +52,7 @@ namespace nikfemm {
         Point center = Point(0, 0);
         double radius = 0;
         Prop default_prop;
+        double epsilon;
 
         MeshData data;
         Drawing<Prop> drawing;
@@ -63,6 +64,7 @@ namespace nikfemm {
         void mesh();
         void addKelvinBoundaryConditions(uint32_t boundary_points);
         void kelvinTransformCentered();
+        void computeEpsilon();
     };
 
     // templated member functions must be defined in the header file
@@ -74,6 +76,27 @@ namespace nikfemm {
     template <typename Prop>
     Mesh<Prop>::~Mesh() {
 
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::computeEpsilon() {
+        // compute epsilon to compare point distances
+        double epsilon = std::numeric_limits<double>::infinity();
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Elem myelem = data.trianglelist[i];
+            double x1 = data.pointlist[myelem.verts[0]].x;
+            double y1 = data.pointlist[myelem.verts[0]].y;
+            double x2 = data.pointlist[myelem.verts[1]].x;
+            double y2 = data.pointlist[myelem.verts[1]].y;
+            double x3 = data.pointlist[myelem.verts[2]].x;
+            double y3 = data.pointlist[myelem.verts[2]].y;
+            epsilon = std::min(epsilon, Point::distance(Point(x1, y1), Point(x2, y2)));
+            epsilon = std::min(epsilon, Point::distance(Point(x1, y1), Point(x3, y3)));
+            epsilon = std::min(epsilon, Point::distance(Point(x2, y2), Point(x3, y3)));
+        }
+        epsilon *= 0.5;
+        this->epsilon = epsilon;
+        printf("epsilon: %.17g\n", epsilon);
     }
 
     template <typename Prop>
@@ -274,7 +297,7 @@ namespace nikfemm {
                 double mag_squared = v.x * v.x + v.y * v.y;
                 double scale = R_squared / mag_squared;
                 // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
-                double dist = geomDistance(v, center);
+                double dist = Point::distance(v, center);
                 if (dist < max_x) {
                 // if (false) {
                     #ifdef DEBUG_PRINT

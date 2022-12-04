@@ -61,13 +61,4 @@ namespace nikfemm {
         this->y /= f;
         return *this;
     }
-
-    float Vector::magnitude() {
-        return sqrt(x * x + y * y);
-    }
-
-    Vector Vector::versor() {
-        float mag = magnitude();
-        return Vector(x / mag, y / mag);
-    }
 }

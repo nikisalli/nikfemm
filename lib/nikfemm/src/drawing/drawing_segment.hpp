@@ -22,13 +22,4 @@ namespace nikfemm {
     };
 }
 
-namespace std {
-    template <>
-    struct equal_to<nikfemm::DrawingSegment> {
-        inline bool operator()(const nikfemm::DrawingSegment& s1, const nikfemm::DrawingSegment& s2) const {
-            return (s1.p1 == s2.p1 && s1.p2 == s2.p2) || (s1.p1 == s2.p2 && s1.p2 == s2.p1);
-        }
-    };
-}
-
 #endif

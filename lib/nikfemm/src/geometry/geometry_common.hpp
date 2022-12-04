@@ -10,10 +10,6 @@ namespace nikfemm {
         COUNTERCLOCKWISE
     };
 
-    inline float geomDistance(Point p1, Point p2) {
-        return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
-    }
-
     inline float geomAngle(Point a, Point b, Point c) {
         // safe angle calculation
         float ax = a.x - b.x;
@@ -27,9 +23,9 @@ namespace nikfemm {
     }
 
     inline float geomArea(Point a, Point b, Point c) {
-        float ab = geomDistance(a, b);
-        float bc = geomDistance(b, c);
-        float ac = geomDistance(a, c);
+        float ab = Point::distance(a, b);
+        float bc = Point::distance(b, c);
+        float ac = Point::distance(a, c);
         float s = (ab + bc + ac) / 2;
         return sqrt(s * (s - ab) * (s - bc) * (s - ac));
     }

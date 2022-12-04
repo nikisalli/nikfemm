@@ -13,8 +13,11 @@
 
 namespace nikfemm {
     CV::CV(uint32_t size) {
-        val = new double[size](0);
-        m = size;
+        val = std::vector<double>(size);
+    }
+
+    CV::CV() {
+        val = std::vector<double>();
     }
 
     CV::~CV() {
@@ -23,7 +26,7 @@ namespace nikfemm {
 
     void CV::print() const {
         printf("[");
-        for (uint32_t i = 0; i < m; i++) {
+        for (uint32_t i = 0; 1 < val.size(); i++) {
             printf("%.17g ", val[i]);
         }
         printf("]");
@@ -32,7 +35,7 @@ namespace nikfemm {
 
     void CV::write_to_file(const char *filename) {
         FILE *f = fopen(filename, "w");
-        for (uint32_t i = 0; i < m; i++) {
+        for (uint32_t i = 0; 1 < val.size(); i++) {
             fprintf(f, "%.17g ", val[i]);
         }
         fclose(f);
@@ -75,89 +78,89 @@ namespace nikfemm {
     }
 
     void CV::mult(CV& result, const double d, const CV& cv) {
-        for (uint32_t i = 0; i < cv.m; i++) {
+        for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = d * cv[i];
         }
     }
 
     void CV::mult(CV& result, const CV& cv1, const CV& cv2) {
-        for (uint32_t i = 0; i < cv1.m; i++) {
+        for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] * cv2[i];
         }
     }
 
     void CV::add(CV& result, const CV& cv1, const CV& cv2) {
-        assert(cv1.m == cv2.m);
-        assert(cv1.m == result.m);
-        for (uint32_t i = 0; i < cv1.m; i++) {
+        assert(cv1.val.size() == cv2.val.size());
+        assert(cv1.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] + cv2[i];
         }
     }
 
     void CV::sub(CV& result, const CV& cv1, const CV& cv2) {
-        assert(cv1.m == cv2.m);
-        assert(cv1.m == result.m);
-        for (uint32_t i = 0; i < cv1.m; i++) {
+        assert(cv1.val.size() == cv2.val.size());
+        assert(cv1.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] - cv2[i];
         }
     }
 
     void CV::div(CV& result, const CV& cv, const double d) {
-        assert(cv.m == result.m);
-        for (uint32_t i = 0; i < cv.m; i++) {
+        assert(cv.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i] / d;
         }
     }
 
     void CV::div(CV& result, const CV& cv1, const CV& cv2) {
-        assert(cv1.m == cv2.m);
-        assert(cv1.m == result.m);
-        for (uint32_t i = 0; i < cv1.m; i++) {
+        assert(cv1.val.size() == cv2.val.size());
+        assert(cv1.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] / cv2[i];
         }
     }
     
     void CV::sub(CV& result, const CV& cv, const double d) {
-        assert(cv.m == result.m);
-        for (uint32_t i = 0; i < cv.m; i++) {
+        assert(cv.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i] - d;
         }
     }
 
     void CV::add(CV& result, const CV& cv, const double d) {
-        assert(cv.m == result.m);
-        for (uint32_t i = 0; i < cv.m; i++) {
+        assert(cv.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i] + d;
         }
     }
 
     void CV::copy(CV& result, const CV& cv) {
-        assert(cv.m == result.m);
-        for (uint32_t i = 0; i < cv.m; i++) {
+        assert(cv.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i];
         }
     }
 
     double CV::dot(const CV& cv1, const CV& cv2) {
-        assert(cv1.m == cv2.m);
+        assert(cv1.val.size() == cv2.val.size());
         double result = 0;
-        for (uint32_t i = 0; i < cv1.m; i++) {
+        for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result += cv1[i] * cv2[i];
         }
         return result;
     }
 
     void CV::addScaled(CV& result, const CV& cv1, const double d, const CV& cv2) {
-        assert(cv1.m == cv2.m);
-        assert(cv1.m == result.m);
-        for (uint32_t i = 0; i < cv1.m; i++) {
+        assert(cv1.val.size() == cv2.val.size());
+        assert(cv1.val.size() == result.val.size());
+        for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] + d * cv2[i];
         }
     }
 
     double CV::squareSum(const CV& cv) {
         double result = 0;
-        for (uint32_t i = 0; i < cv.m; i++) {
+        for (uint32_t i = 0; i < cv.val.size(); i++) {
             result += cv[i] * cv[i];
         }
         return result;
@@ -168,12 +171,16 @@ namespace nikfemm {
     }
 
     void CV::add_elem(uint32_t _m, double d) {
-        if (_m > m) m = _m;
+        if (_m > val.size()) {
+            val.resize(_m);
+        }
         this->val[_m] += d;
     }
 
     void CV::set_elem(uint32_t _m, double d) {
-        if (_m > m) m = _m;
+        if (_m > val.size()) {
+            val.resize(_m);
+        }
         this->val[_m] = d;
     }
 }

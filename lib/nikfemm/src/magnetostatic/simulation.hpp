@@ -22,11 +22,15 @@ namespace nikfemm {
         
         public:
             MagnetostaticMesh mesh;
+            std::vector<Vector> B;
+            CV A;
+
             MagnetostaticSimulation();
             ~MagnetostaticSimulation();
 
-            /* meshing */
-            void generateMesh();
+            void solve();
+            void Aplot();
+            void Bplot();
     };
 }
 

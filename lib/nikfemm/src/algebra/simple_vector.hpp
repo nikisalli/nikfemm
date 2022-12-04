@@ -13,12 +13,11 @@ namespace nikfemm {
 
     struct CV {
         protected:
-        double* val;
 
         public:
-        uint32_t m;  // columns
-
+        std::vector<double> val;
         CV(uint32_t size);
+        CV();
         ~CV();
 
         void print() const;
