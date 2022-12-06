@@ -246,10 +246,10 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            // printf("iteration %lu, error: %f\n", i, sqrt(squareError));
+            printf("iteration %lu, error: %.17g\n", i, sqrt(squareError));
             if (squareError < maxError * maxError) {
-                #ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
+                #ifdef DEBUG_PRINT
                 printf("x:\n");
                 x.print();
                 #endif
@@ -259,7 +259,7 @@ namespace nikfemm {
             double beta = CV::dot(r, z) / rTzold;
             CV::addScaled(p, z, beta, p);
         }
-        // printf("didn't converge, last error: %f\n", sqrt(squareError));
+        printf("didn't converge, last error: %f\n", sqrt(squareError));
     }
 
     void preconditionedIncompleteCholeskyConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {

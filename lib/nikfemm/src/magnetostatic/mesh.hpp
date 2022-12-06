@@ -10,8 +10,6 @@
 #include <math.h>
 #include <set>
 
-#include "SDL2/SDL.h"
-
 #include "../../lib/triangle/triangle.h"
 #include "../triangle/util.h"
 
@@ -38,13 +36,14 @@ namespace nikfemm {
             
         }
 
-        void getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
+        std::vector<double> getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void computeCurl(std::vector<Vector>& B, CV& A);
+        void refineMeshAroundMagnets();
         std::vector<Vector> computeForceIntegrals(std::vector<Vector>& B);
     };
 
-    void MagnetostaticMesh::getFemSystem(MatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
+    std::vector<double> MagnetostaticMesh::getFemSystem(MatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
 
         #ifdef DEBUG_PRINT
@@ -55,7 +54,13 @@ namespace nikfemm {
 
         auto eadjelems_ids = new uint32_t[data.numberoftriangles][3];
         auto eadjelems_props = new const MagnetostaticProp*[data.numberoftriangles][3];
+        /*
         auto Jm = new double[data.numberoftriangles];
+        std::vector<std::vector<uint32_t>> eadjelems_ids(data.numberoftriangles, std::vector<uint32_t>(3));
+        std::vector<std::vector<const MagnetostaticProp*>> eadjelems_props(data.numberoftriangles, std::vector<const MagnetostaticProp*>(3));
+        */
+        std::vector<double> Jm(data.numberoftriangles);
+        
         struct EAdjElem {
             uint8_t size = 0;
             uint32_t ids[2];
@@ -117,6 +122,42 @@ namespace nikfemm {
             double dfx3 = eadjelems_props[i][2]->M.x - mag->M.x;
             double dfy3 = eadjelems_props[i][2]->M.y - mag->M.y;
 
+            // fit for Mx
+            double Mxa1 = dx2 - dx1;
+            double Mxb1 = dy2 - dy1;
+            double Mxc1 = dfx2 - dfx1;
+            double Mxa2 = dx3 - dx1;
+            double Mxb2 = dy3 - dy1;
+            double Mxc2 = dfx3 - dfx1;
+
+            double Mxa = Mxb1 * Mxc2 - Mxb2 * Mxc1;
+            double Mxb = Mxa2 * Mxc1 - Mxa1 * Mxc2;
+            double Mxc = Mxa1 * Mxb2 - Mxb1 * Mxa2;
+
+            double Mxdx = -Mxa / Mxc;
+            double Mxdy = -Mxb / Mxc;
+
+            // fit for My
+            double Mya1 = dx2 - dx1;
+            double Myb1 = dy2 - dy1;
+            double Myc1 = dfy2 - dfy1;
+            double Mya2 = dx3 - dx1;
+            double Myb2 = dy3 - dy1;
+            double Myc2 = dfy3 - dfy1;
+
+            double Mya = Myb1 * Myc2 - Myb2 * Myc1;
+            double Myb = Mya2 * Myc1 - Mya1 * Myc2;
+            double Myc = Mya1 * Myb2 - Myb1 * Mya2;
+
+            double Mydx = -Mya / Myc;
+            double Mydy = -Myb / Myc;
+
+            // curl
+            double curl = Mxdy - Mydx;
+
+            Jm[i] = curl;
+
+            /*
             Jm[i] = (dfx1*(dx1*(dx1*dy1 + dx2*dy2 + dx3*dy3) -
                     dy1*(pow(dx1, 2) + pow(dx2, 2) + pow(dx3, 2))) +
                     dfx2*(dx2*(dx1*dy1 + dx2*dy2 + dx3*dy3) -
@@ -133,6 +174,9 @@ namespace nikfemm {
                     2*dx1*dx3*dy1*dy3 + pow(dx2, 2)*pow(dy1, 2) + 
                     pow(dx2, 2)*pow(dy3, 2) - 2*dx2*dx3*dy2*dy3 + 
                     pow(dx3, 2)*pow(dy1, 2) + pow(dx3, 2)*pow(dy2, 2));
+            */
+            
+            // printf("Jm[%d] = %.17g\n", i, Jm[i]);
         }
 
         auto adjelems_ids = new uint32_t[data.numberofpoints][18];
@@ -164,13 +208,13 @@ namespace nikfemm {
                     nexit("error: vertex not found in element");
                 }
 
-                double oriented_area = Point::double_oriented_area(data.pointlist[v1], data.pointlist[v2], data.pointlist[v3]);
+                double oriented_area = Point::doubleOrientedArea(data.pointlist[v1], data.pointlist[v2], data.pointlist[v3]);
                 
                 if (oriented_area < 0) {
                     std::swap(v2, v3);
                 }
 
-                double area = Point::double_oriented_area(data.pointlist[v1], data.pointlist[v2], data.pointlist[v3]);
+                double area = Point::doubleOrientedArea(data.pointlist[v1], data.pointlist[v2], data.pointlist[v3]);
 
                 double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / area;
                 double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
@@ -240,6 +284,7 @@ namespace nikfemm {
 
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
+        return Jm;
     }
 
     void MagnetostaticMesh::addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression> &coo, CV &b) {
@@ -319,6 +364,110 @@ namespace nikfemm {
             // printf("dx = %.17g dy = %.17g for elem (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g)\n", dx, dy, x1, y1, z1, x2, y2, z2, x3, y3, z3);
 
             B[i] = Vector(-dy, dx);
+        }
+    }
+
+    void MagnetostaticMesh::refineMeshAroundMagnets() {
+
+        // add magnets refining points
+        // first we have to find the polygons that are magnets
+        // if the polygon contains a region that is a magnet and it does not contain any other polygon that contains the same region then it is a magnet
+        std::map<uint32_t, std::vector<Polygon>> polygons_that_contain_magnet_region;
+        for (auto region :drawing.regions) {
+            if (drawing.region_map[region.second].M != Vector(0, 0)) {
+                for (auto polygon : drawing.polygons) {
+                    if (polygon.contains(region.first)) {
+                        polygons_that_contain_magnet_region[region.second].push_back(polygon);
+                    }
+                }
+            }
+        }
+        std::vector<Polygon> magnets;
+        for (auto region_poly_array : polygons_that_contain_magnet_region) {
+            if (region_poly_array.second.size() == 1) {
+                // this is a magnet
+                for (auto point : region_poly_array.second[0].points) {
+                    magnets.push_back(region_poly_array.second[0]);
+                }
+            } else {
+                // this array contains a magnet and other polygons that contain the polygon that is a magnet
+                // we need to find the polygon that does not contain any other polygon that contains the same region
+                for (auto polygon : region_poly_array.second) {
+                    bool is_magnet = true;
+                    for (auto other_polygon : region_poly_array.second) {
+                        if (polygon != other_polygon && polygon.contains(other_polygon)) {
+                            is_magnet = false;
+                            break;
+                        }
+                    }
+                    if (is_magnet) {
+                        magnets.push_back(polygon);
+                    }
+                }
+            }
+        }
+        printf("Found %lu magnets\n", magnets.size());
+        for (auto polygon : magnets) {
+            for (uint32_t i = 0; i < polygon.points.size(); i++) {
+                Point p1 = polygon.points[i];
+                Point p2 = polygon.points[(i + 1) % polygon.points.size()];
+                
+                double multiplier = 10;
+                uint32_t n_points = Point::distance(p1, p2) / (drawing.epsilon / multiplier);
+                // multiply by 1.1 to make sure that the points are far enough to not trigger conformity checks
+                Vector normal = Vector::normal(p1, p2).versor() * (drawing.epsilon / multiplier) * 1.1;
+
+                for (uint32_t j = 0; j < n_points; j++) {
+                    Point mypoints[2];
+                    mypoints[0] = Point::lerp(p1, p2, (double)j / n_points) + normal;
+                    mypoints[1] = Point::lerp(p1, p2, (double)j / n_points) - normal;
+
+                    bool mypoints_ok[2] = {
+                        polygon.contains(mypoints[0]), 
+                        polygon.contains(mypoints[1])
+                    };
+
+                    // check points at least drawing.epsilon away from each edge of each polygon
+                    for (uint8_t k = 0; k < 2; k++) {
+                        // skip check for failed points
+                        if (mypoints_ok[k]) {
+                            // for every polygon
+                            for (auto other_polygon : drawing.polygons) {
+                                // for every edge of the other polygon
+                                for (uint32_t l = 0; l < other_polygon.points.size(); l++) {
+                                    // check if the point is at least drawing.epsilon away from the edge
+                                    Point p3 = other_polygon.points[l];
+                                    Point p4 = other_polygon.points[(l + 1) % other_polygon.points.size()];
+                                    if (Point::distance(mypoints[k], p3) < drawing.epsilon / multiplier ||
+                                        Point::distance(mypoints[k], p4) < drawing.epsilon / multiplier) {
+                                        mypoints_ok[k] = false;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // check points at least drawing.epsilon away from each point in drawing.points
+                    for (uint8_t k = 0; k < 2; k++) {
+                        // skip check for failed points
+                        if (mypoints_ok[k]) {
+                            for (auto point : drawing.points) {
+                                if (Point::distance(mypoints[k], point) < drawing.epsilon / multiplier) {
+                                    mypoints_ok[k] = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // add points to drawing.points
+                    for (uint8_t k = 0; k < 2; k++) {
+                        if (mypoints_ok[k]) {
+                            drawing.points.push_back(mypoints[k]);
+                        }
+                    }
+                }
+            }
         }
     }
 

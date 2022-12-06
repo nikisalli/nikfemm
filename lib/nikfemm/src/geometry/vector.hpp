@@ -31,6 +31,14 @@ namespace nikfemm {
         inline Vector versor() const {
             return Vector(x / magnitude(), y / magnitude());
         }
+
+        inline static Vector normal(const Vector v) {
+            return Vector(-v.y, v.x);
+        }
+
+        inline static Vector normal(const Point p1, const Point p2) {
+            return Vector::normal(Vector(p2.x - p1.x, p2.y - p1.y));
+        }
     };
 }
 template <>

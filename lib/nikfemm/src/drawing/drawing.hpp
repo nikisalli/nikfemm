@@ -13,8 +13,6 @@
 #include <chrono>
 #include <array>
 
-#include "SDL2/SDL.h"
-
 #include "../constants.hpp"
 
 #include "../utils/utils.hpp"
@@ -36,6 +34,8 @@ namespace nikfemm {
         std::vector<DrawingSegment> segments;
         std::vector<Polygon> polygons;
 
+        double epsilon;  // The minimum distance between two points of the drawing
+
         Drawing();
         ~Drawing();
 
@@ -52,7 +52,6 @@ namespace nikfemm {
             Prop getRegionFromId(uint32_t id) const;
             uint32_t getRegionId(Prop val);
             void addRefiningPoints();
-            void plot();
         private:
             void drawSegment(Point p1, Point p2);
             void drawSegment(Segment s);
@@ -217,15 +216,13 @@ namespace nikfemm {
     template <typename Prop>
     void Drawing<Prop>::addRefiningPoints() {
         // find shortest segment first
-        double length = std::numeric_limits<double>::max();
+        epsilon = std::numeric_limits<double>::max();
         for (auto it = segments.begin(); it != segments.end(); it++) {
             double len= Point::distance(points[it->p1], points[it->p2]);
-            if (len < length) {
-                length = len;
+            if (len < epsilon) {
+                epsilon = len;
             }
         }
-
-        length /= 100;
 
         uint32_t n_points = points.size();
 
@@ -240,16 +237,47 @@ namespace nikfemm {
                 }
             }
 
+            // check for all combinations of segments if there is one that makes an angle of less than 60 degrees
+            for (uint32_t j = 0; j < segments_containing_point.size(); j++) {
+                for (uint32_t k = j + 1; k < segments_containing_point.size(); k++) {
+                    Point p1 = points[segments_containing_point[j].p1];
+                    Point p2 = points[segments_containing_point[j].p2];
+                    Point p3 = points[segments_containing_point[k].p1];
+                    Point p4 = points[segments_containing_point[k].p2];
+                    
+                    double angle;
+                    if (p1 == p3) {
+                        angle = Point::absoluteAngle(p2, p1, p4);
+                    } else if (p1 == p4) {
+                        angle = Point::absoluteAngle(p2, p1, p3);
+                    } else if (p2 == p3) {
+                        angle = Point::absoluteAngle(p1, p2, p4);
+                    } else if (p2 == p4) {
+                        angle = Point::absoluteAngle(p1, p2, p3);
+                    } else {
+                        nexit("Error: segment not found");
+                    }
+                    if (angle < PI * (120.0 / 180.0)) {
+                        // printf("angle is %f, refining\n", angle);
+                        goto refine;
+                    }            
+                }
+            }
+
+            continue;
+
+            refine:
+
             // printf("point %u has %lu segments\n", i, segments_containing_point.size());
 
             for (uint32_t j = 0; j < 18; j++) {
                 double angle = j * M_PI / 9;
-                Point p = Point(points[i].x + length * cos(angle), points[i].y + length * sin(angle));
+                Point p = Point(points[i].x + (epsilon / 100) * cos(angle), points[i].y + (epsilon / 100) * sin(angle));
                 
                 // check distance to segments
                 bool too_close = false;
                 for (uint32_t k = 0; k < segments_containing_point.size(); k++) {
-                    if (Segment::pointSegmentDistance(p, Segment(points[segments_containing_point[k].p1], points[segments_containing_point[k].p2])) < length / 2) {
+                    if (Segment::pointSegmentDistance(p, Segment(points[segments_containing_point[k].p1], points[segments_containing_point[k].p2])) < (epsilon / 100) / 2) {
                         too_close = true;
                         break;
                     }
@@ -258,112 +286,6 @@ namespace nikfemm {
                     points.push_back(p);
                 }
             }
-        }
-    }
-
-    template <typename Prop>
-    void Drawing<Prop>::plot() {
-        // draw the mesh
-        // returns zero on success else non-zero
-        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            nexit("error initializing SDL");
-        }
-        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
-                                        SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED,
-                                        2000, 2000, 0);
-            
-        // triggers the program that controls
-        // your graphics hardware and sets flags
-        Uint32 render_flags = SDL_RENDERER_ACCELERATED;
-    
-        // creates a renderer to render our images
-        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
-
-        // clears the window
-        SDL_RenderClear(rend);
-
-        // get mesh enclosing rectangle
-        float min_x = 1000000;
-        float min_y = 1000000;
-        float max_x = -1000000;
-        float max_y = -1000000;
-        for (auto v : points) {
-            if (v.x < min_x) {
-                min_x = v.x;
-            }
-            if (v.y < min_y) {
-                min_y = v.y;
-            }
-            if (v.x > max_x) {
-                max_x = v.x;
-            }
-            if (v.y > max_y) {
-                max_y = v.y;
-            }
-        }
-
-        // object to window ratio
-        float ratio = 0.9;
-
-        // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
-        // x offset to center mesh in window
-        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
-        // y offset to center mesh in window
-        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
-
-        // render
-
-        while(true){
-            // draw the segments
-            SDL_SetRenderDrawColor(rend, 255, 0, 0, 255);
-            for (DrawingSegment s : segments) {
-                SDL_RenderDrawLine(rend, x_scale * points[s.p1].x + x_offset, y_scale * points[s.p1].y + y_offset, x_scale * points[s.p2].x + x_offset, y_scale * points[s.p2].y + y_offset);
-            }
-    
-
-            // draw the points
-            for (auto v : points) {
-                SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-                // draw a square centered at the point
-                SDL_Rect rect;
-                rect.x = x_offset + v.x * x_scale - 2;
-                rect.y = y_offset + v.y * y_scale - 2;
-                rect.w = 4;
-                rect.h = 4;
-                SDL_RenderFillRect(rend, &rect);
-            }
-
-            // draw the regions
-            for (DrawingRegion r : regions) {
-                SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
-                // draw a square centered at the point
-                SDL_Rect rect;
-                rect.x = x_offset + r.first.x * x_scale - 4;
-                rect.y = y_offset + r.first.y * y_scale - 4;
-                rect.w = 8;
-                rect.h = 8;
-                SDL_RenderFillRect(rend, &rect);
-            }
-
-            SDL_RenderPresent(rend);
-
-            SDL_Event event;
-            if (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    // destroy the window
-                    SDL_DestroyWindow(win);
-                    // clean up
-                    SDL_Quit();
-                    break;
-                }
-            }
-
-            // sleep for 1 second
-            SDL_Delay(10);
         }
     }
 }

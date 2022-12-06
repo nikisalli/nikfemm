@@ -9,6 +9,10 @@
 #include <iterator>
 #include <set>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include "../constants.hpp"
 #include "simulation.hpp"
 #include "../drawing/drawing.hpp"
@@ -28,27 +32,7 @@ namespace nikfemm {
 
     }
 
-    void MagnetostaticSimulation::Aplot() {
-        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            nexit("error initializing SDL: %s\n");
-        }
-        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
-                                        SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED,
-                                        2000, 2000, 0);
-            
-        // triggers the program that controls
-        // your graphics hardware and sets flags
-        // Uint32 render_flags = SDL_RENDERER_ACCELERATED;
-    
-        // creates a renderer to render our images
-        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
-
-        // clears the window
-        SDL_RenderClear(rend);
-
-        // get mesh enclosing rectangle
-
+    void MagnetostaticSimulation::AplotRend(cv::Mat* image, double width, double height) {
         float min_x = -1.1 * mesh.radius;
         float min_y = -1.1 * mesh.radius;
         float max_x = 1.1 * mesh.radius;
@@ -58,13 +42,13 @@ namespace nikfemm {
         float ratio = 0.9;
 
         // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
         // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
         // x offset to center mesh in window
-        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
+        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
         // y offset to center mesh in window
-        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
+        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
 
         // find max and min
         /*
@@ -86,30 +70,11 @@ namespace nikfemm {
             A_sorted[i] = A[i];
         }
         std::sort(A_sorted.begin(), A_sorted.end());
-        float max_A = A_sorted[0.97 * A_sorted.size()];
-        float min_A = A_sorted[0.03 * A_sorted.size()];
+        float max_A = A_sorted[0.9 * A_sorted.size()];
+        float min_A = A_sorted[0.1 * A_sorted.size()];
 
-        // render
-
-        // clears the window
-        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        SDL_RenderClear(rend);
         // draw the points
-        for (int64_t i = 0; i < mesh.data.numberofpoints; i++) {
-            
-            // SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-            // // draw a square centered at the point
-            // SDL_Rect rect;
-            // rect.x = x_offset + v->p.x * x_scale - 2;
-            // rect.y = y_offset + v->p.y * y_scale - 2;
-            // rect.w = 4;
-            // rect.h = 4;
-            // SDL_RenderFillRect(rend, &rect);
-            // SDL_SetRenderDrawColor(rend, 243, 255, 160, 255);
-            // for (uint16_t i = 0; i < v->adjvert_count; i++) {
-            //     // SDL_RenderDrawLine(rend, x_offset + v->p.x * x_scale, y_offset + v->p.y * y_scale, x_offset + v->adjvert[i]->p.x * x_scale, y_offset + v->adjvert[i]->p.y * y_scale);
-            // }
-            
+        for (int64_t i = 0; i < mesh.data.numberofpoints; i++) {    
             Point p = mesh.data.pointlist[i];
 
             if (Point::distance(p, Point(0, 0)) > mesh.radius + mesh.epsilon) {
@@ -117,34 +82,29 @@ namespace nikfemm {
             }
 
             // verts
-            auto points = std::vector<SDL_Vertex>();
+            auto points = std::vector<cv::Point>();
 
             // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
-            SDL_Color c = val2jet(A[i], min_A, max_A);
+            cv::Scalar c = val2jet(A[i], min_A, max_A);
             // printf("A: %f, c: %d, %d, %d\n", A.val[i], c.r, c.g, c.b);
                             
             // find the triangles that contain the Vertex<MagnetostaticProp> and then
             // for every triangle find the barycenter and add it to the points vector
             for (int32_t j = 0; j < mesh.data.numberoftriangles; j++) {
                 if (mesh.data.trianglelist[j].verts[0] == i || mesh.data.trianglelist[j].verts[1] == i || mesh.data.trianglelist[j].verts[2] == i) {
-                    SDL_Vertex new_v;
                     Point barycenter = {
                         (mesh.data.pointlist[mesh.data.trianglelist[j].verts[0]].x + mesh.data.pointlist[mesh.data.trianglelist[j].verts[1]].x + mesh.data.pointlist[mesh.data.trianglelist[j].verts[2]].x) / 3,
                         (mesh.data.pointlist[mesh.data.trianglelist[j].verts[0]].y + mesh.data.pointlist[mesh.data.trianglelist[j].verts[1]].y + mesh.data.pointlist[mesh.data.trianglelist[j].verts[2]].y) / 3
                     };
-                    new_v.position.x = x_offset + barycenter.x * x_scale;
-                    new_v.position.y = y_offset + barycenter.y * y_scale;
-                    new_v.color = c;
-
-                    points.push_back(new_v);
+                    points.push_back(cv::Point(x_offset + barycenter.x * x_scale, y_offset + barycenter.y * y_scale));
                 }
             }
             
             // find the center of the points
-            SDL_FPoint center = {0, 0};
+            cv::Point center = {0, 0};
             for (uint8_t j = 0; j < points.size(); j++) {
-                center.x += points[j].position.x;
-                center.y += points[j].position.y;
+                center.x += points[j].x;
+                center.y += points[j].y;
             }
             // printf("count: %d\n", points.size());
             center.x /= points.size();
@@ -152,100 +112,44 @@ namespace nikfemm {
             // printf("center: %d %d\n", center.x, center.y);
 
             // sort the points by angle
-            std::sort(points.begin(), points.end(), [center](SDL_Vertex a, SDL_Vertex b) {
-                return atan2(a.position.y - center.y, a.position.x - center.x) < atan2(b.position.y - center.y, b.position.x - center.x);
+            std::sort(points.begin(), points.end(), [center](cv::Point a, cv::Point b) {
+                return atan2(a.y - center.y, a.x - center.x) < atan2(b.y - center.y, b.x - center.x);
             });
 
-            // print the points
-            
-            // for (uint8_t i = 0; i < points.size(); i++) {
-            //     printf("%f %f\n", points[i].position.x, points[i].position.y);
-            // }
-            
-
-            SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
-            for (uint8_t j = 0; j < points.size(); j++) {
-                SDL_Vertex v1 = points[j];
-                SDL_Vertex v2 = points[(j + 1) % points.size()];
-                // draw triangle between center and two points
-                SDL_Vertex verts[3] = {
-                    {center.x, center.y, c.r, c.g, c.b, c.a},
-                    {v1.position.x, v1.position.y, c.r, c.g, c.b, c.a},
-                    {v2.position.x, v2.position.y, c.r, c.g, c.b, c.a}
-                };
-                SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
-            }
-        }
-
-        SDL_RenderPresent(rend);
-
-        while(true){
-            SDL_Event event;
-            if (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    // destroy the window
-                    SDL_DestroyWindow(win);
-                    // clean up
-                    SDL_Quit();
-                    break;
-                }
-            }
-
-            SDL_KeyboardEvent key = event.key;
-            if (key.keysym.sym == SDLK_UP) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_DOWN) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_LEFT) {
-                x_offset += 10;
-            } else if (key.keysym.sym == SDLK_RIGHT) {
-                x_offset -= 10;
-            } else if (key.keysym.sym == SDLK_w) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_s) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_a) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_d) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_q) {
-                x_scale *= 0.9;
-                y_scale *= 0.9;
-            } else if (key.keysym.sym == SDLK_e) {
-                x_scale *= 1.1;
-                y_scale *= 1.1;
-            } else if (key.keysym.sym == SDLK_r) {
-                x_scale = 1;
-                y_scale = 1;
-                x_offset = 0;
-                y_offset = 0;
-            }
-
-            // sleep for 1 second
+            // draw the polygon
+            cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, points), c);
         }
     }
 
-    void MagnetostaticSimulation::Bplot() {
-        if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-            nexit("error initializing SDL: %s\n");
+    void MagnetostaticSimulation::Aplot(uint32_t width, uint32_t height) {
+        cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+
+        if (!image.data) {
+            nexit("Could not create image");
         }
-        SDL_Window* win = SDL_CreateWindow("GAME", // creates a window
-                                        SDL_WINDOWPOS_CENTERED,
-                                        SDL_WINDOWPOS_CENTERED,
-                                        2000, 2000, 0);
 
-        // triggers the program that controls
-        // your graphics hardware and sets flags
-        // Uint32 render_flags = SDL_RENDERER_ACCELERATED;
-    
-        // creates a renderer to render our images
-        SDL_Renderer* rend = SDL_CreateRenderer(win, -1, 0);
+        AplotRend(&image, width, height);
 
-        // clears the window
-        SDL_RenderClear(rend);
+        cv::imshow("A", image);
+        printf("showing image\n");
+        cv::waitKey(0);
+        printf("done\n");
+    }
 
+    void MagnetostaticSimulation::AplotToFile(uint32_t width, uint32_t height, std::string filename) {
+        cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+
+        if (!image.data) {
+            nexit("Could not create image");
+        }
+
+        AplotRend(&image, width, height);
+
+        cv::imwrite(filename, image);
+    }
+
+    void MagnetostaticSimulation::BplotRend(cv::Mat* image, double width, double height, bool plotMesh, bool plotRegions) {
         // get mesh enclosing rectangle
-
         float min_x = -1.1 * mesh.radius;
         float min_y = -1.1 * mesh.radius;
         float max_x = 1.1 * mesh.radius;
@@ -255,13 +159,13 @@ namespace nikfemm {
         float ratio = 0.9;
 
         // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
         // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * 2000 / std::max(max_x - min_x, max_y - min_y);
+        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
         // x offset to center mesh in window
-        float x_offset = 0.5 * 2000 - 0.5 * (max_x + min_x) * x_scale;
+        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
         // y offset to center mesh in window
-        float y_offset = 0.5 * 2000 - 0.5 * (max_y + min_y) * y_scale;
+        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
 
         // find max and min B
         /*
@@ -284,8 +188,8 @@ namespace nikfemm {
             B_mags.push_back(B[i].magnitude());
         }
         std::sort(B_mags.begin(), B_mags.end());
-        double max_B = B_mags[0.97 * B_mags.size()];
-        double min_B = B_mags[0.03 * B_mags.size()];
+        double max_B = B_mags[0.9 * B_mags.size()];
+        double min_B = B_mags[0.1 * B_mags.size()];
 
         printf("max B: %f\n", max_B);
         printf("min B: %f\n", min_B);
@@ -293,10 +197,6 @@ namespace nikfemm {
         // max_B = 1e-6;
 
         // render
-
-        // clears the window
-        SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        SDL_RenderClear(rend);
         for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
             // get the triangle
             Elem e = mesh.data.trianglelist[i];
@@ -313,116 +213,213 @@ namespace nikfemm {
 
             // get the B vectors
             Vector Bv = B[i];
-            SDL_Color c = val2jet(Bv.magnitude(), min_B, max_B);
+            cv::Scalar c = val2jet(Bv.magnitude(), min_B, max_B);
             // get the vertices in window coordinates
-            SDL_Vertex verts[3] = {
-                {x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset, c.r, c.g, c.b, c.a},
-                {x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset, c.r, c.g, c.b, c.a},
-                {x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset, c.r, c.g, c.b, c.a}
-            };
-            // draw the triangle
-            SDL_RenderGeometry(rend, nullptr, verts, 3, nullptr, 0);
+            cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, std::vector<cv::Point>({
+                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset)
+            })), c);
 
             // draw mesh edges
             // draw lines from v1 to v2
-            SDL_SetRenderDrawColor(rend, 0, 0, 0, 127);
-            SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v1.x) + x_offset, 
-                                     y_scale * static_cast<float>(v1.y) + y_offset, 
-                                     x_scale * static_cast<float>(v2.x) + x_offset, 
-                                     y_scale * static_cast<float>(v2.y) + y_offset);
-            // draw lines from v2 to v3
-            SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v2.x) + x_offset, 
-                                     y_scale * static_cast<float>(v2.y) + y_offset, 
-                                     x_scale * static_cast<float>(v3.x) + x_offset, 
-                                     y_scale * static_cast<float>(v3.y) + y_offset);
-            // draw lines from v3 to v1
-            SDL_RenderDrawLine(rend, x_scale * static_cast<float>(v3.x) + x_offset, 
-                                     y_scale * static_cast<float>(v3.y) + y_offset, 
-                                     x_scale * static_cast<float>(v1.x) + x_offset, 
-                                     y_scale * static_cast<float>(v1.y) + y_offset);
+            if (plotMesh) {
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+            }
         }
 
         // draw the geometry
         // draw the segments
-        SDL_SetRenderDrawColor(rend, 0, 0, 0, 255);
         for (DrawingSegment s : mesh.drawing.segments) {
-            SDL_RenderDrawLine(rend, x_scale * mesh.drawing.points[s.p1].x + x_offset,
-                                     y_scale * mesh.drawing.points[s.p1].y + y_offset, 
-                                     x_scale * mesh.drawing.points[s.p2].x + x_offset, 
-                                     y_scale * mesh.drawing.points[s.p2].y + y_offset);
+            cv::line(*image, cv::Point(x_scale * mesh.drawing.points[s.p1].x + x_offset,
+                                       y_scale * mesh.drawing.points[s.p1].y + y_offset), 
+                             cv::Point(x_scale * mesh.drawing.points[s.p2].x + x_offset, 
+                                       y_scale * mesh.drawing.points[s.p2].y + y_offset),
+                             cv::Scalar(255, 255, 255), 1);
         }
 
-
-        // draw the points
-        // for (auto v : drawing.points) {
-        //     SDL_SetRenderDrawColor(rend, 255, 255, 255, 255);
-        //     // draw a square centered at the point
-        //     SDL_Rect rect;
-        //     rect.x = x_offset + v.x * x_scale - 2;
-        //     rect.y = y_offset + v.y * y_scale - 2;
-        //     rect.w = 4;
-        //     rect.h = 4;
-        //     SDL_RenderFillRect(rend, &rect);
-        // }
-
-        // draw the regions
-        // for (DrawingRegion r : drawing.regions) {
-        //     SDL_SetRenderDrawColor(rend, 0, 0, 255, 255);
-        //     // draw a square centered at the point
-        //     SDL_Rect rect;
-        //     rect.x = x_offset + r.first.x * x_scale - 4;
-        //     rect.y = y_offset + r.first.y * y_scale - 4;
-        //     rect.w = 8;
-        //     rect.h = 8;
-        //     SDL_RenderFillRect(rend, &rect);
-        // }
-
-        SDL_RenderPresent(rend);
-
-        while(true){
-            SDL_Event event;
-            if (SDL_PollEvent(&event)) {
-                if (event.type == SDL_QUIT) {
-                    // destroy the window
-                    SDL_DestroyWindow(win);
-                    // clean up
-                    SDL_Quit();
-                    break;
+        if (plotRegions) {
+            // draw the regions
+            for (DrawingRegion r : mesh.drawing.regions) {
+                std::vector<cv::Point> points;
+                
+                Point pos = r.first;
+                // draw white cross
+                cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
+                                 cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
+                                 cv::Scalar(255, 255, 255), 1);
+                cv::line(*image, cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset - 5),
+                                 cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset + 5),
+                                 cv::Scalar(255, 255, 255), 1);
+                // draw an arrow for each magnet region
+                /*
+                if (mesh.drawing.region_map[r.second].M != Vector(0, 0)) {
+                    Point start = r.first;
+                    Point end = start + mesh.drawing.region_map[r.second].M;
+                    cv::arrowedLine(*image, cv::Point(x_scale * start.x + x_offset, y_scale * start.y + y_offset),
+                                            cv::Point(x_scale * end.x + x_offset, y_scale * end.y + y_offset),
+                                            cv::Scalar(255, 255, 255), 1);
                 }
+                */
             }
 
-            SDL_KeyboardEvent key = event.key;
-            if (key.keysym.sym == SDLK_UP) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_DOWN) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_LEFT) {
-                x_offset += 10;
-            } else if (key.keysym.sym == SDLK_RIGHT) {
-                x_offset -= 10;
-            } else if (key.keysym.sym == SDLK_w) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_s) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_a) {
-                y_offset += 10;
-            } else if (key.keysym.sym == SDLK_d) {
-                y_offset -= 10;
-            } else if (key.keysym.sym == SDLK_q) {
-                x_scale *= 0.9;
-                y_scale *= 0.9;
-            } else if (key.keysym.sym == SDLK_e) {
-                x_scale *= 1.1;
-                y_scale *= 1.1;
-            } else if (key.keysym.sym == SDLK_r) {
-                x_scale = 1;
-                y_scale = 1;
-                x_offset = 0;
-                y_offset = 0;
+            // draw all drawing points
+            for (Point p : mesh.drawing.points) {
+                cv::circle(*image, cv::Point(x_scale * p.x + x_offset, y_scale * p.y + y_offset), 2, cv::Scalar(255, 255, 255), -1);
             }
-
-            // sleep for 1 second
         }
+    }
+
+    void MagnetostaticSimulation::Bplot(uint32_t width, uint32_t height, bool plotMesh, bool plotRegions) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        BplotRend(&image, width, height, plotMesh, plotRegions);
+
+        // show the image
+        cv::imshow("B", image);
+        // continue if image is closed
+        cv::waitKey(0);
+    }
+
+    void MagnetostaticSimulation::BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh, bool plotRegions) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        BplotRend(&image, width, height, plotMesh, plotRegions);
+
+        // save the image
+        cv::imwrite(filename, image);
+    }
+
+    void MagnetostaticSimulation::ScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
+        // get mesh enclosing rectangle
+        float min_x = -1.1 * mesh.radius;
+        float min_y = -1.1 * mesh.radius;
+        float max_x = 1.1 * mesh.radius;
+        float max_y = 1.1 * mesh.radius;
+
+        // object to window ratio
+        float ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
+
+        // std::sort(scalar.begin(), scalar.end());
+        // double max_Scalar = scalar[scalar.size() - 1];
+        // double min_Scalar = scalar[0];
+        double max_Scalar = 0.000000000000000000000000000000001;
+        double min_Scalar = 0;
+
+        printf("max Scalar: %.17g\n", max_Scalar);
+        printf("min Scalar: %.17g\n", min_Scalar);
+
+        // max_B = 1e-6;
+
+        // render
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            // get the triangle
+            Elem e = mesh.data.trianglelist[i];
+            // get the vertices
+            Point v1 = mesh.data.pointlist[e.verts[0]];
+            Point v2 = mesh.data.pointlist[e.verts[1]];
+            Point v3 = mesh.data.pointlist[e.verts[2]];
+
+            if (Point::distance(v1, Point(0, 0)) > mesh.radius + mesh.epsilon ||
+                Point::distance(v2, Point(0, 0)) > mesh.radius + mesh.epsilon || 
+                Point::distance(v3, Point(0, 0)) > mesh.radius + mesh.epsilon) {
+                continue;
+            }
+
+            // get the B vectors
+            cv::Scalar c = val2jet(scalar[i], min_Scalar, max_Scalar);
+            // get the vertices in window coordinates
+            cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, std::vector<cv::Point>({
+                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset)
+            })), c);
+
+            // draw mesh edges
+            // draw lines from v1 to v2
+            if (plotMesh) {
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+            }
+        }
+
+        // draw the geometry
+        // draw the segments
+        for (DrawingSegment s : mesh.drawing.segments) {
+            cv::line(*image, cv::Point(x_scale * mesh.drawing.points[s.p1].x + x_offset,
+                                       y_scale * mesh.drawing.points[s.p1].y + y_offset), 
+                             cv::Point(x_scale * mesh.drawing.points[s.p2].x + x_offset, 
+                                       y_scale * mesh.drawing.points[s.p2].y + y_offset),
+                             cv::Scalar(255, 255, 255), 1);
+        }
+
+        if (plotRegions) {
+            // draw the regions
+            for (DrawingRegion r : mesh.drawing.regions) {
+                std::vector<cv::Point> points;
+                
+                Point pos = r.first;
+                // draw white cross
+                cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
+                                 cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
+                                 cv::Scalar(255, 255, 255), 1);
+                cv::line(*image, cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset - 5),
+                                 cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset + 5),
+                                 cv::Scalar(255, 255, 255), 1);
+            }
+        }
+    }
+
+    void MagnetostaticSimulation::ScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        ScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
+
+        // show the image
+        cv::imshow("B", image);
+        // continue if image is closed
+        cv::waitKey(0);
+    }
+
+    void MagnetostaticSimulation::ScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh, bool plotRegions) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        ScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
+
+        // save the image
+        cv::imwrite(filename, image);
     }
 
     void MagnetostaticSimulation::solve() {
@@ -463,6 +460,7 @@ namespace nikfemm {
         mesh.drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
         // add the boundary 
         // mesh.drawing.plot();
+        mesh.refineMeshAroundMagnets();
         auto start2 = std::chrono::high_resolution_clock::now();
         mesh.mesh();
         auto start3 = std::chrono::high_resolution_clock::now();
@@ -490,7 +488,8 @@ namespace nikfemm {
 
         auto start5 = std::chrono::high_resolution_clock::now();
 
-        mesh.getFemSystem(coo, b);
+        std::vector<double> Jm = mesh.getFemSystem(coo, b);
+        ScalarPlotToFile(10000, 10000, Jm, "J.png", true, true);
         auto start6 = std::chrono::high_resolution_clock::now();
         mesh.addDirichletBoundaryConditions(coo, b);
         auto start7 = std::chrono::high_resolution_clock::now();
@@ -527,7 +526,7 @@ namespace nikfemm {
 
         if (all_linear) {
             printf("all materials are linear\n");
-            preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-7, 1000);
+            preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-7, 100000);
         } else {
             printf("nonlinear materials detected, starting non linear newton solver\n");
             CV r(b.val.size());  // residual
@@ -536,7 +535,7 @@ namespace nikfemm {
             for (uint32_t i = 0; i < 500; i++) {
                 // conjugateGradientSolver(FemMat, b, A, 1e-7, 10000);
                 // preconditionedJacobiConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
-                preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-7, 50);
+                preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-6, 50);
                 // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
                 // mesh.Aplot(A);
                 // mesh.Bplot(B);

@@ -18,10 +18,10 @@ include_directories("${NIKFEMM_INCLUDE_DIR}")
 
 add_library(nikfemm SHARED ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 
-find_package(SDL2 REQUIRED)
-
-include_directories(${SDL2_INCLUDE_DIRS})
-target_link_libraries(nikfemm ${SDL2_LIBRARIES})
+# add opencv
+find_package(OpenCV REQUIRED)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(nikfemm ${OpenCV_LIBS})
 
 # get Triangle from lib
 # unset TRILIBRARY variable

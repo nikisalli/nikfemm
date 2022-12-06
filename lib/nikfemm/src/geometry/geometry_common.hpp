@@ -10,18 +10,6 @@ namespace nikfemm {
         COUNTERCLOCKWISE
     };
 
-    inline float geomAngle(Point a, Point b, Point c) {
-        // safe angle calculation
-        float ax = a.x - b.x;
-        float ay = a.y - b.y;
-        float bx = c.x - b.x;
-        float by = c.y - b.y;
-        float dot = ax * bx + ay * by;
-        float det = ax * by - ay * bx;
-        float angle = fabs(atan2(det, dot));
-        return angle;
-    }
-
     inline float geomArea(Point a, Point b, Point c) {
         float ab = Point::distance(a, b);
         float bc = Point::distance(b, c);

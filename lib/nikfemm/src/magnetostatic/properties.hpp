@@ -55,6 +55,8 @@ namespace nikfemm {
         const double air = 4 * PI * 1e-7;
         const double copper = 1.256629e-6;
         const BH_Curve iron = {{1, 2000}, {1.42, 5000}, {1.7, 10000}, {2, 40000}};
+        const double iron_linear = 6.3e-3;
+        const double neodymium = 1.32e-6;
     }
 }
 

@@ -9,8 +9,6 @@
 
 #include "assert.h"
 
-#include "SDL2/SDL.h"
-
 #include "coo.hpp"
 #include "../utils/utils.hpp"
 namespace nikfemm {

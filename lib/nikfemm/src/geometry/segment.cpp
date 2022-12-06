@@ -78,7 +78,7 @@ namespace nikfemm {
         return Point::distance(p, projection);
         */
         // return pointSegmentDistance(p, Segment(p1, p2));
-        double param = Vector::dot(p - p1, p2 - p1) / Point::distance_squared(p1, p2);
+        double param = Vector::dot(p - p1, p2 - p1) / Point::distanceSquared(p1, p2);
         if (param < 0) {
             return Point::distance(p, p1);
         }

@@ -19,6 +19,7 @@ namespace nikfemm {
         bool operator!=(const Polygon& p) const;
 
         bool contains(Point p) const;
+        bool contains(Polygon p) const;
     };
 }
 

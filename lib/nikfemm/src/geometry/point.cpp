@@ -36,6 +36,38 @@ namespace nikfemm {
         return Point(x - p.x, y - p.y);
     }
 
+    Point Point::operator+=(const Point& p) {
+        x += p.x;
+        y += p.y;
+        return *this;
+    }
+
+    Point Point::operator-=(const Point& p) {
+        x -= p.x;
+        y -= p.y;
+        return *this;
+    }
+
+    Point Point::operator+(const Vector& v) const {
+        return Point(x + v.x, y + v.y);
+    }
+
+    Point Point::operator-(const Vector& v) const {
+        return Point(x - v.x, y - v.y);
+    }
+
+    Point Point::operator+=(const Vector& v) {
+        x += v.x;
+        y += v.y;
+        return *this;
+    }
+
+    Point Point::operator-=(const Vector& v) {
+        x -= v.x;
+        y -= v.y;
+        return *this;
+    }
+
     Point Point::operator*(const double d) const {
         return Point(x * d, y * d);
     }
