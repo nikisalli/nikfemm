@@ -20,7 +20,7 @@
 #include "../mesh/mesh.hpp"
 #include "../algebra/simple_vector.hpp"
 #include "../algebra/csr.hpp"
-#include "../algebra/coo.hpp"
+#include "../algebra/build_coo.hpp"
 #include "../constants.hpp"
 #include "magnetostatic_algebra.hpp"
 #include "properties.hpp"
@@ -36,14 +36,14 @@ namespace nikfemm {
             
         }
 
-        std::vector<double> getFemSystem(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
-        void addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
+        std::vector<double> getFemSystem(BuildMatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
+        void addDirichletBoundaryConditions(BuildMatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
         void computeCurl(std::vector<Vector>& B, CV& A);
         void refineMeshAroundMagnets();
         std::vector<Vector> computeForceIntegrals(std::vector<Vector>& B);
     };
 
-    std::vector<double> MagnetostaticMesh::getFemSystem(MatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
+    std::vector<double> MagnetostaticMesh::getFemSystem(BuildMatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
         auto start = std::chrono::high_resolution_clock::now();
 
         #ifdef DEBUG_PRINT
@@ -52,8 +52,13 @@ namespace nikfemm {
         }
         #endif
 
+        /*
         auto eadjelems_ids = new uint32_t[data.numberoftriangles][3];
         auto eadjelems_props = new const MagnetostaticProp*[data.numberoftriangles][3];
+        */
+
+        auto eadjelems_ids = std::vector<std::array<uint32_t, 3>>(data.numberoftriangles);
+        auto eadjelems_props = std::vector<std::array<const MagnetostaticProp*, 3>>(data.numberoftriangles);
         /*
         auto Jm = new double[data.numberoftriangles];
         std::vector<std::vector<uint32_t>> eadjelems_ids(data.numberoftriangles, std::vector<uint32_t>(3));
@@ -179,9 +184,15 @@ namespace nikfemm {
             // printf("Jm[%d] = %.17g\n", i, Jm[i]);
         }
 
+        /*
         auto adjelems_ids = new uint32_t[data.numberofpoints][18];
         auto adjelems_props = new const MagnetostaticProp*[data.numberofpoints][18];
         auto adjelems_count = new uint8_t[data.numberofpoints]();  // initialize to 0
+        */
+
+        auto adjelems_ids = std::vector<std::array<uint32_t, 18>>(data.numberofpoints);
+        auto adjelems_props = std::vector<std::array<const MagnetostaticProp*, 18>>(data.numberofpoints);
+        auto adjelems_count = std::vector<uint8_t>(data.numberofpoints, 0);
 
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
@@ -220,7 +231,7 @@ namespace nikfemm {
                 double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
                 // coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[i][j].mu));
                 // check if key exists
-                uint64_t key = MatCOO<int>::get_key(i, v1);
+                uint64_t key = BuildMatCOO<int>::get_key(i, v1);
                 if (coo.elems.find(key) == coo.elems.end()) {
                     coo.elems.emplace(key, MagnetostaticNonLinearExpression());
                 }
@@ -235,7 +246,7 @@ namespace nikfemm {
                     double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
                     double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
                     // coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
-                    key = MatCOO<int>::get_key(i, v2);
+                    key = BuildMatCOO<int>::get_key(i, v2);
                     if (coo.elems.find(key) == coo.elems.end()) {
                         coo.elems.emplace(key, MagnetostaticNonLinearExpression());
                     }
@@ -251,11 +262,11 @@ namespace nikfemm {
                     double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
                     double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
                     // coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
-                    key = MatCOO<int>::get_key(i, v3);
+                    key = BuildMatCOO<int>::get_key(i, v3);
                     if (coo.elems.find(key) == coo.elems.end()) {
                         coo.elems.emplace(key, MagnetostaticNonLinearExpression());
                     }
-                    coo.elems[MatCOO<int>::get_key(i, v3)].terms.push_back(
+                    coo.elems[BuildMatCOO<int>::get_key(i, v3)].terms.push_back(
                         {
                             (area * (b3 * b1 + c3 * c1) * 0.5),
                             adjelems_ids[i][j],
@@ -268,10 +279,6 @@ namespace nikfemm {
                 b.add_elem(i, (area * (adjelems_props[i][j]->J + Jm[adjelems_ids[i][j]])) / 6);
             }
         }
-
-        delete[] adjelems_ids;
-        delete[] adjelems_props;
-        delete[] adjelems_count;
 
         // iterate over upper triangular matrix and copy to lower triangular matrix
         // for (uint32_t i = 0; i < coo.m; i++) {
@@ -287,7 +294,7 @@ namespace nikfemm {
         return Jm;
     }
 
-    void MagnetostaticMesh::addDirichletBoundaryConditions(MatCOO<MagnetostaticNonLinearExpression> &coo, CV &b) {
+    void MagnetostaticMesh::addDirichletBoundaryConditions(BuildMatCOO<MagnetostaticNonLinearExpression> &coo, CV &b) {
         // find three furthest points from the center
         uint32_t p1, p2, p3;
         double d1, d2, d3;
@@ -315,21 +322,21 @@ namespace nikfemm {
             uint32_t m = elem.first >> 32;
             uint32_t n = elem.first & 0xFFFFFFFF;
             if (m == p1 || m == p2 || m == p3) {
-                coo.elems[MatCOO<int>::get_key(m, n)].terms.clear();
-                coo.elems[MatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
+                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.clear();
+                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
             }
             if (n == p1 || n == p2 || n == p3) {
-                coo.elems[MatCOO<int>::get_key(m, n)].terms.clear();
-                coo.elems[MatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
+                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.clear();
+                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
             }
         }
 
-        coo.elems[MatCOO<int>::get_key(p1, p1)].terms.clear();
-        coo.elems[MatCOO<int>::get_key(p1, p1)].terms.push_back({ 1, 0, true});
-        coo.elems[MatCOO<int>::get_key(p2, p2)].terms.clear();
-        coo.elems[MatCOO<int>::get_key(p2, p2)].terms.push_back({ 1, 0, true});
-        coo.elems[MatCOO<int>::get_key(p3, p3)].terms.clear();
-        coo.elems[MatCOO<int>::get_key(p3, p3)].terms.push_back({ 1, 0, true});
+        coo.elems[BuildMatCOO<int>::get_key(p1, p1)].terms.clear();
+        coo.elems[BuildMatCOO<int>::get_key(p1, p1)].terms.push_back({ 1, 0, true});
+        coo.elems[BuildMatCOO<int>::get_key(p2, p2)].terms.clear();
+        coo.elems[BuildMatCOO<int>::get_key(p2, p2)].terms.push_back({ 1, 0, true});
+        coo.elems[BuildMatCOO<int>::get_key(p3, p3)].terms.clear();
+        coo.elems[BuildMatCOO<int>::get_key(p3, p3)].terms.push_back({ 1, 0, true});
         // since we are setting the potential to zero at the three points, we do not need to subtract anything from the b vector
     }
 

@@ -23,8 +23,13 @@ namespace nikfemm {
         void print() const;
         void write_to_file(const char *filename);
         
-        double& operator[](uint32_t i);
-        double operator[](uint32_t i) const;
+        inline double& operator[](uint32_t i) {
+            return val[i];
+        }
+
+        inline double operator[](uint32_t i) const {
+            return val[i];
+        }
 
         static void mult(CV& result, const MatCSRSymmetric& mat, const CV& cv);
         static void mult(CV& result, const MatCSRLowerTri& mat, const CV& cv);

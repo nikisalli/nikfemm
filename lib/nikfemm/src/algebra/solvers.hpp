@@ -12,13 +12,13 @@ namespace nikfemm {
     struct MatCSRSymmetric;
     struct CV;
 
-    void multSSORPreconditioner(MatCSRSymmetric& A, CV& result, const CV& cv, double omega);
-    MatCSRLowerTri incompleteCholeskyDecomposition(MatCSRSymmetric& A);
+    void multSSORPreconditioner(const MatCSRSymmetric& A, CV& result, const CV& cv, double omega);
+    MatCSRLowerTri incompleteCholeskyDecomposition(const MatCSRSymmetric& A);
 
-    void conjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x0, double maxError, uint32_t maxIterations);
-    void preconditionedJacobiConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x0, double maxError, uint32_t maxIterations);
-    void preconditionedSSORConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x0, double omega, double maxError, uint32_t maxIterations);
-    void preconditionedIncompleteCholeskyConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x0, double maxError, uint32_t maxIterations);
+    void conjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x0, double maxError, uint32_t maxIterations);
+    void preconditionedJacobiConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x0, double maxError, uint32_t maxIterations);
+    void preconditionedSSORConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x0, double omega, double maxError, uint32_t maxIterations);
+    void preconditionedIncompleteCholeskyConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x0, double maxError, uint32_t maxIterations);
 }
 
 #endif

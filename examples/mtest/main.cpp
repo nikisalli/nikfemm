@@ -153,10 +153,14 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
 }
 
 int main(int argc, char** argv) {
+    int num = 1;
+    double angle = 0;
+    // for (double angle = 0; angle < (2 * PI) / 4; angle += ((2 * PI) / 4) / 1000) {
+    // printf("angle %f\n", angle);
     MagnetostaticSimulation simulation;
 
     draw_motor(simulation,
-                0, // angle
+                angle, // angle
                 24, // stator_poles
                 20, // rotor_poles
                 1, // stator_outer_pole_radius
@@ -165,8 +169,8 @@ int main(int argc, char** argv) {
                 0.30, // stator_inner_radius
                 0.1, // stator_pole_cap_percent_unfilled
                 0.5, // stator_pole_stem_percent_of_angle_step
-                1.3, // rotor_outer_radius
-                1.11, // rotor_inner_radius
+                1.40, // rotor_outer_radius
+                1.12, // rotor_inner_radius
                 0.10, // magnet_thickness
                 0.9, // magnet_fill_width_percent
                 0.24, // winding_fill_width_percent
@@ -175,11 +179,14 @@ int main(int argc, char** argv) {
                 0.866025, // currentB
                 -0.866025, // currentC
                 1 // magnet_magnetization
+
     );
 
     simulation.solve();
     // simulation.AplotToFile(10000, 10000, "Aplot.png");
-    simulation.BplotToFile(10000, 10000, "test.png", true, true);
-
+    // save to file num
+    simulation.BplotToFile(10000, 10000, "Bplot" + std::to_string(num) + ".png", true, false);
+        // num++;
+    // }
     return 0;
 }

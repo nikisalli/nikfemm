@@ -1,7 +1,7 @@
 #include "solvers.hpp"
 
 namespace nikfemm {
-    void multSSORPreconditioner(MatCSRSymmetric& A, CV& result, const CV& cv, double omega) {
+    void multSSORPreconditioner(const MatCSRSymmetric& A, CV& result, const CV& cv, double omega) {
         double temp = omega * (2 - omega);
         for (uint32_t i = 0; i < A.m; i++) {
             result[i] = cv[i] * temp;
@@ -30,7 +30,7 @@ namespace nikfemm {
         }
     }
 
-    MatCSRLowerTri incompleteCholeskyDecomposition(MatCSRSymmetric& A) {
+    MatCSRLowerTri incompleteCholeskyDecomposition(const MatCSRSymmetric& A) {
         MatCSRUpperTri R(A);
 
         // printf("R:\n");
@@ -126,7 +126,7 @@ namespace nikfemm {
         return R;
     }
 
-    void conjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {
+    void conjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double maxError, uint32_t maxIterations) {
         CV r(b.val.size());
         CV p(b.val.size());
         CV Ap(b.val.size());
@@ -153,7 +153,9 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             double rTrNew = CV::squareSum(r);
-            printf("iteration %u, error: %f\n", i, sqrt(rTrNew));
+            if (i % 10 == 0) {
+                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+            }
             if (rTrNew < maxError * maxError) {
             #ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
@@ -168,7 +170,7 @@ namespace nikfemm {
         }
     }
 
-    void preconditionedJacobiConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {
+    void preconditionedJacobiConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double maxError, uint32_t maxIterations) {
         CV r(b.val.size());
         CV::mult(r, A, x);
         CV::sub(r, b, r);
@@ -201,7 +203,9 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            printf("iteration %u, error: %f\n", i, sqrt(squareError));
+            if (i % 10 == 0) {
+                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+            }
             if (squareError < maxError * maxError) {
                 #ifdef DEBUG_PRINT
                 printf("converged after %lu iterations\n", i);
@@ -216,7 +220,7 @@ namespace nikfemm {
         }
     }
 
-    void preconditionedSSORConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double omega, double maxError, uint32_t maxIterations) {
+    void preconditionedSSORConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double omega, double maxError, uint32_t maxIterations) {
         CV r(b.val.size());
         CV::mult(r, A, x);
         CV::sub(r, b, r);
@@ -246,7 +250,9 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            printf("iteration %lu, error: %.17g\n", i, sqrt(squareError));
+            if (i % 10 == 0) {
+                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+            }
             if (squareError < maxError * maxError) {
                 printf("converged after %lu iterations\n", i);
                 #ifdef DEBUG_PRINT
@@ -259,16 +265,18 @@ namespace nikfemm {
             double beta = CV::dot(r, z) / rTzold;
             CV::addScaled(p, z, beta, p);
         }
-        printf("didn't converge, last error: %f\n", sqrt(squareError));
+        printf("didn't converge, last error: %.17g\n", sqrt(squareError));
     }
 
-    void preconditionedIncompleteCholeskyConjugateGradientSolver(MatCSRSymmetric& A, CV& b, CV& x, double maxError, uint32_t maxIterations) {
+    void preconditionedIncompleteCholeskyConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double maxError, uint32_t maxIterations) {
         CV r(b.val.size());
         CV::mult(r, A, x);
         CV::sub(r, b, r);
         CV z(b.val.size());
         CV tmp(b.val.size());
+        printf("computing incomplete cholesky preconditioner\n");
         MatCSRLowerTri L = incompleteCholeskyDecomposition(A);
+        printf("done computing incomplete cholesky preconditioner\n");
         CV::mult(tmp, (MatCSRLowerTri)L, r);
         CV::mult(z, (MatCSRUpperTri)L, tmp);
         CV p(b.val.size());
@@ -295,7 +303,9 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            printf("iteration %u, error: %f\n", i, sqrt(squareError));
+            if (i % 10 == 0) {
+                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+            }
             if (squareError < maxError * maxError) {
                 printf("converged after %u iterations\n", i);
                 #ifdef DEBUG_PRINT

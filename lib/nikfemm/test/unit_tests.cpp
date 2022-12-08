@@ -9,7 +9,7 @@ BOOST_AUTO_TEST_SUITE( csr_tests )
 
 BOOST_AUTO_TEST_CASE( csr_index )
 {
-    MatCOO<double> coo(3);
+    BuildMatCOO<double> coo(3);
     coo.set_elem(0, 0, 1);
     coo.set_elem(0, 1, 2);
     coo.set_elem(1, 0, 2);
@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE( csr_index )
 
 BOOST_AUTO_TEST_CASE( csr_cv_mult )
 {
-    MatCOO<double> coo(3);
+    BuildMatCOO<double> coo(3);
     coo.set_elem(0, 0, 1);
     coo.set_elem(0, 1, 2);
     coo.set_elem(1, 0, 2);
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE( csr_cv_mult )
 
 BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 {
-    MatCOO<double> coo(2);
+    BuildMatCOO<double> coo(2);
     // [1, 2, 0; 0, 3, 4; 5, 0, 6]
     coo.set_elem(0, 0, 4);
     coo.set_elem(0, 1, 1);
@@ -92,8 +92,9 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 
     MatCSRSymmetric csr(coo);
 
-    conjugateGradientSolver(csr, b, x0, 1e-6, 10);
+    // conjugateGradientSolver(csr, b, x0, 1e-6, 10);
 
+    printf("x0 = %d\n", x0.val.size());
     x0.print();
 }
 
@@ -115,7 +116,7 @@ BOOST_AUTO_TEST_CASE( cv_index )
 
 BOOST_AUTO_TEST_CASE( cv_mult )
 {
-    MatCOO<double> coo(3);
+    BuildMatCOO<double> coo(3);
     coo.set_elem(0, 0, 1);
     coo.set_elem(0, 1, 2);
     coo.set_elem(1, 0, 2);

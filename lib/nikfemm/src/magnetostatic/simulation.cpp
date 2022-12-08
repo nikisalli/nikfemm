@@ -9,6 +9,8 @@
 #include <iterator>
 #include <set>
 
+#include <omp.h>
+
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -18,7 +20,7 @@
 #include "../drawing/drawing.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/point.hpp"
-#include "../algebra/coo.hpp"
+#include "../algebra/build_coo.hpp"
 #include "../algebra/csr.hpp"
 #include "../algebra/simple_vector.hpp"
 #include "../algebra/solvers.hpp"
@@ -243,7 +245,7 @@ namespace nikfemm {
                                        y_scale * mesh.drawing.points[s.p1].y + y_offset), 
                              cv::Point(x_scale * mesh.drawing.points[s.p2].x + x_offset, 
                                        y_scale * mesh.drawing.points[s.p2].y + y_offset),
-                             cv::Scalar(255, 255, 255), 1);
+                             cv::Scalar(0, 0, 0), 1);
         }
 
         if (plotRegions) {
@@ -424,6 +426,8 @@ namespace nikfemm {
 
     void MagnetostaticSimulation::solve() {
         // get time in milliseconds
+        omp_set_num_threads(12);
+        std::cout << "Number of threads in the current parallel region is " << omp_get_num_threads() << std::endl;
         mesh.drawing.addRefiningPoints();
 
         /* auto boundary */
@@ -474,7 +478,7 @@ namespace nikfemm {
         // mesh.plot();
         #endif
         printf("the mesh has %u nodes and %u elements\n", mesh.data.numberofpoints, mesh.data.numberoftriangles);
-        MatCOO<MagnetostaticNonLinearExpression> coo(mesh.data.numberofpoints);
+        BuildMatCOO<MagnetostaticNonLinearExpression> coo(mesh.data.numberofpoints);
         CV b(mesh.data.numberofpoints);
         A = CV(mesh.data.numberofpoints);
         B = std::vector<Vector>(mesh.data.numberoftriangles, {0, 0});
@@ -526,7 +530,8 @@ namespace nikfemm {
 
         if (all_linear) {
             printf("all materials are linear\n");
-            preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-7, 100000);
+            preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-6, 100000);
+            // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-6, 100000);
         } else {
             printf("nonlinear materials detected, starting non linear newton solver\n");
             CV r(b.val.size());  // residual
@@ -535,7 +540,7 @@ namespace nikfemm {
             for (uint32_t i = 0; i < 500; i++) {
                 // conjugateGradientSolver(FemMat, b, A, 1e-7, 10000);
                 // preconditionedJacobiConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
-                preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-6, 50);
+                preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-7, 50);
                 // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
                 // mesh.Aplot(A);
                 // mesh.Bplot(B);

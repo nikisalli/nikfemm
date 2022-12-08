@@ -3,7 +3,7 @@
 #include "magnetostatic_algebra.hpp"
 
 namespace nikfemm {
-    MagnetostaticMatCSRSymmetric::MagnetostaticMatCSRSymmetric(MatCOO<MagnetostaticNonLinearExpression>& coo) {
+    MagnetostaticMatCSRSymmetric::MagnetostaticMatCSRSymmetric(BuildMatCOO<MagnetostaticNonLinearExpression>& coo) {
         m = coo.m;
 
         std::vector<std::pair<uint64_t, MagnetostaticNonLinearExpression>> elems;
@@ -20,12 +20,12 @@ namespace nikfemm {
 
         nnz = elems.size() - m;
 
-        row_ptr = new uint32_t[m + 1]();
-        col_ind = new uint32_t[nnz];
-        val = new double[nnz];
-        diag = new double[m];
-        expr = new MagnetostaticNonLinearExpression[nnz];
-        diag_expr = new MagnetostaticNonLinearExpression[m];
+        row_ptr = std::vector<uint32_t>(m + 1, 0);
+        col_ind = std::vector<uint32_t>(nnz);
+        val = std::vector<double>(nnz);
+        diag = std::vector<double>(m);
+        expr = std::vector<MagnetostaticNonLinearExpression>(nnz);
+        diag_expr = std::vector<MagnetostaticNonLinearExpression>(m);
 
         uint32_t i = 0;
         for (auto const& [key, value] : elems) {
@@ -49,8 +49,7 @@ namespace nikfemm {
     }
 
     MagnetostaticMatCSRSymmetric::~MagnetostaticMatCSRSymmetric() {
-        delete[] expr;
-        delete[] diag_expr;
+
     }
 
     void MagnetostaticMatCSRSymmetric::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter) {

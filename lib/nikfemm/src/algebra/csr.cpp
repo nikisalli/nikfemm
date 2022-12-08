@@ -13,10 +13,10 @@
 
 namespace nikfemm {
     BaseCSR::BaseCSR() {
-        row_ptr = NULL;
-        col_ind = NULL;
-        val = NULL;
-        diag = NULL;
+        row_ptr = std::vector<uint32_t>();
+        col_ind = std::vector<uint32_t>();
+        val = std::vector<double>();
+        diag = std::vector<double>();
         nnz = 0;
         m = 0;
     }
@@ -45,7 +45,7 @@ namespace nikfemm {
         printf("\n");
     }
 
-    BaseCSR::BaseCSR(MatCOO<double>& coo) {
+    BaseCSR::BaseCSR(BuildMatCOO<double>& coo) {
         m = coo.m;
 
         std::vector<std::pair<uint64_t, double>> elems;
@@ -62,10 +62,10 @@ namespace nikfemm {
 
         nnz = elems.size() - m;
 
-        row_ptr = new uint32_t[m + 1]();
-        col_ind = new uint32_t[nnz];
-        val = new double[nnz];
-        diag = new double[m];
+        row_ptr = std::vector<uint32_t>(m + 1, 0);
+        col_ind = std::vector<uint32_t>(nnz);
+        val = std::vector<double>(nnz);
+        diag = std::vector<double>(m);
 
         uint32_t i = 0;
         for (auto const& [key, value] : elems) {
@@ -90,22 +90,14 @@ namespace nikfemm {
         m = csr.m;
         nnz = csr.nnz;
 
-        row_ptr = new uint32_t[m + 1];
-        col_ind = new uint32_t[nnz];
-        val = new double[nnz];
-        diag = new double[m];
-
-        memcpy(row_ptr, csr.row_ptr, (m + 1) * sizeof(uint32_t));
-        memcpy(col_ind, csr.col_ind, nnz * sizeof(uint32_t));
-        memcpy(val, csr.val, nnz * sizeof(double));
-        memcpy(diag, csr.diag, m * sizeof(double));
+        row_ptr = std::vector<uint32_t>(csr.row_ptr);
+        col_ind = std::vector<uint32_t>(csr.col_ind);
+        val = std::vector<double>(csr.val);
+        diag = std::vector<double>(csr.diag);
     }
 
     BaseCSR::~BaseCSR() {
-        delete[] row_ptr;
-        delete[] col_ind;
-        delete[] val;
-        delete[] diag;
+        
     }
 
     // MatCSRSymmetric
