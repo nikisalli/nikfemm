@@ -1,5 +1,5 @@
-#ifndef NIK_COO_HPP
-#define NIK_COO_HPP
+#ifndef NIK_BUILD_COO_HPP
+#define NIK_BUILD_COO_HPP
 
 #include <set>
 #include <cstdint>

@@ -227,29 +227,28 @@ namespace nikfemm {
 
                 double area = Point::doubleOrientedArea(data.pointlist[v1], data.pointlist[v2], data.pointlist[v3]);
 
+                // elements are only added if they are in the upper triangle because the matrix is symmetric and this saves half the memory
                 double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / area;
                 double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
                 // coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[i][j].mu));
                 // check if key exists
-                uint64_t key = BuildMatCOO<int>::get_key(i, v1);
-                if (coo.elems.find(key) == coo.elems.end()) {
+                if (v1 <= i) {
+                    uint64_t key = BuildMatCOO<int>::get_key(i, v1);
                     coo.elems.emplace(key, MagnetostaticNonLinearExpression());
+                    coo.elems[key].terms.push_back(
+                        {
+                            (area * (b1 * b1 + c1 * c1) * 0.5),
+                            adjelems_ids[i][j],
+                            false
+                        }
+                    );
                 }
-                coo.elems[key].terms.push_back(
-                    {
-                        (area * (b1 * b1 + c1 * c1) * 0.5),
-                        adjelems_ids[i][j],
-                        false
-                    }
-                );
                 if (v2 <= i) {
                     double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
                     double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
                     // coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
-                    key = BuildMatCOO<int>::get_key(i, v2);
-                    if (coo.elems.find(key) == coo.elems.end()) {
-                        coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    }
+                    uint64_t key = BuildMatCOO<int>::get_key(i, v2);
+                    coo.elems.emplace(key, MagnetostaticNonLinearExpression());
                     coo.elems[key].terms.push_back(
                         {
                             (area * (b2 * b1 + c2 * c1) * 0.5),
@@ -262,11 +261,9 @@ namespace nikfemm {
                     double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
                     double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
                     // coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
-                    key = BuildMatCOO<int>::get_key(i, v3);
-                    if (coo.elems.find(key) == coo.elems.end()) {
-                        coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    }
-                    coo.elems[BuildMatCOO<int>::get_key(i, v3)].terms.push_back(
+                    uint64_t key = BuildMatCOO<int>::get_key(i, v3);
+                    coo.elems.emplace(key, MagnetostaticNonLinearExpression());
+                    coo.elems[key].terms.push_back(
                         {
                             (area * (b3 * b1 + c3 * c1) * 0.5),
                             adjelems_ids[i][j],

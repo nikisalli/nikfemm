@@ -22,7 +22,12 @@ namespace nikfemm {
         BaseCSR(BuildMatCOO<double>& coo);
         BaseCSR(const BaseCSR& csr);
         ~BaseCSR();
+
+        void print();
         void printCSR();
+        void write_to_file(const char *filename);
+
+        double operator()(uint32_t i, uint32_t j) const;
     };
 
     struct MatCSRSymmetric;
@@ -30,39 +35,24 @@ namespace nikfemm {
     struct MatCSRUpperTri;
 
     struct MatCSRSymmetric : virtual BaseCSR {
-        MatCSRSymmetric();
+        MatCSRSymmetric() : BaseCSR() {}
         MatCSRSymmetric(BuildMatCOO<double>& coo) : BaseCSR(coo) {}
         MatCSRSymmetric(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRSymmetric() {}
-
-        void print();
-        void write_to_file(const char *filename);
-
-        double operator()(uint32_t i, uint32_t j) const;
     };
 
     struct MatCSRLowerTri : virtual BaseCSR {
-        MatCSRLowerTri();
+        MatCSRLowerTri() : BaseCSR() {}
         MatCSRLowerTri(BuildMatCOO<double>& coo) : BaseCSR(coo) {}
         MatCSRLowerTri(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRLowerTri() {}
-
-        void print();
-        void write_to_file(const char *filename);
-
-        double operator()(uint32_t i, uint32_t j) const;
     };
 
     struct MatCSRUpperTri : virtual BaseCSR {
-        MatCSRUpperTri();
+        MatCSRUpperTri() : BaseCSR() {}
         MatCSRUpperTri(BuildMatCOO<double>& coo) : BaseCSR(coo) {}
         MatCSRUpperTri(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRUpperTri() {}
-
-        void print();
-        void write_to_file(const char *filename);
-
-        double operator()(uint32_t i, uint32_t j) const;
     };
 }
 

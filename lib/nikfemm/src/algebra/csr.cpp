@@ -100,11 +100,7 @@ namespace nikfemm {
         
     }
 
-    // MatCSRSymmetric
-
-    MatCSRSymmetric::MatCSRSymmetric() : BaseCSR() {}
-
-    void MatCSRSymmetric::print() {
+    void BaseCSR::print() {
         // iterate over CSR elements
         for (uint32_t i = 0; i < m; i++) {
             for (uint32_t j = 0; j < m; j++) {
@@ -114,7 +110,7 @@ namespace nikfemm {
         }
     }
 
-    double MatCSRSymmetric::operator()(uint32_t i, uint32_t j) const {
+    double BaseCSR::operator()(uint32_t i, uint32_t j) const {
         if (i == j) {
             return diag[i];
         } else if (i < j) {
@@ -129,93 +125,7 @@ namespace nikfemm {
         return 0.0;
     }
 
-    void MatCSRSymmetric::write_to_file(const char *filename) {
-        FILE *f = fopen(filename, "w");
-        if (f == NULL) {
-            nexit("Error opening file!\n");
-        }
-
-        // iterate over CSR elements
-        for (uint64_t i = 0; i < m; i++) {
-            for (uint64_t j = 0; j < m; j++) {
-                fprintf(f, "%.17g ", (*this)(i, j));
-            }
-            fprintf(f, "\n");
-        }
-        fclose(f);
-    }
-
-    // MatCSRLowerTri
-
-    MatCSRLowerTri::MatCSRLowerTri() : BaseCSR() {}
-
-    void MatCSRLowerTri::print() {
-        // iterate over CSR elements
-        for (uint32_t i = 0; i < m; i++) {
-            for (uint32_t j = 0; j < m; j++) {
-                printf("%.4f ", (*this)(i, j));
-            }
-            printf("\n");
-        }
-    }
-
-    double MatCSRLowerTri::operator()(uint32_t i, uint32_t j) const {
-        if (i == j) {
-            return diag[i];
-        } else {
-            for (uint32_t k = row_ptr[j]; k < row_ptr[j + 1]; k++) {
-                if (col_ind[k] == i) {
-                    return val[k];
-                }
-            }
-        }
-        return 0.0;
-    }
-
-    void MatCSRLowerTri::write_to_file(const char *filename) {
-        FILE *f = fopen(filename, "w");
-        if (f == NULL) {
-            nexit("Error opening file!\n");
-        }
-
-        // iterate over CSR elements
-        for (uint64_t i = 0; i < m; i++) {
-            for (uint64_t j = 0; j < m; j++) {
-                fprintf(f, "%.17g ", (*this)(i, j));
-            }
-            fprintf(f, "\n");
-        }
-        fclose(f);
-    }
-
-    // MatCSRUpperTri
-
-    MatCSRUpperTri::MatCSRUpperTri() : BaseCSR() {}
-
-    void MatCSRUpperTri::print() {
-        // iterate over CSR elements
-        for (uint32_t i = 0; i < m; i++) {
-            for (uint32_t j = 0; j < m; j++) {
-                printf("%.4f ", (*this)(i, j));
-            }
-            printf("\n");
-        }
-    }
-
-    double MatCSRUpperTri::operator()(uint32_t i, uint32_t j) const {
-        if (i == j) {
-            return diag[i];
-        } else {
-            for (uint32_t k = row_ptr[i]; k < row_ptr[i + 1]; k++) {
-                if (col_ind[k] == j) {
-                    return val[k];
-                }
-            }
-        }
-        return 0.0;
-    }
-
-    void MatCSRUpperTri::write_to_file(const char *filename) {
+    void BaseCSR::write_to_file(const char *filename) {
         FILE *f = fopen(filename, "w");
         if (f == NULL) {
             nexit("Error opening file!\n");

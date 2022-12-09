@@ -11,4 +11,7 @@
 
 // #define NIK_PARALLEL
 
+#define USE_COO
+// #define USE_CSR
+
 #endif
