@@ -44,6 +44,7 @@ namespace nikfemm {
     };
 
     std::vector<double> MagnetostaticMesh::getFemSystem(BuildMatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
+        // since the stiffness matrix is symmetric, this function only computes the upper triangular part
         auto start = std::chrono::high_resolution_clock::now();
 
         #ifdef DEBUG_PRINT
@@ -52,18 +53,8 @@ namespace nikfemm {
         }
         #endif
 
-        /*
-        auto eadjelems_ids = new uint32_t[data.numberoftriangles][3];
-        auto eadjelems_props = new const MagnetostaticProp*[data.numberoftriangles][3];
-        */
-
         auto eadjelems_ids = std::vector<std::array<uint32_t, 3>>(data.numberoftriangles);
         auto eadjelems_props = std::vector<std::array<const MagnetostaticProp*, 3>>(data.numberoftriangles);
-        /*
-        auto Jm = new double[data.numberoftriangles];
-        std::vector<std::vector<uint32_t>> eadjelems_ids(data.numberoftriangles, std::vector<uint32_t>(3));
-        std::vector<std::vector<const MagnetostaticProp*>> eadjelems_props(data.numberoftriangles, std::vector<const MagnetostaticProp*>(3));
-        */
         std::vector<double> Jm(data.numberoftriangles);
         
         struct EAdjElem {

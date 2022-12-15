@@ -13,7 +13,16 @@ namespace nikfemm {
         for (auto it = coo.elems.begin(); it != coo.elems.end(); it++) {
             uint64_t key = it->first;
             double value = it->second;
-            elems.push_back(ElemCOO(key >> 32, key & 0xFFFFFFFF, value));
+            uint32_t row = key >> 32;
+            uint32_t col = key & 0xFFFFFFFF;
+            if (row == col) {
+                elems.push_back(ElemCOO(row, col, value));
+            } else if (row < col) {
+                elems.push_back(ElemCOO(row, col, value));
+                elems.push_back(ElemCOO(col, row, value));
+            } else {
+                nexit("BaseCOO::BaseCOO(BuildMatCOO<double>& coo): row > col");
+            }
         }
         m = coo.m;
 
