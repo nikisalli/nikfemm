@@ -31,14 +31,14 @@ namespace nikfemm {
             void solve();
         protected:
             void AplotRend(cv::Mat* image, double width, double height);
-            void BplotRend(cv::Mat* image, double width, double height, bool plotMesh = false, bool plotRegions = false);
+            void BplotRend(cv::Mat* image, double width, double height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN);
             void ScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
         public:
             void Aplot(uint32_t width, uint32_t height);
-            void Bplot(uint32_t width, uint32_t height, bool plotMesh = false, bool plotRegions = false);
+            void Bplot(uint32_t width, uint32_t height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN);
             void ScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
             void AplotToFile(uint32_t width, uint32_t height, std::string filename);
-            void BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh = false, bool plotRegions = false);
+            void BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN);
             void ScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh = false, bool plotRegions = false);
     };
 }

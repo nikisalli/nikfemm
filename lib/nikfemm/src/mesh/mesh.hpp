@@ -75,7 +75,18 @@ namespace nikfemm {
 
     template <typename Prop>
     Mesh<Prop>::~Mesh() {
-
+        // we don't know how triangle allocated the memory
+        free(data.pointlist);
+        free(data.pointattributelist);
+        free(data.pointmarkerlist);
+        free(data.trianglelist);
+        free(data.triangleattributelist);
+        free(data.neighborlist);
+        free(data.segmentlist);
+        free(data.segmentmarkerlist);
+        free(data.holelist);
+        free(data.edgelist);
+        free(data.edgemarkerlist);
     }
 
     template <typename Prop>
@@ -168,7 +179,10 @@ namespace nikfemm {
         data.edgelist = (int *) NULL;             /* Needed only if -e switch used. */
         data.edgemarkerlist = (int *) NULL;   /* Needed if -e used and -B not used. */
 
-        triangulate(switches, &in, reinterpret_cast<triangulateio*>(&data), NULL);        
+        triangulate(switches, &in, reinterpret_cast<triangulateio*>(&data), NULL);
+        free(in.pointlist);
+        free(in.segmentlist);
+        free(in.regionlist);
     }
 
     template <typename Prop>

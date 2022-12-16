@@ -150,7 +150,7 @@ namespace nikfemm {
         cv::imwrite(filename, image);
     }
 
-    void MagnetostaticSimulation::BplotRend(cv::Mat* image, double width, double height, bool plotMesh, bool plotRegions) {
+    void MagnetostaticSimulation::BplotRend(cv::Mat* image, double width, double height, bool plotMesh, bool plotRegions, double maxB, double minB) {
         // get mesh enclosing rectangle
         float min_x = -1.1 * mesh.radius;
         float min_y = -1.1 * mesh.radius;
@@ -185,13 +185,21 @@ namespace nikfemm {
         }
         */
 
-        std::vector<double> B_mags;
-        for (uint32_t i = 0; i < B.size(); i++) {
-            B_mags.push_back(B[i].magnitude());
+        double max_B;
+        double min_B;
+
+        if (std::isnan(maxB) || std::isnan(minB)) {
+            std::vector<double> B_mags;
+            for (uint32_t i = 0; i < B.size(); i++) {
+                B_mags.push_back(B[i].magnitude());
+            }
+            std::sort(B_mags.begin(), B_mags.end());
+            max_B = B_mags[0.9 * B_mags.size()];
+            min_B = B_mags[0.1 * B_mags.size()];
+        } else {
+            max_B = maxB;
+            min_B = minB;
         }
-        std::sort(B_mags.begin(), B_mags.end());
-        double max_B = B_mags[0.9 * B_mags.size()];
-        double min_B = B_mags[0.1 * B_mags.size()];
 
         printf("max B: %f\n", max_B);
         printf("min B: %f\n", min_B);
@@ -280,12 +288,12 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticSimulation::Bplot(uint32_t width, uint32_t height, bool plotMesh, bool plotRegions) {
+    void MagnetostaticSimulation::Bplot(uint32_t width, uint32_t height, bool plotMesh, bool plotRegions, double maxB, double minB) {
         // create the image
         cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
         // render the mesh
-        BplotRend(&image, width, height, plotMesh, plotRegions);
+        BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB);
 
         // show the image
         cv::imshow("B", image);
@@ -293,12 +301,12 @@ namespace nikfemm {
         cv::waitKey(0);
     }
 
-    void MagnetostaticSimulation::BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh, bool plotRegions) {
+    void MagnetostaticSimulation::BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh, bool plotRegions, double maxB, double minB) {
         // create the image
         cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
         // render the mesh
-        BplotRend(&image, width, height, plotMesh, plotRegions);
+        BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB);
 
         // save the image
         cv::imwrite(filename, image);

@@ -153,7 +153,7 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             double rTrNew = CV::squareSum(r);
-            if (i % 10 == 0) {
+            if (i % 100 == 0) {
                 printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
             }
             if (rTrNew < maxError * maxError) {
@@ -203,7 +203,7 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            if (i % 10 == 0) {
+            if (i % 100 == 0) {
                 printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
             }
             if (squareError < maxError * maxError) {
@@ -250,7 +250,7 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            if (i % 10 == 0) {
+            if (i % 100 == 0) {
                 printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
             }
             if (squareError < maxError * maxError) {
@@ -303,7 +303,7 @@ namespace nikfemm {
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            if (i % 10 == 0) {
+            if (i % 100 == 0) {
                 printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
             }
             if (squareError < maxError * maxError) {
