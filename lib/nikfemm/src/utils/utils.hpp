@@ -7,7 +7,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
-#include "../geometry/point.hpp"
+#include "../geometry/vector.hpp"
 
 namespace nikfemm {
     void nexit(std::string message);

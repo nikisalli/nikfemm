@@ -97,8 +97,8 @@ class ThreadPool {
     std::condition_variable task_cond_;
 };
 
-Point polar_to_scalar(double r, double theta) {
-    return Point(r * cos(theta), r * sin(theta));
+Vector polar_to_scalar(double r, double theta) {
+    return Vector(r * cos(theta), r * sin(theta));
 }
 
 void draw_motor(MagnetostaticSimulation& sim, double angle, 
@@ -132,7 +132,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
     double winding_start_radius = stator_outer_radius + winding_to_pole_and_core_distance;
     double winding_end_radius = stator_inner_pole_radius - winding_to_pole_and_core_distance;
 
-    std::vector<Point> stator;
+    std::vector<Vector> stator;
     for (int i = 0; i < stator_poles; i++) {
         double center_angle = angle_step * i;
         stator.push_back(polar_to_scalar( stator_outer_radius, center_angle - pole_stem_half));
@@ -195,7 +195,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
 
     sim.mesh.drawing.drawPolygon(stator);
 
-    sim.mesh.drawing.drawCircle(Point(0, 0), stator_inner_radius, stator_poles * 10);
+    sim.mesh.drawing.drawCircle(Vector(0, 0), stator_inner_radius, stator_poles * 10);
 
     // stator core
     sim.mesh.drawing.drawRegion(polar_to_scalar(stator_outer_radius, 0), {0, {0, 0}, nikfemm::materials::iron_linear});
@@ -207,16 +207,16 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
     ), {0, {0, 0}, nikfemm::materials::air});
 
     // stator center hole
-    sim.mesh.drawing.drawRegion(Point(0, 0), {0, {0, 0}, nikfemm::materials::air});
+    sim.mesh.drawing.drawRegion(Vector(0, 0), {0, {0, 0}, nikfemm::materials::air});
 
     // draw rotor
-    sim.mesh.drawing.drawCircle(Point(0, 0), rotor_outer_radius, rotor_poles * 10);
+    sim.mesh.drawing.drawCircle(Vector(0, 0), rotor_outer_radius, rotor_poles * 10);
 
     // draw magnets
     double magnet_angle_step = (2 * PI) / (rotor_poles);
     double magnet_width_half = magnet_angle_step * magnet_fill_width_percent / 2;
 
-    std::vector<Point> magnet_inner_rotor;
+    std::vector<Vector> magnet_inner_rotor;
 
     for (int i = 0; i < rotor_poles; i++) {
         double center_angle = magnet_angle_step * i + angle;
@@ -232,7 +232,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
         // magnet
         sim.mesh.drawing.drawRegion(
             polar_to_scalar(rotor_inner_radius - (magnet_thickness / 2), center_angle),
-            {0, polar_to_scalar(magnet_orientation, center_angle), nikfemm::materials::neodymium}
+            {0, polar_to_scalar(magnet_orientation, center_angle), nikfemm::materials::iron_linear}
         );
         
         magnet_inner_rotor.push_back(polar_to_scalar(rotor_inner_radius, center_angle - magnet_width_half));
@@ -290,26 +290,26 @@ void simulate(int num, double angle, double max_B, double min_B,
     simulation.solve();
     // simulation.AplotToFile(10000, 10000, "Aplot.png");
     // save to file num
-    simulation.BplotToFile(10000, 10000, "Bplot" + std::to_string(num) + ".png", true, false, max_B, min_B);
+    simulation.BplotToFile(10000, 10000, "Bplot" + std::to_string(num) + ".png", false, true);
 }
 
 int main(int argc, char** argv) {
     int num = 1;
     double angle = 0;
     // calculate max and min B by simulating at 0 angle
-    double max_B;
-    double min_B;
-    MagnetostaticSimulation simulation;
-    draw_motor(simulation, 0, 24, 20, 1, 0.95, 0.45, 0.30, 0.1, 0.5, 1.13, 1.12, 0.10, 0.9, 0.24, 0.95, 0, 0.8660254038, -0.8660254038, 1);
-    simulation.solve();
-    std::vector<double> B_mags;
-    for (uint32_t i = 0; i < simulation.B.size(); i++) {
-        B_mags.push_back(simulation.B[i].magnitude());
-    }
-    std::sort(B_mags.begin(), B_mags.end());
-    max_B = B_mags[0.9 * B_mags.size()];
-    min_B = B_mags[0.1 * B_mags.size()];
-    printf("max B: %f, min B: %f\n", max_B, min_B);
+    double max_B = 0.000073;
+    double min_B = 0.000000;
+    // MagnetostaticSimulation simulation;
+    // draw_motor(simulation, 0, 24, 20, 1, 0.95, 0.45, 0.30, 0.1, 0.5, 1.13, 1.12, 0.10, 0.9, 0.24, 0.95, 0, 0.8660254038, -0.8660254038, 1);
+    // simulation.solve();
+    // std::vector<double> B_mags;
+    // for (uint32_t i = 0; i < simulation.B.size(); i++) {
+    //     B_mags.push_back(simulation.B[i].magnitude());
+    // }
+    // std::sort(B_mags.begin(), B_mags.end());
+    // max_B = B_mags[0.9 * B_mags.size()];
+    // min_B = B_mags[0.1 * B_mags.size()];
+    // printf("max B: %f, min B: %f\n", max_B, min_B);
     
     ThreadPool pool(12);
     for (double angle = 0; angle < (2 * PI) / 4; angle += ((2 * PI) / 4) / 1000) {
@@ -323,20 +323,19 @@ int main(int argc, char** argv) {
                 0.30, // stator_inner_radius
                 0.1, // stator_pole_cap_percent_unfilled
                 0.5, // stator_pole_stem_percent_of_angle_step
-                1.13, // rotor_outer_radius
+                1.20, // rotor_outer_radius
                 1.12, // rotor_inner_radius
                 0.10, // magnet_thickness
-                0.9, // magnet_fill_width_percent
+                0.7, // magnet_fill_width_percent
                 0.24, // winding_fill_width_percent
                 0.95, // winding_percent_of_stem
                 sin(angle), // currentA
                 sin(angle + (2 * PI) / 3), // currentB
                 sin(angle + (4 * PI) / 3), // currentC
-                1 // magnet_magnetization
+                0.5 // magnet_magnetization
             );
         });
         num++;
     }
-    
     return 0;
 }

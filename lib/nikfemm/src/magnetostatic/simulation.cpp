@@ -19,7 +19,7 @@
 #include "simulation.hpp"
 #include "../drawing/drawing.hpp"
 #include "../geometry/segment.hpp"
-#include "../geometry/point.hpp"
+#include "../geometry/vector.hpp"
 #include "../algebra/build_coo.hpp"
 #include "../algebra/csr.hpp"
 #include "../algebra/simple_vector.hpp"
@@ -77,9 +77,9 @@ namespace nikfemm {
 
         // draw the points
         for (int64_t i = 0; i < mesh.data.numberofpoints; i++) {    
-            Point p = mesh.data.pointlist[i];
+            Vector p = mesh.data.pointlist[i];
 
-            if (Point::distance(p, Point(0, 0)) > mesh.radius + mesh.epsilon) {
+            if (Vector::distance(p, Vector(0, 0)) > mesh.radius + mesh.epsilon) {
                 continue;
             }
 
@@ -94,7 +94,7 @@ namespace nikfemm {
             // for every triangle find the barycenter and add it to the points vector
             for (int32_t j = 0; j < mesh.data.numberoftriangles; j++) {
                 if (mesh.data.trianglelist[j].verts[0] == i || mesh.data.trianglelist[j].verts[1] == i || mesh.data.trianglelist[j].verts[2] == i) {
-                    Point barycenter = {
+                    Vector barycenter = {
                         (mesh.data.pointlist[mesh.data.trianglelist[j].verts[0]].x + mesh.data.pointlist[mesh.data.trianglelist[j].verts[1]].x + mesh.data.pointlist[mesh.data.trianglelist[j].verts[2]].x) / 3,
                         (mesh.data.pointlist[mesh.data.trianglelist[j].verts[0]].y + mesh.data.pointlist[mesh.data.trianglelist[j].verts[1]].y + mesh.data.pointlist[mesh.data.trianglelist[j].verts[2]].y) / 3
                     };
@@ -191,7 +191,7 @@ namespace nikfemm {
         if (std::isnan(maxB) || std::isnan(minB)) {
             std::vector<double> B_mags;
             for (uint32_t i = 0; i < B.size(); i++) {
-                B_mags.push_back(B[i].magnitude());
+                B_mags.push_back(B[i].norm());
             }
             std::sort(B_mags.begin(), B_mags.end());
             max_B = B_mags[0.9 * B_mags.size()];
@@ -211,19 +211,19 @@ namespace nikfemm {
             // get the triangle
             Elem e = mesh.data.trianglelist[i];
             // get the vertices
-            Point v1 = mesh.data.pointlist[e.verts[0]];
-            Point v2 = mesh.data.pointlist[e.verts[1]];
-            Point v3 = mesh.data.pointlist[e.verts[2]];
+            Vector v1 = mesh.data.pointlist[e.verts[0]];
+            Vector v2 = mesh.data.pointlist[e.verts[1]];
+            Vector v3 = mesh.data.pointlist[e.verts[2]];
 
-            if (Point::distance(v1, Point(0, 0)) > mesh.radius + mesh.epsilon ||
-                Point::distance(v2, Point(0, 0)) > mesh.radius + mesh.epsilon || 
-                Point::distance(v3, Point(0, 0)) > mesh.radius + mesh.epsilon) {
+            if (Vector::distance(v1, Vector(0, 0)) > mesh.radius + mesh.epsilon ||
+                Vector::distance(v2, Vector(0, 0)) > mesh.radius + mesh.epsilon || 
+                Vector::distance(v3, Vector(0, 0)) > mesh.radius + mesh.epsilon) {
                 continue;
             }
 
             // get the B vectors
             Vector Bv = B[i];
-            cv::Scalar c = val2jet(Bv.magnitude(), min_B, max_B);
+            cv::Scalar c = val2jet(Bv.norm(), min_B, max_B);
             // get the vertices in window coordinates
             cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, std::vector<cv::Point>({
                 cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
@@ -261,7 +261,7 @@ namespace nikfemm {
             for (DrawingRegion r : mesh.drawing.regions) {
                 std::vector<cv::Point> points;
                 
-                Point pos = r.first;
+                Vector pos = r.first;
                 // draw white cross
                 cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
                                  cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
@@ -271,18 +271,18 @@ namespace nikfemm {
                                  cv::Scalar(255, 255, 255), 1);
                 // draw an arrow for each magnet region
                 /*
+                */
                 if (mesh.drawing.region_map[r.second].M != Vector(0, 0)) {
-                    Point start = r.first;
-                    Point end = start + mesh.drawing.region_map[r.second].M;
+                    Vector start = r.first;
+                    Vector end = start + mesh.drawing.region_map[r.second].M;
                     cv::arrowedLine(*image, cv::Point(x_scale * start.x + x_offset, y_scale * start.y + y_offset),
                                             cv::Point(x_scale * end.x + x_offset, y_scale * end.y + y_offset),
                                             cv::Scalar(255, 255, 255), 1);
                 }
-                */
             }
 
             // draw all drawing points
-            for (Point p : mesh.drawing.points) {
+            for (Vector p : mesh.drawing.points) {
                 cv::circle(*image, cv::Point(x_scale * p.x + x_offset, y_scale * p.y + y_offset), 2, cv::Scalar(255, 255, 255), -1);
             }
         }
@@ -334,11 +334,11 @@ namespace nikfemm {
         // std::sort(scalar.begin(), scalar.end());
         // double max_Scalar = scalar[scalar.size() - 1];
         // double min_Scalar = scalar[0];
-        double max_Scalar = 0.000000000000000000000000000000001;
-        double min_Scalar = 0;
-
-        printf("max Scalar: %.17g\n", max_Scalar);
-        printf("min Scalar: %.17g\n", min_Scalar);
+        std::vector<double> sortedScalar = scalar;
+        std::sort(sortedScalar.begin(), sortedScalar.end());
+        // 99th percentile
+        double max_Scalar = 0.00000000000000000000001;
+        double min_Scalar = -0.00000000000000000000001;
 
         // max_B = 1e-6;
 
@@ -347,13 +347,13 @@ namespace nikfemm {
             // get the triangle
             Elem e = mesh.data.trianglelist[i];
             // get the vertices
-            Point v1 = mesh.data.pointlist[e.verts[0]];
-            Point v2 = mesh.data.pointlist[e.verts[1]];
-            Point v3 = mesh.data.pointlist[e.verts[2]];
+            Vector v1 = mesh.data.pointlist[e.verts[0]];
+            Vector v2 = mesh.data.pointlist[e.verts[1]];
+            Vector v3 = mesh.data.pointlist[e.verts[2]];
 
-            if (Point::distance(v1, Point(0, 0)) > mesh.radius + mesh.epsilon ||
-                Point::distance(v2, Point(0, 0)) > mesh.radius + mesh.epsilon || 
-                Point::distance(v3, Point(0, 0)) > mesh.radius + mesh.epsilon) {
+            if (Vector::distance(v1, Vector(0, 0)) > mesh.radius + mesh.epsilon ||
+                Vector::distance(v2, Vector(0, 0)) > mesh.radius + mesh.epsilon || 
+                Vector::distance(v3, Vector(0, 0)) > mesh.radius + mesh.epsilon) {
                 continue;
             }
 
@@ -396,7 +396,7 @@ namespace nikfemm {
             for (DrawingRegion r : mesh.drawing.regions) {
                 std::vector<cv::Point> points;
                 
-                Point pos = r.first;
+                Vector pos = r.first;
                 // draw white cross
                 cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
                                  cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
@@ -447,29 +447,29 @@ namespace nikfemm {
         }
         // translate everything to the origin
         for (uint32_t i = 0; i < mesh.drawing.points.size(); i++) {
-            mesh.drawing.points[i] = Point(mesh.drawing.points[i].x - smallest_circle.center.x, mesh.drawing.points[i].y - smallest_circle.center.y);
+            mesh.drawing.points[i] = Vector(mesh.drawing.points[i].x - smallest_circle.center.x, mesh.drawing.points[i].y - smallest_circle.center.y);
         }
         for (uint32_t i = 0; i < mesh.drawing.polygons.size(); i++) {
             for (uint32_t j = 0; j < mesh.drawing.polygons[i].points.size(); j++) {
-                mesh.drawing.polygons[i].points[j] = Point(mesh.drawing.polygons[i].points[j].x - smallest_circle.center.x, mesh.drawing.polygons[i].points[j].y - smallest_circle.center.y);
+                mesh.drawing.polygons[i].points[j] = Vector(mesh.drawing.polygons[i].points[j].x - smallest_circle.center.x, mesh.drawing.polygons[i].points[j].y - smallest_circle.center.y);
             }
         }
         std::vector<DrawingRegion> translated_regions;
         for (DrawingRegion region : mesh.drawing.regions) {
-            translated_regions.push_back(DrawingRegion(Point(region.first.x - smallest_circle.center.x, region.first.y - smallest_circle.center.y), region.second));
+            translated_regions.push_back(DrawingRegion(Vector(region.first.x - smallest_circle.center.x, region.first.y - smallest_circle.center.y), region.second));
         }
         mesh.drawing.regions = translated_regions;
         // set simulation offset and boundary radius
         mesh.center = smallest_circle.center;
         mesh.radius = smallest_circle.radius * 2;
         // make circle double the size of the smallest circle
-        Circle boundary_circle = Circle(Point(0, 0), 2 * smallest_circle.radius);
+        Circle boundary_circle = Circle(Vector(0, 0), 2 * smallest_circle.radius);
         double circumferential_length = boundary_circle.circumference();
         uint32_t boundary_points = (uint32_t)((circumferential_length / sqrt((MAX_TRIANGLE_AREA * 4) / sqrt(3))) * 2);
         printf("boundary points: %d\n", boundary_points);
         mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
-        mesh.drawing.drawRegion(Point(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
+        mesh.drawing.drawRegion(Vector(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
         // add the boundary 
         // mesh.drawing.plot();
         mesh.refineMeshAroundMagnets();
@@ -500,8 +500,8 @@ namespace nikfemm {
 
         auto start5 = std::chrono::high_resolution_clock::now();
 
-        std::vector<double> Jm = mesh.getFemSystem(coo, b);
-        ScalarPlotToFile(10000, 10000, Jm, "J.png", true, true);
+        mesh.getFemSystem(coo, b);
+        // ScalarPlotToFile(30000, 30000, Jm, "J.png", true, true);
         auto start6 = std::chrono::high_resolution_clock::now();
         mesh.addDirichletBoundaryConditions(coo, b);
         auto start7 = std::chrono::high_resolution_clock::now();

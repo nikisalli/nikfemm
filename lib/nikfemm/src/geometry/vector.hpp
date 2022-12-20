@@ -1,51 +1,170 @@
 #ifndef NIK_VECTOR_HPP
 #define NIK_VECTOR_HPP
 
-#include "point.hpp"
+#include <math.h>
+#include <vector>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "../constants.hpp"
 
 namespace nikfemm {
-    struct Vector : Point {
-        Vector(float x, float y);
-        Vector();
+    struct Vector;
+    class Vector {
+        public:
+            double x;
+            double y;
 
-        bool operator==(const Vector& v) const;
-        bool operator!=(const Vector& v) const;
-        Vector operator+(const Vector& v) const;
-        Vector operator-(const Vector& v) const;
-        Vector operator*(float f) const;
-        Vector operator/(float f) const;
-        Vector& operator+=(const Vector& v);
-        Vector& operator-=(const Vector& v);
-        Vector& operator*=(float f);
-        Vector& operator/=(float f);
+            Vector(double x, double y);
+            Vector();
+            ~Vector();
 
-        inline static float dot(const Vector v1, const Vector v2) {
-            return v1.x * v2.x + v1.y * v2.y;
-        }
-        inline static float cross(const Vector v1, const Vector v2) {
-            return v1.x * v2.y - v1.y * v2.x;
-        }
-        inline float magnitude() const {
-            return sqrt(x * x + y * y);
-        }
-        inline Vector versor() const {
-            return Vector(x / magnitude(), y / magnitude());
-        }
+            // operators
+            inline bool operator==(const Vector& p) const {
+                return (abs(x - p.x) < EPSILON) && (abs(y - p.y) < EPSILON);
+            }
 
-        inline static Vector normal(const Vector v) {
-            return Vector(-v.y, v.x);
-        }
+            inline bool operator!=(const Vector& p) const {
+                return !(*this == p);
+            }
 
-        inline static Vector normal(const Point p1, const Point p2) {
-            return Vector::normal(Vector(p2.x - p1.x, p2.y - p1.y));
+            inline Vector operator+(const Vector& p) const {
+                return Vector(x + p.x, y + p.y);
+            }
+
+            inline Vector operator-(const Vector& p) const {
+                return Vector(x - p.x, y - p.y);
+            }
+
+            inline Vector operator+=(const Vector& p) {
+                x += p.x;
+                y += p.y;
+                return *this;
+            }
+
+            inline Vector operator-=(const Vector& p) {
+                x -= p.x;
+                y -= p.y;
+                return *this;
+            }
+
+            inline Vector operator*(const double d) const {
+                return Vector(x * d, y * d);
+            }
+
+            inline Vector operator/(const double d) const {
+                return Vector(x / d, y / d);
+            }
+
+            inline Vector operator*=(const double d) {
+                x *= d;
+                y *= d;
+                return *this;
+            }
+
+            inline Vector operator/=(const double d) {
+                x /= d;
+                y /= d;
+                return *this;
+            }
+
+            inline Vector operator-() const {
+                return Vector(-x, -y);
+            }
+
+            // dot product
+            inline double operator*(const Vector& p) const {
+                return x * p.x + y * p.y;
+            }
+
+            // since the cross product of two vectors is perpendicular to both of them and we are in 2D
+            // we can just return the z component of the cross product
+            inline double operator^(const Vector& p) const {
+                return x * p.y - y * p.x;
+            }
+
+            // methods
+            inline double norm() const {
+                return sqrt(x * x + y * y);
+            }
+
+            inline double normSquared() const {
+                return x * x + y * y;
+            }
+
+            inline Vector normalize() {
+                double len = norm();
+                if (len == 0) {
+                    return *this;
+                }
+                x /= len;
+                y /= len;
+                return *this;
+            }
+
+            inline Vector rotate(double angle) const {
+                double s = sin(angle);
+                double c = cos(angle);
+                return Vector(x * c - y * s, x * s + y * c);
+            }
+
+            inline Vector normal() const {
+                return Vector(-y, x);
+            }
+
+
+            static inline double doubleOrientedArea(const Vector& p1, const Vector& p2, const Vector& p3) {
+                return p1.x * p2.y - p1.x * p3.y - p2.x * p1.y + p2.x * p3.y + p3.x * p1.y - p3.x * p2.y;
+            }
+
+            static inline double distance(const Vector p1, const Vector p2) {
+                return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2));
+            }
+
+            static inline double distanceSquared(const Vector p1, const Vector p2) {
+                return pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2);
+            }
+
+            static inline Vector lerp(const Vector p1, const Vector p2, const double t) {
+                return Vector(p1.x + (p2.x - p1.x) * t, p1.y + (p2.y - p1.y) * t);
+            }
+
+            static inline Vector midPoint(const Vector p1, const Vector p2) {
+                return Vector((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
+            }
+
+            static inline float absoluteAngle(Vector a, Vector b, Vector c) {
+                return fabs(orientedAngle(a, b, c));
+            }
+
+            static inline double orientedAngle(const Vector& a, const Vector& b, const Vector& c) {
+                // safe angle calculation
+                float ax = a.x - b.x;
+                float ay = a.y - b.y;
+                float bx = c.x - b.x;
+                float by = c.y - b.y;
+                float dot = ax * bx + ay * by;
+                float det = ax * by - ay * bx;
+                float angle = atan2(det, dot);
+                return angle;
+            }
+    };
+}
+
+namespace std {
+    template <>
+    struct hash<nikfemm::Vector> {
+        inline std::size_t operator()(const nikfemm::Vector& p) const {
+            return hash<double>()(p.x) ^ hash<double>()(p.y);
+        }
+    };
+
+    template <>
+    struct equal_to<nikfemm::Vector> {
+        inline bool operator()(const nikfemm::Vector& p1, const nikfemm::Vector& p2) const {
+            return (p1.x - p2.x) < EPSILON && (p1.y - p2.y) < EPSILON;
         }
     };
 }
-template <>
-struct std::hash<nikfemm::Vector> {
-    inline std::size_t operator()(const nikfemm::Vector& v) const {
-        return std::hash<float>()(v.x) ^ std::hash<float>()(v.y);
-    }
-};
 
 #endif

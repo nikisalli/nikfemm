@@ -7,6 +7,7 @@
 #include "../algebra/build_coo.hpp"
 #include "../algebra/simple_vector.hpp"
 #include "../drawing/drawing.hpp"
+#include "../geometry/common.hpp"
 
 namespace nikfemm {
     struct Elem {
@@ -15,7 +16,7 @@ namespace nikfemm {
 
     // this was copied from the triangle library, I changed some types to be able to reinterpret_cast and use the data in a more intuitive way
     struct MeshData {
-        Point *pointlist;                                               /* In / out */
+        Vector *pointlist;                                               /* In / out */
         TRI_REAL *pointattributelist;                                      /* In / out */
         int *pointmarkerlist;                                          /* In / out */
         int numberofpoints;                                            /* In / out */
@@ -45,11 +46,51 @@ namespace nikfemm {
         int numberofedges;                                             /* Out only */
 
         int hullsize;                                                  /* Out only */
-    };
 
+        inline Vector getElemBarycenter(uint32_t elem_id) {
+            Elem myelem = trianglelist[elem_id];
+            Vector p1 = pointlist[myelem.verts[0]];
+            Vector p2 = pointlist[myelem.verts[1]];
+            Vector p3 = pointlist[myelem.verts[2]];
+            return (p1 + p2 + p3) / 3.0;
+        }
+
+        inline double getArea(uint32_t elem_id) {
+            return abs(getOrientedArea(elem_id));
+        }
+
+        inline double getOrientedArea(uint32_t elem_id) {
+            return 0.5 * getDoubleOrientedArea(elem_id);
+        }
+
+        inline double getDoubleOrientedArea(uint32_t elem_id) {
+            Elem myelem = trianglelist[elem_id];
+            return getDoubleOrientedArea(myelem.verts[0], myelem.verts[1], myelem.verts[2]);
+        }
+
+        inline double getArea(uint32_t v1, uint32_t v2, uint32_t v3) {
+            return abs(getOrientedArea(v1, v2, v3));
+        }
+
+        inline double getOrientedArea(uint32_t v1, uint32_t v2, uint32_t v3) {
+            return 0.5 * getDoubleOrientedArea(v1, v2, v3);
+        }
+
+        inline double getDoubleOrientedArea(uint32_t v1, uint32_t v2, uint32_t v3) {
+            Vector p1 = pointlist[v1];
+            Vector p2 = pointlist[v2];
+            Vector p3 = pointlist[v3];
+            return (p2 - p1) ^ (p3 - p1);
+        }
+
+        inline bool pointInElem(uint32_t elem_id, Vector point) {
+            Elem myelem = trianglelist[elem_id];
+            return pointInTriangle(point, pointlist[myelem.verts[0]], pointlist[myelem.verts[1]], pointlist[myelem.verts[2]]);
+        }
+    };
     template <typename Prop>
     struct Mesh {
-        Point center = Point(0, 0);
+        Vector center = Vector(0, 0);
         double radius = 0;
         Prop default_prop;
         double epsilon;
@@ -101,9 +142,9 @@ namespace nikfemm {
             double y2 = data.pointlist[myelem.verts[1]].y;
             double x3 = data.pointlist[myelem.verts[2]].x;
             double y3 = data.pointlist[myelem.verts[2]].y;
-            epsilon = std::min(epsilon, Point::distance(Point(x1, y1), Point(x2, y2)));
-            epsilon = std::min(epsilon, Point::distance(Point(x1, y1), Point(x3, y3)));
-            epsilon = std::min(epsilon, Point::distance(Point(x2, y2), Point(x3, y3)));
+            epsilon = std::min(epsilon, Vector::distance(Vector(x1, y1), Vector(x2, y2)));
+            epsilon = std::min(epsilon, Vector::distance(Vector(x1, y1), Vector(x3, y3)));
+            epsilon = std::min(epsilon, Vector::distance(Vector(x2, y2), Vector(x3, y3)));
         }
         epsilon *= 0.5;
         this->epsilon = epsilon;
@@ -164,7 +205,7 @@ namespace nikfemm {
         /* Make necessary initializations so that Triangle can return a */
         /*   triangulation in `mid' and a voronoi diagram in `vorout'.  */
 
-        data.pointlist = (Point *) NULL;            /* Not needed if -N switch used. */
+        data.pointlist = (Vector *) NULL;            /* Not needed if -N switch used. */
         /* Not needed if -N switch used or number of point attributes is zero: */
         data.pointattributelist = (TRI_REAL *) NULL;
         data.pointmarkerlist = (int *) NULL; /* Not needed if -N or -B switch used. */
@@ -200,11 +241,11 @@ namespace nikfemm {
 
         for (uint32_t i = 0; i < data.numberofpoints; i++) {
             if (data.pointmarkerlist[i] == 0) {  // if it's not a boundary point
-                Point v = data.pointlist[i];
+                Vector v = data.pointlist[i];
                 double mag_squared = v.x * v.x + v.y * v.y;
                 double scale = R_squared / mag_squared;
                 // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
-                double dist = Point::distance(v, center);
+                double dist = Vector::distance(v, center);
                 if (dist < max_x) {
                 // if (false) {
                     #ifdef DEBUG_PRINT
@@ -229,13 +270,13 @@ namespace nikfemm {
 
         Mesh<Prop> kelvin_mesh;
 
-        Circle boundary_circle = Circle(Point(0, 0), radius);
+        Circle boundary_circle = Circle(Vector(0, 0), radius);
         kelvin_mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
-        kelvin_mesh.drawing.drawRegion(Point(0, 0), default_prop);
+        kelvin_mesh.drawing.drawRegion(Vector(0, 0), default_prop);
 
         kelvin_mesh.mesh();
-        kelvin_mesh.center = Point(0, 0);
+        kelvin_mesh.center = Vector(0, 0);
         kelvin_mesh.radius = radius;
 
         // merge km into tm
@@ -276,7 +317,7 @@ namespace nikfemm {
         uint32_t new_point_number = data.numberofpoints + kelvin_mesh.data.numberofpoints - kelvin_number_of_boundary_points;
 
         // reallocate memory for this mesh
-        data.pointlist = (Point *) realloc(data.pointlist, new_point_number * sizeof(Point));
+        data.pointlist = (Vector *) realloc(data.pointlist, new_point_number * sizeof(Vector));
         // I actually don't need these
         // data.pointattributelist = (TRI_REAL *) realloc(data.pointattributelist, new_point_number * sizeof(TRI_REAL));
         // data.pointmarkerlist = (int *) realloc(data.pointmarkerlist, new_point_number * sizeof(int));

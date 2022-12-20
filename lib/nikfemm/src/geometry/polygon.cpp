@@ -5,12 +5,12 @@ namespace nikfemm {
     Polygon::Polygon() {
     }
 
-    Polygon::Polygon(const std::vector<Point>& points) {
+    Polygon::Polygon(const std::vector<Vector>& points) {
         this->points = points;
     }
 
-    Polygon::Polygon(const Point* points, size_t n) {
-        this->points = std::vector<Point>(points, points + n);
+    Polygon::Polygon(const Vector* points, size_t n) {
+        this->points = std::vector<Vector>(points, points + n);
     }
 
     Polygon::Polygon(const Polygon& p) {
@@ -35,13 +35,13 @@ namespace nikfemm {
         return !(*this == p);
     }
 
-    bool Polygon::contains(Point p) const {
+    bool Polygon::contains(Vector p) const {
         bool inside = false;
 
         // Iterate through each edge of the polygon
         for (int i = points.size() - 1, j = 0; j < points.size(); i = j, j++) {
-            Point A = points[i];
-            Point B = points[j];
+            Vector A = points[i];
+            Vector B = points[j];
 
             // Check for corner cases
             if ((p.x == A.x && p.y == A.y) || (p.x == B.x && p.y == B.y)) return true;
@@ -66,7 +66,7 @@ namespace nikfemm {
     }
 
     bool Polygon::contains(Polygon p) const {
-        for (Point point : p.points) {
+        for (Vector point : p.points) {
             if (!contains(point)) {
                 return false;
             }

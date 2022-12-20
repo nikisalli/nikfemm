@@ -16,7 +16,7 @@
 #include "../constants.hpp"
 
 #include "../utils/utils.hpp"
-#include "../geometry/point.hpp"
+#include "../geometry/vector.hpp"
 #include "../geometry/segment.hpp"
 #include "drawing_segment.hpp"
 #include "../geometry/segment.hpp"
@@ -24,13 +24,13 @@
 #include "../geometry/polygon.hpp"
 
 namespace nikfemm {
-    typedef std::pair<Point, uint32_t> DrawingRegion;
+    typedef std::pair<Vector, uint32_t> DrawingRegion;
 
     template<typename Prop>
     struct Drawing {
         std::vector<Prop> region_map;
         std::vector<DrawingRegion> regions;
-        std::vector<Point> points;
+        std::vector<Vector> points;
         std::vector<DrawingSegment> segments;
         std::vector<Polygon> polygons;
 
@@ -41,19 +41,19 @@ namespace nikfemm {
 
         /* drawing */
         public:
-            void drawRectangle(Point p1, Point p2);
-            void drawRectangle(Point p1, double width, double height);
-            void drawCircle(Point p, double radius, uint32_t n_segments);
+            void drawRectangle(Vector p1, Vector p2);
+            void drawRectangle(Vector p1, double width, double height);
+            void drawCircle(Vector p, double radius, uint32_t n_segments);
             void drawCircle(Circle c, uint32_t n_segments);
-            void drawPolygon(Point* points, uint32_t n_points);
-            void drawPolygon(const std::vector<Point>& points);
-            void drawRegion(Point p, Prop val);
+            void drawPolygon(Vector* points, uint32_t n_points);
+            void drawPolygon(const std::vector<Vector>& points);
+            void drawRegion(Vector p, Prop val);
             const Prop* getRegionPtrFromId(uint32_t id) const;
             Prop getRegionFromId(uint32_t id) const;
             uint32_t getRegionId(Prop val);
             void addRefiningPoints();
         private:
-            void drawSegment(Point p1, Point p2);
+            void drawSegment(Vector p1, Vector p2);
             void drawSegment(Segment s);
     };
 
@@ -69,29 +69,29 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Drawing<Prop>::drawRectangle(Point p1, Point p2) {
-        drawSegment(p1, Point(p2.x, p1.y));
-        drawSegment(Point(p2.x, p1.y), p2);
-        drawSegment(p2, Point(p1.x, p2.y));
-        drawSegment(Point(p1.x, p2.y), p1);
-        polygons.push_back(Polygon({p1, Point(p2.x, p1.y), p2, Point(p1.x, p2.y)}));
+    void Drawing<Prop>::drawRectangle(Vector p1, Vector p2) {
+        drawSegment(p1, Vector(p2.x, p1.y));
+        drawSegment(Vector(p2.x, p1.y), p2);
+        drawSegment(p2, Vector(p1.x, p2.y));
+        drawSegment(Vector(p1.x, p2.y), p1);
+        polygons.push_back(Polygon({p1, Vector(p2.x, p1.y), p2, Vector(p1.x, p2.y)}));
     }
 
     template <typename Prop>
-    void Drawing<Prop>::drawRectangle(Point p1, double width, double height) {
-        drawRectangle(p1, Point(p1.x + width, p1.y + height));
+    void Drawing<Prop>::drawRectangle(Vector p1, double width, double height) {
+        drawRectangle(p1, Vector(p1.x + width, p1.y + height));
     }
 
     template <typename Prop>
-    void Drawing<Prop>::drawCircle(Point p, double radius, uint32_t n_segments) {
+    void Drawing<Prop>::drawCircle(Vector p, double radius, uint32_t n_segments) {
         double angle = 0;
         double angle_step = 2 * PI / n_segments;
-        Point p1 = Point(p.x + radius, p.y);
-        Point p2;
-        std::vector<Point> points;
+        Vector p1 = Vector(p.x + radius, p.y);
+        Vector p2;
+        std::vector<Vector> points;
         for (uint32_t i = 0; i < n_segments; i++) {
             angle += angle_step;
-            p2 = Point(p.x + radius * cos(angle), p.y + radius * sin(angle));
+            p2 = Vector(p.x + radius * cos(angle), p.y + radius * sin(angle));
             drawSegment(p1, p2);
             p1 = p2;
             points.push_back(p2);
@@ -105,7 +105,7 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Drawing<Prop>::drawPolygon(Point* points, uint32_t n_points) {
+    void Drawing<Prop>::drawPolygon(Vector* points, uint32_t n_points) {
         // check if the polygon self-intersects
         for (uint32_t i = 0; i < n_points; i++) {
             for (uint32_t j = i + 2; j < n_points; j++) {
@@ -126,8 +126,8 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Drawing<Prop>::drawPolygon(const std::vector<Point>& points) {
-        drawPolygon((Point*) points.data(), points.size());
+    void Drawing<Prop>::drawPolygon(const std::vector<Vector>& points) {
+        drawPolygon((Vector*) points.data(), points.size());
     }
 
     template <typename Prop>
@@ -165,13 +165,13 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Drawing<Prop>::drawRegion(Point p, Prop val) {
+    void Drawing<Prop>::drawRegion(Vector p, Prop val) {
         uint32_t region_id = getRegionId(val);
         regions.push_back(DrawingRegion(p, region_id));
     }
 
     template <typename Prop>
-    void Drawing<Prop>::drawSegment(Point p1, Point p2) {
+    void Drawing<Prop>::drawSegment(Vector p1, Vector p2) {
         // check if point is already in points
         bool p1_found = false;
         bool p2_found = false;
@@ -218,7 +218,7 @@ namespace nikfemm {
         // find shortest segment first
         epsilon = std::numeric_limits<double>::max();
         for (auto it = segments.begin(); it != segments.end(); it++) {
-            double len= Point::distance(points[it->p1], points[it->p2]);
+            double len= Vector::distance(points[it->p1], points[it->p2]);
             if (len < epsilon) {
                 epsilon = len;
             }
@@ -240,20 +240,20 @@ namespace nikfemm {
             // check for all combinations of segments if there is one that makes an angle of less than 60 degrees
             for (uint32_t j = 0; j < segments_containing_point.size(); j++) {
                 for (uint32_t k = j + 1; k < segments_containing_point.size(); k++) {
-                    Point p1 = points[segments_containing_point[j].p1];
-                    Point p2 = points[segments_containing_point[j].p2];
-                    Point p3 = points[segments_containing_point[k].p1];
-                    Point p4 = points[segments_containing_point[k].p2];
+                    Vector p1 = points[segments_containing_point[j].p1];
+                    Vector p2 = points[segments_containing_point[j].p2];
+                    Vector p3 = points[segments_containing_point[k].p1];
+                    Vector p4 = points[segments_containing_point[k].p2];
                     
                     double angle;
                     if (p1 == p3) {
-                        angle = Point::absoluteAngle(p2, p1, p4);
+                        angle = Vector::absoluteAngle(p2, p1, p4);
                     } else if (p1 == p4) {
-                        angle = Point::absoluteAngle(p2, p1, p3);
+                        angle = Vector::absoluteAngle(p2, p1, p3);
                     } else if (p2 == p3) {
-                        angle = Point::absoluteAngle(p1, p2, p4);
+                        angle = Vector::absoluteAngle(p1, p2, p4);
                     } else if (p2 == p4) {
-                        angle = Point::absoluteAngle(p1, p2, p3);
+                        angle = Vector::absoluteAngle(p1, p2, p3);
                     } else {
                         nexit("Error: segment not found");
                     }
@@ -272,7 +272,7 @@ namespace nikfemm {
 
             for (uint32_t j = 0; j < 18; j++) {
                 double angle = j * M_PI / 9;
-                Point p = Point(points[i].x + (epsilon / 100) * cos(angle), points[i].y + (epsilon / 100) * sin(angle));
+                Vector p = Vector(points[i].x + (epsilon / 100) * cos(angle), points[i].y + (epsilon / 100) * sin(angle));
                 
                 // check distance to segments
                 bool too_close = false;

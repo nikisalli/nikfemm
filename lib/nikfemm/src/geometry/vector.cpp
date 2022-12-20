@@ -1,64 +1,22 @@
 #include <math.h>
+#include <vector>
 
 #include <constants.hpp>
 
 #include "vector.hpp"
 
 namespace nikfemm {
-
-    Vector::Vector(float x, float y) : Point(x, y) {
+    Vector::Vector(double x, double y) {
         this->x = x;
         this->y = y;
     }
 
-    Vector::Vector() : Point() {
+    Vector::Vector() {
+        this->x = 0;
+        this->y = 0;
     }
 
-    bool Vector::operator==(const Vector& v) const {
-        return x == v.x && y == v.y;
+    Vector::~Vector() {
     }
 
-    bool Vector::operator!=(const Vector& v) const {
-        return !(*this == v);
-    }
-
-    Vector Vector::operator+(const Vector& v) const {
-        return Vector(this->x + v.x, this->y + v.y);
-    }
-
-    Vector Vector::operator-(const Vector& v) const {
-        return Vector(this->x - v.x, this->y - v.y);
-    }
-
-    Vector Vector::operator*(float f) const {
-        return Vector(this->x * f, this->y * f);
-    }
-
-    Vector Vector::operator/(float f) const {
-        return Vector(this->x / f, this->y / f);
-    }
-
-    Vector& Vector::operator+=(const Vector& v) {
-        this->x += v.x;
-        this->y += v.y;
-        return *this;
-    }
-
-    Vector& Vector::operator-=(const Vector& v) {
-        this->x -= v.x;
-        this->y -= v.y;
-        return *this;
-    }
-
-    Vector& Vector::operator*=(float f) {
-        this->x *= f;
-        this->y *= f;
-        return *this;
-    }
-
-    Vector& Vector::operator/=(float f) {
-        this->x /= f;
-        this->y /= f;
-        return *this;
-    }
 }

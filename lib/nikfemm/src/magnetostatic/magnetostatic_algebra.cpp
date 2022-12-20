@@ -60,7 +60,7 @@ namespace nikfemm {
         // printf("- (iter + 1) / 100: %.17g\n", - ((double)iter + 1.) / 100.);
         
         for (uint32_t i = 0; i < B.size(); i++) {
-            float Bmag = B[i].magnitude();
+            float Bmag = B[i].norm();
             if (props[i]->isLinear()) {
                 mu[i] = props[i]->getMu(Bmag);
             } else {

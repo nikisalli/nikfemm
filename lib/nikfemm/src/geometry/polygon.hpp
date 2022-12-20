@@ -3,22 +3,22 @@
 
 #include <vector>
 
-#include "point.hpp"
+#include "vector.hpp"
 
 namespace nikfemm {
     class Polygon {
     public:
-        std::vector<Point> points;
+        std::vector<Vector> points;
 
         Polygon();
-        Polygon(const std::vector<Point>& points);
-        Polygon(const Point* points, size_t n);
+        Polygon(const std::vector<Vector>& points);
+        Polygon(const Vector* points, size_t n);
         Polygon(const Polygon& p);
 
         bool operator==(const Polygon& p) const;
         bool operator!=(const Polygon& p) const;
 
-        bool contains(Point p) const;
+        bool contains(Vector p) const;
         bool contains(Polygon p) const;
     };
 }

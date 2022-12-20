@@ -1,21 +1,21 @@
 #ifndef NIK_SEGMENT_HPP
 #define NIK_SEGMENT_HPP
 
-#include "point.hpp"
-#include "geometry_common.hpp"
+#include "vector.hpp"
+#include "common.hpp"
 
 namespace nikfemm {
     struct Segment {
-        Point p1;
-        Point p2;
+        Vector p1;
+        Vector p2;
 
-        Segment(Point p1, Point p2);
+        Segment(Vector p1, Vector p2);
         float length();
         static inline bool segmentsIntersect(Segment s1, Segment s2);
-        static bool segmentsIntersect(Point s1p1, Point s1p2, Point s2p1, Point s2p2);
-        static bool pointInSegmentBB(Point p, Segment s);
-        static double pointSegmentDistance(Point p, Segment s);
-        static double pointSegmentDistance(Point p, Point p1, Point p2);
+        static bool segmentsIntersect(Vector s1p1, Vector s1p2, Vector s2p1, Vector s2p2);
+        static bool pointInSegmentBB(Vector p, Segment s);
+        static double pointSegmentDistance(Vector p, Segment s);
+        static double pointSegmentDistance(Vector p, Vector p1, Vector p2);
 
         bool operator==(const Segment& s) const;
         bool operator!=(const Segment& s) const;
@@ -26,7 +26,7 @@ namespace std {
     template <>
     struct hash<nikfemm::Segment> {
         std::size_t operator()(const nikfemm::Segment& s) const {
-            return hash<nikfemm::Point>()(s.p1) ^ hash<nikfemm::Point>()(s.p2);
+            return hash<nikfemm::Vector>()(s.p1) ^ hash<nikfemm::Vector>()(s.p2);
         }
     };
 }
