@@ -61,9 +61,12 @@ int main(int argc, char** argv) {
     simulation.mesh.drawing.drawRegion(nikfemm::Vector(-0.95, 4), {-1, {0, 0}, nikfemm::materials::air});
     */
 
-    simulation.solve();
+    auto system = simulation.generateSystem();
+    simulation.solve(system);
     // simulation.Aplot(400, 400);
     // simulation.Bplot(400, 400);
     // simulation.AplotToFile(100000, 100000, "Aplot.png");
-    simulation.BplotToFile(10000, 10000, "Bplot.png", false, false, 0.000006, 0);
+    simulation.BplotToFile(10000, 10000, "Bplot.png", false, false);
+
+    // simulation.computeForceIntegrals({0.5, 0.5});
 }

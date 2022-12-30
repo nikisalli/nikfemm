@@ -93,10 +93,10 @@ namespace nikfemm {
             // find the triangles that contain the Vertex<MagnetostaticProp> and then
             // for every triangle find the barycenter and add it to the points vector
             for (int32_t j = 0; j < mesh.data.numberoftriangles; j++) {
-                if (mesh.data.trianglelist[j].verts[0] == i || mesh.data.trianglelist[j].verts[1] == i || mesh.data.trianglelist[j].verts[2] == i) {
+                if (mesh.data.trianglelist[j][0] == i || mesh.data.trianglelist[j][1] == i || mesh.data.trianglelist[j][2] == i) {
                     Vector barycenter = {
-                        (mesh.data.pointlist[mesh.data.trianglelist[j].verts[0]].x + mesh.data.pointlist[mesh.data.trianglelist[j].verts[1]].x + mesh.data.pointlist[mesh.data.trianglelist[j].verts[2]].x) / 3,
-                        (mesh.data.pointlist[mesh.data.trianglelist[j].verts[0]].y + mesh.data.pointlist[mesh.data.trianglelist[j].verts[1]].y + mesh.data.pointlist[mesh.data.trianglelist[j].verts[2]].y) / 3
+                        (mesh.data.pointlist[mesh.data.trianglelist[j][0]].x + mesh.data.pointlist[mesh.data.trianglelist[j][1]].x + mesh.data.pointlist[mesh.data.trianglelist[j][2]].x) / 3,
+                        (mesh.data.pointlist[mesh.data.trianglelist[j][0]].y + mesh.data.pointlist[mesh.data.trianglelist[j][1]].y + mesh.data.pointlist[mesh.data.trianglelist[j][2]].y) / 3
                     };
                     points.push_back(cv::Point(x_offset + barycenter.x * x_scale, y_offset + barycenter.y * y_scale));
                 }
@@ -150,7 +150,7 @@ namespace nikfemm {
         cv::imwrite(filename, image);
     }
 
-    void MagnetostaticSimulation::BplotRend(cv::Mat* image, double width, double height, bool plotMesh, bool plotRegions, double maxB, double minB) {
+    void MagnetostaticSimulation::BplotRend(cv::Mat* image, double width, double height, bool plotMesh, bool plotRegions, double maxB, double minB, bool plotCurves, uint32_t curve_number) {
         // get mesh enclosing rectangle
         float min_x = -1.1 * mesh.radius;
         float min_y = -1.1 * mesh.radius;
@@ -194,8 +194,8 @@ namespace nikfemm {
                 B_mags.push_back(B[i].norm());
             }
             std::sort(B_mags.begin(), B_mags.end());
-            max_B = B_mags[0.9 * B_mags.size()];
-            min_B = B_mags[0.1 * B_mags.size()];
+            max_B = B_mags[0.99 * B_mags.size()];
+            min_B = B_mags[0.01 * B_mags.size()];
         } else {
             max_B = maxB;
             min_B = minB;
@@ -211,9 +211,9 @@ namespace nikfemm {
             // get the triangle
             Elem e = mesh.data.trianglelist[i];
             // get the vertices
-            Vector v1 = mesh.data.pointlist[e.verts[0]];
-            Vector v2 = mesh.data.pointlist[e.verts[1]];
-            Vector v3 = mesh.data.pointlist[e.verts[2]];
+            Vector v1 = mesh.data.pointlist[e[0]];
+            Vector v2 = mesh.data.pointlist[e[1]];
+            Vector v3 = mesh.data.pointlist[e[2]];
 
             if (Vector::distance(v1, Vector(0, 0)) > mesh.radius + mesh.epsilon ||
                 Vector::distance(v2, Vector(0, 0)) > mesh.radius + mesh.epsilon || 
@@ -244,6 +244,9 @@ namespace nikfemm {
                                 cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
                                 cv::Scalar(0, 0, 0), 1);
             }
+
+            // level curves
+            
         }
 
         // draw the geometry
@@ -288,12 +291,12 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticSimulation::Bplot(uint32_t width, uint32_t height, bool plotMesh, bool plotRegions, double maxB, double minB) {
+    void MagnetostaticSimulation::Bplot(uint32_t width, uint32_t height, bool plotMesh, bool plotRegions, double maxB, double minB, bool plotCurves, uint32_t curve_number) {
         // create the image
         cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
         // render the mesh
-        BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB);
+        BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB, plotCurves, curve_number);
 
         // show the image
         cv::imshow("B", image);
@@ -301,12 +304,12 @@ namespace nikfemm {
         cv::waitKey(0);
     }
 
-    void MagnetostaticSimulation::BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh, bool plotRegions, double maxB, double minB) {
+    void MagnetostaticSimulation::BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh, bool plotRegions, double maxB, double minB, bool plotCurves, uint32_t curve_number) {
         // create the image
         cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
         // render the mesh
-        BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB);
+        BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB, plotCurves, curve_number);
 
         // save the image
         cv::imwrite(filename, image);
@@ -347,9 +350,9 @@ namespace nikfemm {
             // get the triangle
             Elem e = mesh.data.trianglelist[i];
             // get the vertices
-            Vector v1 = mesh.data.pointlist[e.verts[0]];
-            Vector v2 = mesh.data.pointlist[e.verts[1]];
-            Vector v3 = mesh.data.pointlist[e.verts[2]];
+            Vector v1 = mesh.data.pointlist[e[0]];
+            Vector v2 = mesh.data.pointlist[e[1]];
+            Vector v3 = mesh.data.pointlist[e[2]];
 
             if (Vector::distance(v1, Vector(0, 0)) > mesh.radius + mesh.epsilon ||
                 Vector::distance(v2, Vector(0, 0)) > mesh.radius + mesh.epsilon || 
@@ -432,36 +435,40 @@ namespace nikfemm {
         cv::imwrite(filename, image);
     }
 
-    void MagnetostaticSimulation::solve() {
+    void MagnetostaticSimulation::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter) {
+        assert(mu.size() == B.size());
+        double kalman_scemo = exp(-((double)iter) / 5.);
+        // printf("kalman_scemo: %.17g\n", kalman_scemo);
+        // printf("exp(-(iter + 1) / 100): %.17g\n", exp(-((double)iter + 1.) / 100.));
+        // printf("- (iter + 1) / 100: %.17g\n", - ((double)iter + 1.) / 100.);
+        
+        for (uint32_t i = 0; i < B.size(); i++) {
+            float Bmag = B[i].norm();
+            if (props[i]->isLinear()) {
+                mu[i] = props[i]->getMu(Bmag);
+            } else {
+                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + materials::vacuum * residual * residual) * (1 - kalman_scemo)); 
+                // mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;  // mu += (mu_new - mu) * 0.1
+                // mu[i] += props[i]->getMu(Bmag);  // pure newton-raphson
+            }
+        }
+    }
+
+    MagnetostaticSystem MagnetostaticSimulation::generateSystem() {
         // get time in milliseconds
-        omp_set_num_threads(12);
-        std::cout << "Number of threads in the current parallel region is " << omp_get_num_threads() << std::endl;
         mesh.drawing.addRefiningPoints();
 
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
-        auto start1 = std::chrono::high_resolution_clock::now();
         Circle smallest_circle = Circle::getMinimumEnclosingCircle(mesh.drawing.points);
         if (mesh.drawing.points.size() == 0) {
             smallest_circle.radius = 1;
         }
-        // translate everything to the origin
-        for (uint32_t i = 0; i < mesh.drawing.points.size(); i++) {
-            mesh.drawing.points[i] = Vector(mesh.drawing.points[i].x - smallest_circle.center.x, mesh.drawing.points[i].y - smallest_circle.center.y);
-        }
-        for (uint32_t i = 0; i < mesh.drawing.polygons.size(); i++) {
-            for (uint32_t j = 0; j < mesh.drawing.polygons[i].points.size(); j++) {
-                mesh.drawing.polygons[i].points[j] = Vector(mesh.drawing.polygons[i].points[j].x - smallest_circle.center.x, mesh.drawing.polygons[i].points[j].y - smallest_circle.center.y);
-            }
-        }
-        std::vector<DrawingRegion> translated_regions;
-        for (DrawingRegion region : mesh.drawing.regions) {
-            translated_regions.push_back(DrawingRegion(Vector(region.first.x - smallest_circle.center.x, region.first.y - smallest_circle.center.y), region.second));
-        }
-        mesh.drawing.regions = translated_regions;
         // set simulation offset and boundary radius
         mesh.center = smallest_circle.center;
         mesh.radius = smallest_circle.radius * 2;
+        // translate everything to the origin
+        mesh.drawing.translate(-mesh.center);
         // make circle double the size of the smallest circle
         Circle boundary_circle = Circle(Vector(0, 0), 2 * smallest_circle.radius);
         double circumferential_length = boundary_circle.circumference();
@@ -472,22 +479,26 @@ namespace nikfemm {
         mesh.drawing.drawRegion(Vector(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
         // add the boundary 
         // mesh.drawing.plot();
-        mesh.refineMeshAroundMagnets();
-        auto start2 = std::chrono::high_resolution_clock::now();
+        #ifdef NIK_REFINE_MAGNETS
+            mesh.refineMeshAroundMagnets();
+        #endif
         mesh.mesh();
-        auto start3 = std::chrono::high_resolution_clock::now();
         #ifdef DEBUG_PRINT
         // mesh.plot();
         #endif
         mesh.addKelvinBoundaryConditions(boundary_points);
         mesh.computeEpsilon();
-        auto start4 = std::chrono::high_resolution_clock::now();
         #ifdef DEBUG_PRINT
         // mesh.plot();
         #endif
         printf("the mesh has %u nodes and %u elements\n", mesh.data.numberofpoints, mesh.data.numberoftriangles);
-        BuildMatCOO<MagnetostaticNonLinearExpression> coo(mesh.data.numberofpoints);
-        CV b(mesh.data.numberofpoints);
+
+        auto system = mesh.getFemSystem();
+        mesh.addDirichletInfiniteBoundaryConditions(system);
+        return system;
+    }
+
+    void MagnetostaticSimulation::solve(MagnetostaticSystem& system) {
         A = CV(mesh.data.numberofpoints);
         B = std::vector<Vector>(mesh.data.numberoftriangles, {0, 0});
         std::vector<float> mu(mesh.data.numberoftriangles, 0);
@@ -498,34 +509,14 @@ namespace nikfemm {
             props[i] = mesh.drawing.getRegionPtrFromId(mesh.data.triangleattributelist[i]);
         }
 
-        auto start5 = std::chrono::high_resolution_clock::now();
-
-        mesh.getFemSystem(coo, b);
-        // ScalarPlotToFile(30000, 30000, Jm, "J.png", true, true);
-        auto start6 = std::chrono::high_resolution_clock::now();
-        mesh.addDirichletBoundaryConditions(coo, b);
-        auto start7 = std::chrono::high_resolution_clock::now();
-
-        #ifdef DEBUG_PRINT
-        printf("coo matrix m: %lu, n: %lu, elems: %lu\n", coo.m, coo.n, coo.elems.size());
-        #endif
-
-        MagnetostaticMatCSRSymmetric FemMat(coo);
-        // b.write_to_file("b");
-        auto start8 = std::chrono::high_resolution_clock::now();
-
-        #ifdef DEBUG_PRINT
-        // csr.print();
-        // coo.plot();
-        // x.print();
-        // b.print();
-        #endif
+        MagnetostaticMatCSRSymmetric FemMat(system.coo);
 
         // initialize mu
         for (uint32_t i = 0; i < B.size(); i++) {
             mu[i] = props[i]->getMu(0);
         }
-        FemMat.updateMat(mu);
+        FemMat.updateFromMu(mu);
+        system.b.updateFromMu(mu);
 
         // check if materials are all linear
         bool all_linear = true;
@@ -538,17 +529,17 @@ namespace nikfemm {
 
         if (all_linear) {
             printf("all materials are linear\n");
-            preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-6, 100000);
+            preconditionedSSORConjugateGradientSolver(FemMat, system.b, A, 1.5, 1e-6, 100000);
             // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-6, 100000);
         } else {
             printf("nonlinear materials detected, starting non linear newton solver\n");
-            CV r(b.val.size());  // residual
+            CV r(system.b.val.size());  // residual
 
             double residual = 1e10;
             for (uint32_t i = 0; i < 500; i++) {
                 // conjugateGradientSolver(FemMat, b, A, 1e-7, 10000);
                 // preconditionedJacobiConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
-                preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-7, 50);
+                preconditionedSSORConjugateGradientSolver(FemMat, system.b, A, 1.5, 1e-7, 50);
                 // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
                 // mesh.Aplot(A);
                 // mesh.Bplot(B);
@@ -557,10 +548,11 @@ namespace nikfemm {
                 // mesh.Bplot(B);
 
                 // check if the solution is correct
-                FemMat.updateMu(props, mu, B, residual, i);
-                FemMat.updateMat(mu);
+                MagnetostaticSimulation::updateMu(props, mu, B, residual, i);
+                FemMat.updateFromMu(mu);
+                system.b.updateFromMu(mu);
                 CV::mult(r, FemMat, A);
-                CV::sub(r, b, r);
+                CV::sub(r, system.b, r);
                 residual = CV::norm(r);
                 if (residual < 1e-7) {
                     printf("Converged in %d iterations\n", i);
@@ -574,33 +566,80 @@ namespace nikfemm {
             }
         }
 
-        auto start9 = std::chrono::high_resolution_clock::now();
-
         mesh.computeCurl(B, A);
+    }
 
-        printf("%f translate and fix mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start2 - start1).count()*1000);
-        printf("%f mesh\n", std::chrono::duration_cast<std::chrono::duration<float>>(start3 - start2).count()*1000);
-        printf("%f kelvin boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<float>>(start4 - start3).count()*1000);
-        printf("%f allocate vectors b x and coo\n", std::chrono::duration_cast<std::chrono::duration<float>>(start5 - start4).count()*1000);
-        printf("%f get fem system\n", std::chrono::duration_cast<std::chrono::duration<float>>(start6 - start5).count()*1000);
-        printf("%f add dirichlet boundary conditions\n", std::chrono::duration_cast<std::chrono::duration<float>>(start7 - start6).count()*1000);
-        printf("%f convert to csr\n", std::chrono::duration_cast<std::chrono::duration<float>>(start8 - start7).count()*1000);
-        printf("%f solve\n", std::chrono::duration_cast<std::chrono::duration<float>>(start9 - start8).count()*1000);
-        printf("%f total\n", std::chrono::duration_cast<std::chrono::duration<float>>(start9 - start1).count()*1000);
+    Vector MagnetostaticSimulation::computeForceIntegrals(Vector p) {
+        // find the polygon that contains p
+        Polygon integration_region;
+        Vector translated_p = p - mesh.center;
+        std::vector<Polygon> polygons_that_contain_p;
+        for (auto polygon : mesh.drawing.polygons) {
+            if (polygon.contains(translated_p)) {
+                polygons_that_contain_p.push_back(polygon);
+            }
+        }
 
-        // auto integrals = mesh.computeForceIntegrals(B);
-        // for (auto& i : integrals) {
-        //     printf("force integral: %.17gx + %.17gy\n", i.x, i.y);
-        // }
-        // mesh.muplot(mu);
-        // return;
-        /*
-        mesh.Bplot();
+        // if there is more than one polygon that contains p then we have to find the polygon that isn't contained by any other polygon that contains p
+        if (polygons_that_contain_p.size() == 1) {
+            integration_region = polygons_that_contain_p[0];
+        } else {
+            for (auto polygon : polygons_that_contain_p) {
+                bool is_integration_region = true;
+                for (auto other_polygon : polygons_that_contain_p) {
+                    if (polygon != other_polygon && polygon.contains(other_polygon)) {
+                        is_integration_region = false;
+                        break;
+                    }
+                }
+                if (is_integration_region) {
+                    integration_region = polygon;
+                    break;
+                }
+            }
+        }
 
-        // report(&out, 1, 1, 0, 0, 0, 0);
+        auto prop = mesh.drawing.getPolygonProp(integration_region);
 
-        printf("Number of points: %d\nNumber of boundary vertices: %d\n", mesh.vertices.size(), mesh.boundary_vertices.size());
-        */
+        // compute simulation again
+        MagnetostaticSimulation integral_simulation;
+        integral_simulation.mesh.drawing.drawPolygon(integration_region);
 
+        // add all points inside the polygon that contains p
+        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+            Vector my_point = mesh.data.pointlist[i];
+            if (integration_region.contains(my_point)) {
+                integral_simulation.mesh.drawing.drawPoint(my_point);
+            }
+        }
+
+        // translate everything back
+        integral_simulation.mesh.drawing.translate(mesh.center);
+        integral_simulation.mesh.drawing.drawRegion(p, prop);
+        // integral_simulation.mesh.drawing.plot(1000, 1000);
+
+        // generate system of equations
+        auto integral_system = integral_simulation.generateSystem();
+
+        // for every point in the polygon that contains p set a dirichlet boundary condition so that the potential remains fixed
+        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+            Vector my_point = mesh.data.pointlist[i];
+            if (integration_region.contains(my_point)) {
+                // get potential from previous simulation
+                double potential = 1;
+                integral_simulation.mesh.addDirichletBoundaryConditions(integral_system, i, potential);
+            }
+        }
+
+        MagnetostaticMatCSRSymmetric integral_FemMat(integral_system.coo);
+        integral_FemMat.printCSR();
+
+        // integral_system.b.write_to_file("bint.mtx");
+
+        // solve system of equations
+        integral_simulation.solve(integral_system);
+        integral_simulation.BplotToFile(10000, 10000, "Bintegral.png", false, false);
+
+        return Vector(0, 0);
     }
 }

@@ -22,9 +22,11 @@
 #include "../algebra/simple_vector.hpp"
 #include "../algebra/csr.hpp"
 #include "../algebra/build_coo.hpp"
+#include "../algebra/solvers.hpp"
 #include "../constants.hpp"
 #include "magnetostatic_algebra.hpp"
 #include "properties.hpp"
+#include "simulation.hpp"
 
 namespace nikfemm {
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
@@ -37,14 +39,18 @@ namespace nikfemm {
             
         }
 
-        void getFemSystem(BuildMatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
-        void addDirichletBoundaryConditions(BuildMatCOO<MagnetostaticNonLinearExpression>& coo, CV& b);
+        MagnetostaticSystem getFemSystem();
+        void addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system);
+        void addDirichletBoundaryConditions(MagnetostaticSystem& system, uint32_t id, double value);
         void computeCurl(std::vector<Vector>& B, CV& A);
         void refineMeshAroundMagnets();
-        std::vector<Vector> computeForceIntegrals(std::vector<Vector>& B);
     };
 
-    void MagnetostaticMesh::getFemSystem(BuildMatCOO<MagnetostaticNonLinearExpression>&coo, CV &b) {
+    MagnetostaticSystem MagnetostaticMesh::getFemSystem() {
+        MagnetostaticSystem system = {
+            BuildMatCOO<MagnetostaticNonLinearExpression>(data.numberofpoints),
+            MagnetostaticCV(data.numberofpoints)
+        };
         // since the stiffness matrix is symmetric, this function only computes the upper triangular part
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -65,8 +71,8 @@ namespace nikfemm {
         // get the edge adjacent elements
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
-                uint32_t v1 = data.trianglelist[i].verts[j];
-                uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
+                uint32_t v1 = data.trianglelist[i][j];
+                uint32_t v2 = data.trianglelist[i][(j + 1) % 3];
 
                 uint64_t e = (((uint64_t)v1 << 32) | v2) * (v1 > v2) + (((uint64_t)v2 << 32) | v1) * (v1 < v2);
 
@@ -76,8 +82,8 @@ namespace nikfemm {
 
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
-                uint32_t v1 = data.trianglelist[i].verts[j];
-                uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
+                uint32_t v1 = data.trianglelist[i][j];
+                uint32_t v2 = data.trianglelist[i][(j + 1) % 3];
 
                 uint64_t e = (((uint64_t)v1 << 32) | v2) * (v1 > v2) + (((uint64_t)v2 << 32) | v1) * (v1 < v2);
 
@@ -91,14 +97,14 @@ namespace nikfemm {
             // get barycenter of adjacent elements
             Vector barycenters[3];
             for (uint8_t j = 0; j < 3; j++) {
-                barycenters[j] = (data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[0]] +
-                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[1]] +
-                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]].verts[2]]) / 3.f;
+                barycenters[j] = (data.pointlist[data.trianglelist[eadjelems_ids[i][j]][0]] +
+                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]][1]] +
+                                  data.pointlist[data.trianglelist[eadjelems_ids[i][j]][2]]) / 3.f;
             }
 
-            Vector barycenter = (data.pointlist[data.trianglelist[i].verts[0]] +
-                                data.pointlist[data.trianglelist[i].verts[1]] +
-                                data.pointlist[data.trianglelist[i].verts[2]]) / 3.f;
+            Vector barycenter = (data.pointlist[data.trianglelist[i][0]] +
+                                data.pointlist[data.trianglelist[i][1]] +
+                                data.pointlist[data.trianglelist[i][2]]) / 3.f;
 
             // get difference of magnetization vector components, adjmag - mag
             const MagnetostaticProp* mag = drawing.getRegionPtrFromId(data.triangleattributelist[i]);
@@ -303,8 +309,8 @@ namespace nikfemm {
         // get the edge adjacent elements
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
-                uint32_t v1 = data.trianglelist[i].verts[j];
-                uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
+                uint32_t v1 = data.trianglelist[i][j];
+                uint32_t v2 = data.trianglelist[i][(j + 1) % 3];
 
                 uint64_t e = (((uint64_t)v1 << 32) | v2) * (v1 > v2) + (((uint64_t)v2 << 32) | v1) * (v1 < v2);
 
@@ -314,8 +320,8 @@ namespace nikfemm {
 
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
-                uint32_t v1 = data.trianglelist[i].verts[j];
-                uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
+                uint32_t v1 = data.trianglelist[i][j];
+                uint32_t v2 = data.trianglelist[i][(j + 1) % 3];
 
                 uint64_t e = (((uint64_t)v1 << 32) | v2) * (v1 > v2) + (((uint64_t)v2 << 32) | v1) * (v1 < v2);
 
@@ -335,8 +341,8 @@ namespace nikfemm {
                 // compute element normal to the boundary
                 for (uint8_t j = 0; j < 3; j++) {
                     // get the edge vector common to the two elements
-                    uint32_t v1 = data.trianglelist[i].verts[j];
-                    uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
+                    uint32_t v1 = data.trianglelist[i][j];
+                    uint32_t v2 = data.trianglelist[i][(j + 1) % 3];
                     Vector _v1 = data.pointlist[v1];
                     Vector _v2 = data.pointlist[v2];
                     uint64_t e = (((uint64_t)v1 << 32) | v2) * (v1 > v2) + (((uint64_t)v2 << 32) | v1) * (v1 < v2);
@@ -380,7 +386,7 @@ namespace nikfemm {
 
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
-                uint32_t myid = data.trianglelist[i].verts[j];
+                uint32_t myid = data.trianglelist[i][j];
                 adjelems_ids[myid][adjelems_count[myid]] = i;
                 adjelems_props[myid][adjelems_count[myid]++] = drawing.getRegionPtrFromId(data.triangleattributelist[i]);
             }
@@ -392,15 +398,15 @@ namespace nikfemm {
                 uint32_t v1, v2, v3;
                 v1 = i;
                 Elem myelem = data.trianglelist[adjelems_ids[i][j]];
-                if (i == data.trianglelist[adjelems_ids[i][j]].verts[0]) {
-                    v2 = myelem.verts[1];
-                    v3 = myelem.verts[2];
-                } else if (i == myelem.verts[1]) {
-                    v2 = myelem.verts[2];
-                    v3 = myelem.verts[0];
-                } else if (i == myelem.verts[2]) {
-                    v2 = myelem.verts[0];
-                    v3 = myelem.verts[1];
+                if (i == data.trianglelist[adjelems_ids[i][j]][0]) {
+                    v2 = myelem[1];
+                    v3 = myelem[2];
+                } else if (i == myelem[1]) {
+                    v2 = myelem[2];
+                    v3 = myelem[0];
+                } else if (i == myelem[2]) {
+                    v2 = myelem[0];
+                    v3 = myelem[1];
                 } else {
                     nexit("error: vertex not found in element");
                 }
@@ -420,51 +426,160 @@ namespace nikfemm {
                 // check if key exists
                 if (v1 <= i) {
                     uint64_t key = BuildMatCOO<int>::get_key(i, v1);
-                    coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    coo.elems[key].terms.push_back(
-                        {
-                            (area * (b1 * b1 + c1 * c1) * 0.5),
-                            adjelems_ids[i][j],
-                            false
-                        }
-                    );
+                    system.coo.elems.emplace(key, MagnetostaticNonLinearExpression());
+                    system.coo.elems[key].addTerm(area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]);
                 }
                 if (v2 <= i) {
                     double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
                     double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
                     // coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
                     uint64_t key = BuildMatCOO<int>::get_key(i, v2);
-                    coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    coo.elems[key].terms.push_back(
-                        {
-                            (area * (b2 * b1 + c2 * c1) * 0.5),
-                            adjelems_ids[i][j],
-                            false
-                        }
-                    );
+                    system.coo.elems.emplace(key, MagnetostaticNonLinearExpression());
+                    system.coo.elems[key].addTerm(area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]);
                 }
                 if (v3 <= i) {
                     double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
                     double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
                     // coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
                     uint64_t key = BuildMatCOO<int>::get_key(i, v3);
-                    coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    coo.elems[key].terms.push_back(
-                        {
-                            (area * (b3 * b1 + c3 * c1) * 0.5),
-                            adjelems_ids[i][j],
-                            false
-                        }
-                    );
+                    system.coo.elems.emplace(key, MagnetostaticNonLinearExpression());
+                    system.coo.elems[key].addTerm(area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]);
                 }
 
                 // set the b vector
                 // b.add_elem(i, (area * (adjelems_props[i][j]->J + Jm[adjelems_ids[i][j]])) / 6);
-                b.add_elem(i, (area * adjelems_props[i][j]->J) / 6);
+                // b.add_elem(i, (area * adjelems_props[i][j]->J) / 6);
+                system.b.expr[i].addToConstant((area * adjelems_props[i][j]->J) / 6);
                 // printf("area %.17g\n", area);
             }
         }
 
+        // line integral
+        // in this section we find all the edges where there is a surface current (i.e. the edges where the M vector changes from element to element)
+        // to do this first of all we find all the segments in the drawing that are subject to a surface current and their outward normal
+        struct SurfaceCurrentSegment {
+            Vector p1, p2; // the two points that define the segment
+            double Jm; // surface current density on the segment (M x n) (pointing normal to the simulation plane)
+        };
+
+        // first we have to find the polygons that are magnets
+        // if the polygon contains a region that is a magnet and it does not contain any other polygon that contains the same region then it is a magnet
+        std::map<uint32_t, std::vector<Polygon>> polygons_that_contain_magnet_region;
+        for (auto region :drawing.regions) {
+            if (drawing.region_map[region.second].M != Vector(0, 0)) {
+                for (auto polygon : drawing.polygons) {
+                    if (polygon.contains(region.first)) {
+                        polygons_that_contain_magnet_region[region.second].push_back(polygon);
+                    }
+                }
+            }
+        }
+
+        struct Magnet {
+            Polygon polygon;
+            Vector M;
+            std::vector<SurfaceCurrentSegment> segments;
+        };
+
+        std::vector<Magnet> magnets;
+        for (auto region_poly_array : polygons_that_contain_magnet_region) {
+            if (region_poly_array.second.size() == 1) {
+                // this is a magnet
+                for (auto point : region_poly_array.second[0].points) {
+                    magnets.push_back({region_poly_array.second[0], drawing.region_map[region_poly_array.first].M, {}});
+                }
+            } else {
+                // this array contains a magnet and other polygons that contain the polygon that is a magnet
+                // we need to find the polygon that does not contain any other polygon that contains the same region
+                for (auto polygon : region_poly_array.second) {
+                    bool is_magnet = true;
+                    for (auto other_polygon : region_poly_array.second) {
+                        if (polygon != other_polygon && polygon.contains(other_polygon)) {
+                            is_magnet = false;
+                            break;
+                        }
+                    }
+                    if (is_magnet) {
+                        magnets.push_back({polygon, drawing.region_map[region_poly_array.first].M, {}});
+                    }
+                }
+            }
+        }
+
+        // now we have to find the segments that are subject to a surface current and their outward normal
+        for (auto &magnet : magnets) {
+            for (uint32_t i = 0; i < magnet.polygon.points.size(); i++) {
+                uint32_t j = (i + 1) % magnet.polygon.points.size();
+                Vector p1 = magnet.polygon.points[i];
+                Vector p2 = magnet.polygon.points[j];
+                Vector n = (p2 - p1).normal().normalize();
+                // we need the outward normal
+                Vector test = Vector::midPoint(p1, p2) + (n * epsilon * 0.1);  // 0.1 just to make sure that we get no false negatives
+                if (magnet.polygon.contains(test)) {
+                    n = n * -1;
+                }
+                // draw arrow from the middle of p1 and p2 in the direction of n
+                Vector mid = Vector::midPoint(p1, p2);
+                double Jm = magnet.M ^ n;
+                magnet.segments.push_back({p1, p2, Jm});
+            }
+        }
+
+        // now we have to find the edges that are subject to a surface current
+        // i.e. the edges that lie on a segment that is subject to a surface current
+        // edges should be unique
+
+        // we need an unique list of edges
+        struct Edge {
+            uint32_t v1, v2;
+        };
+
+        struct EdgeHash {
+            static inline uint64_t edge_unique_hash(uint32_t v1, uint32_t v2) {
+                return (uint64_t)v1 << 32 | (uint64_t)v2;
+            }
+            std::size_t operator()(const Edge& edge) const {
+                return edge_unique_hash(edge.v1, edge.v2) * (edge.v1 > edge.v2) + edge_unique_hash(edge.v2, edge.v1) * (edge.v1 <= edge.v2);
+            }
+        };
+
+        struct EdgeEqual {
+            bool operator()(const Edge& edge1, const Edge& edge2) const {
+                return (edge1.v1 == edge2.v1 && edge1.v2 == edge2.v2) || (edge1.v1 == edge2.v2 && edge1.v2 == edge2.v1);
+            }
+        };
+
+        std::unordered_set<Edge, EdgeHash, EdgeEqual> edges;
+        edges.reserve((data.numberofpoints - 2) * 3);
+
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            edges.insert({(uint32_t)data.trianglelist[i][0], (uint32_t)data.trianglelist[i][1]});
+            edges.insert({(uint32_t)data.trianglelist[i][1], (uint32_t)data.trianglelist[i][2]});
+            edges.insert({(uint32_t)data.trianglelist[i][2], (uint32_t)data.trianglelist[i][0]});
+        }
+
+        printf("number of edges: %d, predicted number of edges: %d\n", edges.size(), (data.numberofpoints - 2) * 3);
+
+        for (auto edge : edges) {
+            Vector p1 = data.pointlist[edge.v1];
+            Vector p2 = data.pointlist[edge.v2];
+            for (auto magnet : magnets) {
+                for (auto segment : magnet.segments) {
+                    double dist1 = Segment::pointSegmentDistance(p1, segment.p1, segment.p2);
+                    double dist2 = Segment::pointSegmentDistance(p2, segment.p1, segment.p2);
+                    if (dist1 < epsilon * 0.1 && dist2 < epsilon * 0.1) {
+                        // this edge is subject to a surface current
+                        double length = Vector::distance(p1, p2);
+                        // b.add_elem(edge.v1, length * segment.Jm);
+                        // b.add_elem(edge.v2, length * segment.Jm);
+                        system.b.expr[edge.v1].addToConstant(length * segment.Jm);
+                        system.b.expr[edge.v2].addToConstant(length * segment.Jm);
+                    }
+                }
+            }
+        }
+
+        /*
         // line integral
         // in this section we find all the edges where there is a surface current (i.e. the edges where the M vector changes from element to element)
         // to do this first of all we find all the segments in the drawing that are subject to a surface current and their outward normal
@@ -631,12 +746,40 @@ namespace nikfemm {
                 b.add_elem(v2, edge.Jm * length);
             }
         }
+        */
 
         auto end = std::chrono::high_resolution_clock::now();
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
+
+        return system;
     }
 
-    void MagnetostaticMesh::addDirichletBoundaryConditions(BuildMatCOO<MagnetostaticNonLinearExpression> &coo, CV &b) {
+    void MagnetostaticMesh::addDirichletBoundaryConditions(MagnetostaticSystem& system, uint32_t id, double value) {
+        // this function lets you set a Dirichlet boundary condition on a node
+        for (auto& elem : system.coo.elems) {
+            uint32_t m = elem.first >> 32;
+            uint32_t n = elem.first & 0xFFFFFFFF;
+            if (m == id || n == id) {
+                elem.second.setToConstant(0);
+            }
+        }
+        system.coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
+        system.b.expr[id].setToConstant(value);
+
+        // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
+
+        if (value != 0) {
+            for (auto& elem : system.coo.elems) {
+                uint32_t m = elem.first >> 32;
+                uint32_t n = elem.first & 0xFFFFFFFF;
+                if (m == id) {
+                    system.b.expr[n] -= elem.second * value;
+                }
+            }
+        }
+    }
+
+    void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system) {
         // find three furthest points from the center
         uint32_t p1, p2, p3;
         double d1, d2, d3;
@@ -660,40 +803,24 @@ namespace nikfemm {
             }
         }
 
-        for (auto elem : coo.elems) {
-            uint32_t m = elem.first >> 32;
-            uint32_t n = elem.first & 0xFFFFFFFF;
-            if (m == p1 || m == p2 || m == p3) {
-                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.clear();
-                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
-            }
-            if (n == p1 || n == p2 || n == p3) {
-                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.clear();
-                coo.elems[BuildMatCOO<int>::get_key(m, n)].terms.push_back({0, 0, true});
-            }
-        }
-
-        coo.elems[BuildMatCOO<int>::get_key(p1, p1)].terms.clear();
-        coo.elems[BuildMatCOO<int>::get_key(p1, p1)].terms.push_back({ 1, 0, true});
-        coo.elems[BuildMatCOO<int>::get_key(p2, p2)].terms.clear();
-        coo.elems[BuildMatCOO<int>::get_key(p2, p2)].terms.push_back({ 1, 0, true});
-        coo.elems[BuildMatCOO<int>::get_key(p3, p3)].terms.clear();
-        coo.elems[BuildMatCOO<int>::get_key(p3, p3)].terms.push_back({ 1, 0, true});
-        // since we are setting the potential to zero at the three points, we do not need to subtract anything from the b vector
+        // make the magnetic vector potential zero on the three points
+        addDirichletBoundaryConditions(system, p1, 0);
+        addDirichletBoundaryConditions(system, p2, 0);
+        addDirichletBoundaryConditions(system, p3, 0);
     }
 
     void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) {
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             Elem myelem = data.trianglelist[i];
-            double x1 = data.pointlist[myelem.verts[0]].x;
-            double y1 = data.pointlist[myelem.verts[0]].y;
-            double z1 = A[myelem.verts[0]];
-            double x2 = data.pointlist[myelem.verts[1]].x;
-            double y2 = data.pointlist[myelem.verts[1]].y;
-            double z2 = A[myelem.verts[1]];
-            double x3 = data.pointlist[myelem.verts[2]].x;
-            double y3 = data.pointlist[myelem.verts[2]].y;
-            double z3 = A[myelem.verts[2]];
+            double x1 = data.pointlist[myelem[0]].x;
+            double y1 = data.pointlist[myelem[0]].y;
+            double z1 = A[myelem[0]];
+            double x2 = data.pointlist[myelem[1]].x;
+            double y2 = data.pointlist[myelem[1]].y;
+            double z2 = A[myelem[1]];
+            double x3 = data.pointlist[myelem[2]].x;
+            double y3 = data.pointlist[myelem[2]].y;
+            double z3 = A[myelem[2]];
 
             // fit z = a + bx + cy to the three points
             double a1 = x2 - x1;
@@ -819,83 +946,6 @@ namespace nikfemm {
                 }
             }
         }
-    }
-
-    std::vector<Vector> MagnetostaticMesh::computeForceIntegrals(std::vector<Vector>& B) {
-        std::vector<Vector> force_integrals(drawing.polygons.size());
-        // make epsilon a little smaller than the smallest distance
-        for (auto polygon : drawing.polygons) {
-            force_integrals.push_back(Vector(0, 0));
-            for (uint32_t i = 0; i < polygon.points.size(); i++) {
-                Vector p1 = polygon.points[i];
-                Vector p2 = polygon.points[(i + 1) % polygon.points.size()];
-                printf("p1 = (%.17g, %.17g) p2 = (%.17g, %.17g)\n", p1.x, p1.y, p2.x, p2.y);
-                // evaluate integral over line segment
-                Vector normal = Vector(p2.y - p1.y, p1.x - p2.x) / ((Vector)(p2 - p1)).norm();
-                std::vector<Vector> integration_segment_mesh_intersection_points;
-                // find vertices that are on the line segment
-                for (uint32_t j = 0; j < data.numberofpoints; j++) {
-                    Vector p = data.pointlist[j];
-                    double dist = Segment::pointSegmentDistance(p, p1, p2);
-                    if (dist < epsilon) {
-                        integration_segment_mesh_intersection_points.push_back(p);
-                    }
-                }
-                printf("size %d\n", integration_segment_mesh_intersection_points.size());
-                // sort vertices by distance from p1
-                std::sort(integration_segment_mesh_intersection_points.begin(), integration_segment_mesh_intersection_points.end(), [&p1](Vector a, Vector b) {
-                    return Vector::distance(a, p1) < Vector::distance(b, p1);
-                });
-                // find adj vertices to vertices that are on the line segment
-                std::vector<std::vector<Vector>> adj_values(integration_segment_mesh_intersection_points.size(), std::vector<Vector>()); 
-                for (uint32_t e = 0; e < data.numberoftriangles; e++) {
-                    Elem myelem = data.trianglelist[e];
-                    for (uint32_t j = 0; j < 3; j++) {
-                        Vector p = data.pointlist[myelem.verts[j]];
-                        for (uint32_t k = 0; k < integration_segment_mesh_intersection_points.size(); k++) {
-                            if (Vector::distance(p, integration_segment_mesh_intersection_points[k]) < epsilon) {
-                                adj_values[k].push_back(B[e]);
-                            }
-                        }
-                    }
-                }
-                // this could be a least squares fit but it's probably not necessary for now
-                std::vector<Vector> adj_values_avg(integration_segment_mesh_intersection_points.size(), {0, 0});
-                for (uint32_t i = 0; i < adj_values.size(); i++) {
-                    for (uint32_t j = 0; j < adj_values[i].size(); j++) {
-                        adj_values_avg[i] += adj_values[i][j];
-                    }
-                    adj_values_avg[i] /= adj_values[i].size();
-                }
-                // trapezoidal integration
-                for (uint32_t i = 0; i < integration_segment_mesh_intersection_points.size() - 1; i++) {
-                    Vector p1 = integration_segment_mesh_intersection_points[i];
-                    Vector p2 = integration_segment_mesh_intersection_points[i + 1];
-                    Vector v1 = adj_values_avg[i];
-                    Vector v2 = adj_values_avg[i + 1];
-                    MaxwellStressTensor stress_tensor1;
-                    // 1 / mu_0 * (BiBj - 1/2 * B*B * delta_ij)
-                    stress_tensor1[0][0] = (1. / MU_0) * (v1.x * v1.x - 0.5 * v1.norm() * v1.norm());
-                    stress_tensor1[0][1] = (1. / MU_0) * (v1.x * v1.y);
-                    stress_tensor1[1][0] = (1. / MU_0) * (v1.y * v1.x);
-                    stress_tensor1[1][1] = (1. / MU_0) * (v1.y * v1.y - 0.5 * v1.norm() * v1.norm());
-
-                    MaxwellStressTensor stress_tensor2;
-                    stress_tensor2[0][0] = (1. / MU_0) * (v2.x * v2.x - 0.5 * v2.norm() * v2.norm());
-                    stress_tensor2[0][1] = (1. / MU_0) * (v2.x * v2.y);
-                    stress_tensor2[1][0] = (1. / MU_0) * (v2.y * v2.x);
-                    stress_tensor2[1][1] = (1. / MU_0) * (v2.y * v2.y - 0.5 * v2.norm() * v2.norm());
-
-                    Vector force1(stress_tensor1[0][0] * normal.x + stress_tensor1[0][1] * normal.y, stress_tensor1[1][0] * normal.x + stress_tensor1[1][1] * normal.y);
-                    Vector force2(stress_tensor2[0][0] * normal.x + stress_tensor2[0][1] * normal.y, stress_tensor2[1][0] * normal.x + stress_tensor2[1][1] * normal.y);
-
-                    Vector force = (force1 + force2) * 0.5 * Vector::distance(p1, p2);
-                    printf("point1 = (%.17g, %.17g) point2 = (%.17g, %.17g) force = (%.17g, %.17g)\n", p1.x, p1.y, p2.x, p2.y, force.x, force.y);
-                    force_integrals.back() += force;
-                }
-            }
-        }
-        return force_integrals;
     }
 }
 

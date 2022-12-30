@@ -291,6 +291,7 @@ void simulate(int num, double angle, double max_B, double min_B,
     // simulation.AplotToFile(10000, 10000, "Aplot.png");
     // save to file num
     simulation.BplotToFile(10000, 10000, "Bplot" + std::to_string(num) + ".png", false, true);
+    // simulation.AplotToFile(10000, 10000, "Aplot" + std::to_string(num) + ".png");
 }
 
 int main(int argc, char** argv) {
@@ -329,12 +330,13 @@ int main(int argc, char** argv) {
                 0.7, // magnet_fill_width_percent
                 0.24, // winding_fill_width_percent
                 0.95, // winding_percent_of_stem
-                sin(angle), // currentA
-                sin(angle + (2 * PI) / 3), // currentB
-                sin(angle + (4 * PI) / 3), // currentC
+                0, // sin(angle), // currentA
+                0, // sin(angle + (2 * PI) / 3), // currentB
+                0, // sin(angle + (4 * PI) / 3), // currentC
                 0.5 // magnet_magnetization
             );
         });
+        break;
         num++;
     }
     return 0;

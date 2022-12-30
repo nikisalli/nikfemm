@@ -3,6 +3,28 @@
 #include "magnetostatic_algebra.hpp"
 
 namespace nikfemm {
+    double MagnetostaticNonLinearExpression::evaluate(std::vector<float>& mu) {
+        double result = constant;
+        for (auto const& term : terms) {
+            result += term.linear_coefficient / mu[term.nonlinear_coefficient_element_index];
+        }
+        return result;
+    }
+
+    void MagnetostaticNonLinearExpression::setToConstant(double constant) {
+        this->constant = constant;
+        terms.clear();
+    }
+
+    void MagnetostaticNonLinearExpression::addToConstant(double constant) {
+        nassert(isLinear(), "Cannot add to constant of non-linear expression");
+        this->constant += constant;
+    }
+
+    void MagnetostaticNonLinearExpression::addTerm(double linear_coefficient, uint32_t nonlinear_coefficient_element_index) {
+        terms.push_back(MagnetostaticNonLinearTerm{linear_coefficient, nonlinear_coefficient_element_index});
+    }
+
     MagnetostaticMatCSRSymmetric::MagnetostaticMatCSRSymmetric(BuildMatCOO<MagnetostaticNonLinearExpression>& coo) {
         m = coo.m;
 
@@ -52,59 +74,31 @@ namespace nikfemm {
 
     }
 
-    void MagnetostaticMatCSRSymmetric::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter) {
-        assert(mu.size() == B.size());
-        double kalman_scemo = exp(-((double)iter) / 5.);
-        // printf("kalman_scemo: %.17g\n", kalman_scemo);
-        // printf("exp(-(iter + 1) / 100): %.17g\n", exp(-((double)iter + 1.) / 100.));
-        // printf("- (iter + 1) / 100: %.17g\n", - ((double)iter + 1.) / 100.);
-        
-        for (uint32_t i = 0; i < B.size(); i++) {
-            float Bmag = B[i].norm();
-            if (props[i]->isLinear()) {
-                mu[i] = props[i]->getMu(Bmag);
-            } else {
-                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + materials::vacuum * residual * residual) * (1 - kalman_scemo)); 
-                // mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;  // mu += (mu_new - mu) * 0.1
-                // mu[i] += props[i]->getMu(Bmag);  // pure newton-raphson
-            }
-        }
-    }
-
-    void MagnetostaticMatCSRSymmetric::updateMat(std::vector<float>& mu) {
+    void MagnetostaticMatCSRSymmetric::updateFromMu(std::vector<float>& mu) {
         // diagonal
-        uint32_t same = 0;
         for (uint32_t i = 0; i < m; i++) {
-            double old_diag = diag[i];
-            diag[i] = 0;
-            for (auto term : diag_expr[i].terms) {
-                if (term.is_boundary_condition) {
-                    diag[i] = term.linear_coefficient;
-                } else {
-                    diag[i] += term.linear_coefficient / mu[term.nonlinear_coefficient_element_index];
-                    // printf("diag[%d] += %.17g / mu[%d] (%.17g) = %.17g\n", i, term.linear_coefficient, term.nonlinear_coefficient_element_index, mu[term.nonlinear_coefficient_element_index], diag[i]);
-                }
-            }
-            if (diag[i] == old_diag) {
-                same++;
-            }
+            double old_val = diag[i];
+            diag[i] = diag_expr[i].evaluate(mu);
         }
         // off-diagonal
         for (uint32_t i = 0; i < nnz; i++) {
-            double old_val = val[i];
-            val[i] = 0;
-            for (auto term : expr[i].terms) {
-                if (term.is_boundary_condition) {
-                    val[i] = term.linear_coefficient;
-                } else {
-                    val[i] += term.linear_coefficient / mu[term.nonlinear_coefficient_element_index];
-                    // printf("val[%d] += %.17g / mu[%d] (%.17g) = %.17g\n", i, term.linear_coefficient, term.nonlinear_coefficient_element_index, mu[term.nonlinear_coefficient_element_index], diag[i]);
-                }
-            }
-            if (val[i] == old_val) {
-                same++;
-            }
+            val[i] = expr[i].evaluate(mu);
         }
         // printf("same: %d / %d, changed: %d / %d\n", same, m + nnz, m + nnz - same, m + nnz);
+    }
+
+    MagnetostaticCV::MagnetostaticCV(uint32_t size) {
+        val = std::vector<double>(size);
+        expr = std::vector<MagnetostaticNonLinearExpression>(size);
+    }
+
+    MagnetostaticCV::~MagnetostaticCV() {
+
+    }
+
+    void MagnetostaticCV::updateFromMu(std::vector<float>& mu) {
+        for (uint32_t i = 0; i < val.size(); i++) {
+            val[i] = expr[i].evaluate(mu);
+        }
     }
 }

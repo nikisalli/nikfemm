@@ -12,6 +12,10 @@
 namespace nikfemm {
     struct Elem {
         int verts[3];
+
+        int& operator[](int i) {
+            return verts[i];
+        }
     };
 
     // this was copied from the triangle library, I changed some types to be able to reinterpret_cast and use the data in a more intuitive way
@@ -49,9 +53,9 @@ namespace nikfemm {
 
         inline Vector getElemBarycenter(uint32_t elem_id) {
             Elem myelem = trianglelist[elem_id];
-            Vector p1 = pointlist[myelem.verts[0]];
-            Vector p2 = pointlist[myelem.verts[1]];
-            Vector p3 = pointlist[myelem.verts[2]];
+            Vector p1 = pointlist[myelem[0]];
+            Vector p2 = pointlist[myelem[1]];
+            Vector p3 = pointlist[myelem[2]];
             return (p1 + p2 + p3) / 3.0;
         }
 
@@ -65,7 +69,7 @@ namespace nikfemm {
 
         inline double getDoubleOrientedArea(uint32_t elem_id) {
             Elem myelem = trianglelist[elem_id];
-            return getDoubleOrientedArea(myelem.verts[0], myelem.verts[1], myelem.verts[2]);
+            return getDoubleOrientedArea(myelem[0], myelem[1], myelem[2]);
         }
 
         inline double getArea(uint32_t v1, uint32_t v2, uint32_t v3) {
@@ -85,7 +89,7 @@ namespace nikfemm {
 
         inline bool pointInElem(uint32_t elem_id, Vector point) {
             Elem myelem = trianglelist[elem_id];
-            return pointInTriangle(point, pointlist[myelem.verts[0]], pointlist[myelem.verts[1]], pointlist[myelem.verts[2]]);
+            return pointInTriangle(point, pointlist[myelem[0]], pointlist[myelem[1]], pointlist[myelem[2]]);
         }
     };
     template <typename Prop>
@@ -136,12 +140,12 @@ namespace nikfemm {
         double epsilon = std::numeric_limits<double>::infinity();
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             Elem myelem = data.trianglelist[i];
-            double x1 = data.pointlist[myelem.verts[0]].x;
-            double y1 = data.pointlist[myelem.verts[0]].y;
-            double x2 = data.pointlist[myelem.verts[1]].x;
-            double y2 = data.pointlist[myelem.verts[1]].y;
-            double x3 = data.pointlist[myelem.verts[2]].x;
-            double y3 = data.pointlist[myelem.verts[2]].y;
+            double x1 = data.pointlist[myelem[0]].x;
+            double y1 = data.pointlist[myelem[0]].y;
+            double x2 = data.pointlist[myelem[1]].x;
+            double y2 = data.pointlist[myelem[1]].y;
+            double x3 = data.pointlist[myelem[2]].x;
+            double y3 = data.pointlist[myelem[2]].y;
             epsilon = std::min(epsilon, Vector::distance(Vector(x1, y1), Vector(x2, y2)));
             epsilon = std::min(epsilon, Vector::distance(Vector(x1, y1), Vector(x3, y3)));
             epsilon = std::min(epsilon, Vector::distance(Vector(x2, y2), Vector(x3, y3)));
@@ -346,8 +350,8 @@ namespace nikfemm {
         for (uint32_t i = 0; i < kelvin_mesh.data.numberoftriangles; i++) {
             // check if point in map else leave it alone
             for (uint8_t j = 0; j < 3; j++) {
-                if (kelvin_to_this.count(kelvin_mesh.data.trianglelist[i].verts[j])) {
-                    data.trianglelist[data.numberoftriangles].verts[j] = kelvin_to_this[kelvin_mesh.data.trianglelist[i].verts[j]];
+                if (kelvin_to_this.count(kelvin_mesh.data.trianglelist[i][j])) {
+                    data.trianglelist[data.numberoftriangles][j] = kelvin_to_this[kelvin_mesh.data.trianglelist[i][j]];
                 }
             }
             data.triangleattributelist[data.numberoftriangles] = default_prop_id;

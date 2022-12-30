@@ -13,8 +13,11 @@
 #include <chrono>
 #include <array>
 
-#include "../constants.hpp"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
+#include "../constants.hpp"
 #include "../utils/utils.hpp"
 #include "../geometry/vector.hpp"
 #include "../geometry/segment.hpp"
@@ -47,11 +50,19 @@ namespace nikfemm {
             void drawCircle(Circle c, uint32_t n_segments);
             void drawPolygon(Vector* points, uint32_t n_points);
             void drawPolygon(const std::vector<Vector>& points);
+            void drawPolygon(Polygon p);
             void drawRegion(Vector p, Prop val);
+            void drawPoint(Vector p);
             const Prop* getRegionPtrFromId(uint32_t id) const;
             Prop getRegionFromId(uint32_t id) const;
             uint32_t getRegionId(Prop val);
             void addRefiningPoints();
+
+            void plotRend(cv::Mat* image, double width, double height);
+            void plotToFile(uint32_t width, uint32_t height, std::string filename);
+            void plot(uint32_t width, uint32_t height);
+            void translate(Vector v);
+            Prop getPolygonProp(Polygon p);
         private:
             void drawSegment(Vector p1, Vector p2);
             void drawSegment(Segment s);
@@ -128,6 +139,11 @@ namespace nikfemm {
     template <typename Prop>
     void Drawing<Prop>::drawPolygon(const std::vector<Vector>& points) {
         drawPolygon((Vector*) points.data(), points.size());
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::drawPolygon(Polygon p) {
+        drawPolygon(p.points);
     }
 
     template <typename Prop>
@@ -214,6 +230,11 @@ namespace nikfemm {
     }
 
     template <typename Prop>
+    void Drawing<Prop>::drawPoint(Vector p) {
+        points.push_back(p);
+    }
+
+    template <typename Prop>
     void Drawing<Prop>::addRefiningPoints() {
         // find shortest segment first
         epsilon = std::numeric_limits<double>::max();
@@ -287,6 +308,165 @@ namespace nikfemm {
                 }
             }
         }
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::translate(Vector v) {
+        for (uint32_t i = 0; i < points.size(); i++) {
+            points[i] = Vector(points[i].x + v.x, points[i].y + v.y);
+        }
+        for (uint32_t i = 0; i < polygons.size(); i++) {
+            for (uint32_t j = 0; j < polygons[i].points.size(); j++) {
+                polygons[i].points[j] = Vector(polygons[i].points[j].x + v.x, polygons[i].points[j].y + v.y);
+            }
+        }
+        std::vector<DrawingRegion> translated_regions;
+        for (DrawingRegion region : regions) {
+            translated_regions.push_back(DrawingRegion(Vector(region.first.x + v.x, region.first.y + v.y), region.second));
+        }
+        regions = translated_regions;
+    }
+
+    template <typename Prop>
+    Prop Drawing<Prop>::getPolygonProp(Polygon p) {
+        // check if this polygon is part of this drawing
+        bool found = false;
+        for (Polygon polygon : polygons) {
+            if (polygon == p) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            nexit("Error: polygon not found");
+        }
+        std::vector<DrawingRegion> drawing_regions_contained_by_polygon;
+        for (DrawingRegion region : regions) {
+            if (p.contains(region.first)) {
+                drawing_regions_contained_by_polygon.push_back(region);
+            }
+        }
+
+        if (drawing_regions_contained_by_polygon.size() == 0) {
+            nexit("Error: no region found for polygon");
+        } else if (drawing_regions_contained_by_polygon.size() == 1) {
+            return region_map[drawing_regions_contained_by_polygon[0].second];
+        } else {
+            // if there are multiple regions, this means that there are polygons inside this polygon
+            std::vector<Polygon> polygons_contained_by_polygon;
+            for (Polygon polygon : polygons) {
+                if (p.contains(polygon)) {
+                    polygons_contained_by_polygon.push_back(polygon);
+                }
+            }
+
+            // for each region, check if it is contained by a polygon contained by this polygon
+            for (DrawingRegion region : drawing_regions_contained_by_polygon) {
+                bool found = false;
+                for (Polygon polygon : polygons_contained_by_polygon) {
+                    if (polygon.contains(region.first)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    // this region is not contained by any polygon contained by this polygon, so it is the region we want
+                    // find the corresponding property
+                    return region_map[region.second];
+                }
+            }
+        }
+        // unreachable
+        return Prop();
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::plotRend(cv::Mat* image, double width, double height) {
+        // get mesh enclosing rectangle
+        float max_x = std::numeric_limits<float>::min();
+        float min_x = std::numeric_limits<float>::max();
+        float max_y = std::numeric_limits<float>::min();
+        float min_y = std::numeric_limits<float>::max();
+
+        for (auto p : points) {
+            if (p.x > max_x) {
+                max_x = p.x;
+            }
+            if (p.x < min_x) {
+                min_x = p.x;
+            }
+            if (p.y > max_y) {
+                max_y = p.y;
+            }
+            if (p.y < min_y) {
+                min_y = p.y;
+            }
+        }
+
+        // object to window ratio
+        float ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
+
+        // draw the geometry
+        // draw the segments
+        for (DrawingSegment s : segments) {
+            cv::line(*image, cv::Point(x_scale * points[s.p1].x + x_offset,
+                                       y_scale * points[s.p1].y + y_offset), 
+                             cv::Point(x_scale * points[s.p2].x + x_offset, 
+                                       y_scale * points[s.p2].y + y_offset),
+                             cv::Scalar(255, 255, 255), 1);
+        }
+
+        for (Vector p : points) {
+            printf("point: %f, %f\n", p.x, p.y);
+            cv::circle(*image, cv::Point(x_scale * p.x + x_offset, y_scale * p.y + y_offset), 2, cv::Scalar(255, 255, 255), -1);
+        }
+
+        // draw the regions
+        for (DrawingRegion r : regions) {
+            Vector pos = r.first;
+            // draw white cross
+            cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
+                                cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
+                                cv::Scalar(0, 0, 255), 1);
+            cv::line(*image, cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset - 5),
+                                cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset + 5),
+                                cv::Scalar(0, 0, 255), 1);
+        }
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::plot(uint32_t width, uint32_t height) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        plotRend(&image, width, height);
+
+        // show the image
+        cv::imshow("drawing", image);
+        // continue if image is closed
+        cv::waitKey(0);
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::plotToFile(uint32_t width, uint32_t height, std::string filename) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        plotRend(&image, width, height);
+
+        // save the image
+        cv::imwrite(filename, image);
     }
 }
 

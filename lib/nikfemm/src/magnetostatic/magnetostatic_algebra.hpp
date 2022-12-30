@@ -2,6 +2,7 @@
 #define NIK_MAGNETOSTATIC_ALGEBRA_HPP
 
 #include "../algebra/csr.hpp"
+#include "../algebra/simple_vector.hpp"
 #include "../algebra/build_coo.hpp"
 #include "properties.hpp"
 
@@ -9,11 +10,52 @@ namespace nikfemm {
     struct MagnetostaticNonLinearTerm {
         double linear_coefficient;
         uint32_t nonlinear_coefficient_element_index;
-        bool is_boundary_condition;
     };
 
     struct MagnetostaticNonLinearExpression {
+        private:
+        double constant = 0;
         std::vector<MagnetostaticNonLinearTerm> terms;
+
+        public:
+        inline bool isLinear() {
+            return terms.size() == 0;
+        }
+        double evaluate(std::vector<float>& mu);
+        void setToConstant(double constant);
+        void addToConstant(double constant);
+        void addTerm(double linear_coefficient, uint32_t nonlinear_coefficient_element_index);
+
+        MagnetostaticNonLinearExpression& operator=(const MagnetostaticNonLinearExpression& other) {
+            constant = other.constant;
+            terms = other.terms;
+            return *this;
+        }
+
+        MagnetostaticNonLinearExpression& operator+=(const MagnetostaticNonLinearExpression& other) {
+            constant += other.constant;
+            for (auto const& term : other.terms) {
+                terms.push_back(term);
+            }
+            return *this;
+        }
+
+        MagnetostaticNonLinearExpression& operator-=(const MagnetostaticNonLinearExpression& other) {
+            constant -= other.constant;
+            for (auto const& term : other.terms) {
+                terms.push_back(MagnetostaticNonLinearTerm{-term.linear_coefficient, term.nonlinear_coefficient_element_index});
+            }
+            return *this;
+        }
+
+        MagnetostaticNonLinearExpression operator*(const double& other) {
+            MagnetostaticNonLinearExpression result;
+            result.constant = constant * other;
+            for (auto const& term : terms) {
+                result.terms.push_back(MagnetostaticNonLinearTerm{term.linear_coefficient * other, term.nonlinear_coefficient_element_index});
+            }
+            return result;
+        }
     };
 
     struct MagnetostaticMatCSRSymmetric : virtual MatCSRSymmetric {
@@ -25,8 +67,21 @@ namespace nikfemm {
         MagnetostaticMatCSRSymmetric(BuildMatCOO<MagnetostaticNonLinearExpression>& coo);
         ~MagnetostaticMatCSRSymmetric();
 
-        void updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter);
-        void updateMat(std::vector<float>& mu);
+        void updateFromMu(std::vector<float>& mu);
+    };
+
+    struct MagnetostaticCV : virtual CV {
+        std::vector<MagnetostaticNonLinearExpression> expr;
+
+        MagnetostaticCV(uint32_t size);
+        ~MagnetostaticCV();
+
+        void updateFromMu(std::vector<float>& mu);
+    };
+
+    struct MagnetostaticSystem {
+        BuildMatCOO<MagnetostaticNonLinearExpression> coo;
+        MagnetostaticCV b;
     };
 }
 
