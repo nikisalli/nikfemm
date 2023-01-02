@@ -601,45 +601,139 @@ namespace nikfemm {
 
         auto prop = mesh.drawing.getPolygonProp(integration_region);
 
-        // compute simulation again
-        MagnetostaticSimulation integral_simulation;
-        integral_simulation.mesh.drawing.drawPolygon(integration_region);
-
-        // add all points inside the polygon that contains p
+        // find all the elements that are on the exterior of the boundary of the polygon
+        // get list of polygon segments and their normals
+        struct SegmentNormal {
+            uint32_t p1;
+            uint32_t p2;
+            Vector normal;
+        };
+        std::vector<SegmentNormal> segment_normals;
+        for (uint32_t i = 0; i < integration_region.points.size(); i++) {
+            uint32_t id1 = i;
+            uint32_t id2 = (i + 1) % integration_region.points.size();
+            Vector p1 = integration_region.points[id1];
+            Vector p2 = integration_region.points[id2];
+            Vector n = (p2 - p1).normal().normalize();
+            // we need the outward normal
+            Vector test = Vector::midPoint(p1, p2) + (n * mesh.epsilon * 0.1);  // 0.1 just to make sure that we get no false negatives
+            if (integration_region.contains(test)) {
+                n = n * -1;
+            }
+            segment_normals.push_back(
+                {id1, id2, n}
+            );
+        }
+        
+        // find all the nodes that are on the boundary of the polygon
+        std::unordered_map<uint32_t, Vector> bnodes;
         for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
-            Vector my_point = mesh.data.pointlist[i];
-            if (integration_region.contains(my_point)) {
-                integral_simulation.mesh.drawing.drawPoint(my_point);
+            Vector myp = mesh.data.pointlist[i];
+            for (auto segment_normal : segment_normals) {
+                Vector p1 = integration_region.points[segment_normal.p1];
+                Vector p2 = integration_region.points[segment_normal.p2];
+                double dist = Segment::pointSegmentDistance(myp, p1, p2);
+                if (dist < mesh.epsilon * 0.1) {
+                    bnodes[i] = (bnodes[i] + segment_normal.normal) / 2;
+                }
             }
         }
 
-        // translate everything back
-        integral_simulation.mesh.drawing.translate(mesh.center);
-        integral_simulation.mesh.drawing.drawRegion(p, prop);
-        // integral_simulation.mesh.drawing.plot(1000, 1000);
+        // find all the elements that are on the boundary of the polygon
+        struct BElem {
+            uint32_t id;
+            Vector normal;
+            double area;
+            Vector B;
+        };
 
-        // generate system of equations
-        auto integral_system = integral_simulation.generateSystem();
-
-        // for every point in the polygon that contains p set a dirichlet boundary condition so that the potential remains fixed
-        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
-            Vector my_point = mesh.data.pointlist[i];
-            if (integration_region.contains(my_point)) {
-                // get potential from previous simulation
-                double potential = 1;
-                integral_simulation.mesh.addDirichletBoundaryConditions(integral_system, i, potential);
+        std::vector<BElem> belems;
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            Elem e = mesh.data.trianglelist[i];
+            uint32_t common_nodes[2] = {0, 0};
+            uint32_t common_nodes_count = 0;
+            for (auto bnode : bnodes) {
+                uint32_t id = bnode.first;
+                Vector myp = mesh.data.pointlist[id];
+                Vector n = bnode.second;
+                if (e[0] == id || e[1] == id || e[2] == id) {
+                    common_nodes[common_nodes_count] = id;
+                    common_nodes_count++;
+                    if (common_nodes_count > 3) {
+                        nexit("too many common nodes, this should never happen");
+                    }
+                }
+            }
+            switch (common_nodes_count) {
+                case 0:
+                    break;
+                case 3:  // this triangle has one node in the intersection of two segments of the polygon and is inside the polygon
+                    break;
+                case 1: {
+                    // check both other nodes are outside the polygon
+                    Vector onode = mesh.data.pointlist[common_nodes[0]];
+                    Vector anode, bnode;
+                    if (e[0] == common_nodes[0]) {
+                        anode = mesh.data.pointlist[e[1]];
+                        bnode = mesh.data.pointlist[e[2]];
+                    } else if (e[1] == common_nodes[0]) {
+                        anode = mesh.data.pointlist[e[0]];
+                        bnode = mesh.data.pointlist[e[2]];
+                    } else if (e[2] == common_nodes[0]) {
+                        anode = mesh.data.pointlist[e[0]];
+                        bnode = mesh.data.pointlist[e[1]];
+                    }
+                    Vector n = bnodes[common_nodes[0]];
+                    if (!integration_region.contains(anode) && !integration_region.contains(bnode)) {
+                        // we have a boundary element
+                        double area = fabs(((anode - onode) ^ (bnode - onode)) * 0.5);
+                        belems.push_back(
+                            {i, n, area, B[i]} // negative length because of parametric integration
+                        );
+                    }
+                    break;
+                }
+                case 2: {
+                    // check the other node is outside the polygon
+                    Vector anode = mesh.data.pointlist[common_nodes[0]];
+                    Vector bnode = mesh.data.pointlist[common_nodes[1]];
+                    Vector onode;
+                    if (e[0] != common_nodes[0] && e[0] != common_nodes[1]) {
+                        onode = mesh.data.pointlist[e[0]];
+                    } else if (e[1] != common_nodes[0] && e[1] != common_nodes[1]) {
+                        onode = mesh.data.pointlist[e[1]];
+                    } else if (e[2] != common_nodes[0] && e[2] != common_nodes[1]) {
+                        onode = mesh.data.pointlist[e[2]];
+                    }
+                    if (!integration_region.contains(onode)) {
+                        // we have a boundary element
+                        double area = fabs(((anode - onode) ^ (bnode - onode)) * 0.5);
+                        belems.push_back(
+                            {i, (bnodes[common_nodes[0]] + bnodes[common_nodes[1]]) / 2, area, B[i]} // positive length because of parametric integration
+                        );
+                    }
+                    break;
+                }
+                default:
+                    nexit("too many common nodes, this should never happen");
             }
         }
 
-        MagnetostaticMatCSRSymmetric integral_FemMat(integral_system.coo);
-        integral_FemMat.printCSR();
+        // compute the force integral
+        Vector force_integral = Vector(0, 0);
 
-        // integral_system.b.write_to_file("bint.mtx");
+        for (auto belem : belems) {
+            Elem e = mesh.data.trianglelist[belem.id];
+            Vector n = belem.normal;
+            double area = belem.area;
+            Vector p1 = mesh.data.pointlist[e[0]];
+            Vector p2 = mesh.data.pointlist[e[1]];
+            Vector p3 = mesh.data.pointlist[e[2]];
+            Vector Bm = belem.B;
+            Vector sigma = (Bm * (Bm * n)) * (1 / MU_0) - n * Bm.normSquared() * (1 / (MU_0 * 2));
+            force_integral += sigma * area;
+        }
 
-        // solve system of equations
-        integral_simulation.solve(integral_system);
-        integral_simulation.BplotToFile(10000, 10000, "Bintegral.png", false, false);
-
-        return Vector(0, 0);
+        return force_integral;
     }
 }

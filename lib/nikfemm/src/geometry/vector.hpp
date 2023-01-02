@@ -12,8 +12,8 @@ namespace nikfemm {
     struct Vector;
     class Vector {
         public:
-            double x;
-            double y;
+            double x = 0;
+            double y = 0;
 
             Vector(double x, double y);
             Vector();

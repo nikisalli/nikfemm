@@ -287,7 +287,9 @@ void simulate(int num, double angle, double max_B, double min_B,
         magnet_magnetization
     );
 
-    simulation.solve();
+    auto system = simulation.generateSystem();
+
+    simulation.solve(system);
     // simulation.AplotToFile(10000, 10000, "Aplot.png");
     // save to file num
     simulation.BplotToFile(10000, 10000, "Bplot" + std::to_string(num) + ".png", false, true);
