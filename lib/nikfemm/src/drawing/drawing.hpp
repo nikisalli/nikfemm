@@ -426,7 +426,6 @@ namespace nikfemm {
         }
 
         for (Vector p : points) {
-            printf("point: %f, %f\n", p.x, p.y);
             cv::circle(*image, cv::Point(x_scale * p.x + x_offset, y_scale * p.y + y_offset), 2, cv::Scalar(255, 255, 255), -1);
         }
 

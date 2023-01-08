@@ -65,6 +65,25 @@ namespace nikfemm {
         return inside;
     }
 
+    bool Polygon::contains(Vector p, bool on_boundary_counts, double epsilon) const {
+        bool is_contained_simple = contains(p);
+        bool is_on_boundary = false;
+        for (size_t i = 0; i < points.size(); i++) {
+            Vector A = points[i];
+            Vector B = points[(i + 1) % points.size()];
+
+            if (Segment::pointSegmentDistance(p, A, B) <= epsilon) {
+                is_on_boundary = true;
+                break;
+            }
+        }
+        if (on_boundary_counts) {
+            return is_contained_simple || is_on_boundary;
+        } else {
+            return is_contained_simple && !is_on_boundary;
+        }
+    }
+
     bool Polygon::contains(Polygon p) const {
         for (Vector point : p.points) {
             if (!contains(point)) {

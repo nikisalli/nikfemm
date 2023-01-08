@@ -22,10 +22,7 @@ namespace nikfemm {
         BuildMatCOO(uint32_t m);
         ~BuildMatCOO();
 
-        static inline uint64_t get_key(uint32_t i, uint32_t j);
-        void set_elem(uint32_t i, uint32_t j, T val);
-
-        double operator()(uint32_t _m, uint32_t _n) const;
+        T& operator()(uint32_t _m, uint32_t _n);
     };
 
     template <typename T>
@@ -38,32 +35,16 @@ namespace nikfemm {
     }
 
     template <typename T>
-    inline uint64_t BuildMatCOO<T>::get_key(uint32_t i, uint32_t j) {
-        // swap i, j if i > j
-        if (i > j) {
-            std::swap(i, j);
-        }
-        return (uint64_t) i << 32 | (uint64_t)j;
-    }
-
-    template <typename T>
-    void BuildMatCOO<T>::set_elem(uint32_t i, uint32_t j, T val) {
-        uint64_t key = get_key(i, j);
-        elems[key] = val;
-    }
-
-    template <typename T>
-    double BuildMatCOO<T>::operator()(uint32_t _m, uint32_t _n) const {
-        // swap indices if _m > _n
+    T& BuildMatCOO<T>::operator()(uint32_t _m, uint32_t _n) {
         if (_m > _n) {
-            std::swap(_m, _n);
+            nexit("BuildMatCOO: m > n not allowed");
         }
         uint64_t key = (uint64_t)_m << 32 | (uint64_t)_n;
-        if (elems.find(key) != elems.end()) {
-            return elems.at(key);
-        } else {
-            return 0.0;
+        // check if key exists
+        if (elems.find(key) == elems.end()) {
+            elems.insert(std::make_pair(key, T()));
         }
+        return elems[key];
     }
 }
 

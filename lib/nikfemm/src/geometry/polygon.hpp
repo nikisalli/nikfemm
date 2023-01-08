@@ -19,6 +19,7 @@ namespace nikfemm {
         bool operator!=(const Polygon& p) const;
 
         bool contains(Vector p) const;
+        bool contains(Vector p, bool on_boundary_counts, double epsilon) const;
         bool contains(Polygon p) const;
     };
 }

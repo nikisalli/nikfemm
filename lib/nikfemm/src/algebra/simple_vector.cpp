@@ -11,7 +11,7 @@
 
 namespace nikfemm {
     CV::CV(uint32_t size) {
-        val = std::vector<double>(size);
+        val = std::vector<double>(size, 0.0);
     }
 
     CV::CV() {

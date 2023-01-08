@@ -75,6 +75,8 @@ namespace nikfemm {
         float max_A = A_sorted[0.9 * A_sorted.size()];
         float min_A = A_sorted[0.1 * A_sorted.size()];
 
+        printf("max_A: %f, min_A: %f\n", max_A, min_A);
+
         // draw the points
         for (int64_t i = 0; i < mesh.data.numberofpoints; i++) {    
             Vector p = mesh.data.pointlist[i];
@@ -146,6 +148,109 @@ namespace nikfemm {
         }
 
         AplotRend(&image, width, height);
+
+        cv::imwrite(filename, image);
+    }
+
+    void MagnetostaticSimulation::NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
+        float min_x = -1.1 * mesh.radius;
+        float min_y = -1.1 * mesh.radius;
+        float max_x = 1.1 * mesh.radius;
+        float max_y = 1.1 * mesh.radius;
+
+        // object to window ratio
+        float ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
+
+        std::vector<float> A_sorted(scalar.size());
+        for (uint32_t i = 0; i < scalar.size(); i++) {
+            A_sorted[i] = scalar[i];
+        }
+        std::sort(A_sorted.begin(), A_sorted.end());
+        float max_A = A_sorted[0.9 * A_sorted.size()];
+        float min_A = A_sorted[0.1 * A_sorted.size()];
+
+        printf("max_A: %f, min_A: %f\n", max_A, min_A);
+
+        // draw the points
+        for (int64_t i = 0; i < mesh.data.numberofpoints; i++) {    
+            Vector p = mesh.data.pointlist[i];
+
+            if (Vector::distance(p, Vector(0, 0)) > mesh.radius * 1.5 + mesh.epsilon) {
+                continue;
+            }
+
+            // verts
+            auto points = std::vector<cv::Point>();
+
+            // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
+            cv::Scalar c = val2jet(scalar[i], min_A, max_A);
+            // printf("A: %f, c: %d, %d, %d\n", A.val[i], c.r, c.g, c.b);
+                            
+            // find the triangles that contain the Vertex<MagnetostaticProp> and then
+            // for every triangle find the barycenter and add it to the points vector
+            for (int32_t j = 0; j < mesh.data.numberoftriangles; j++) {
+                if (mesh.data.trianglelist[j][0] == i || mesh.data.trianglelist[j][1] == i || mesh.data.trianglelist[j][2] == i) {
+                    Vector barycenter = {
+                        (mesh.data.pointlist[mesh.data.trianglelist[j][0]].x + mesh.data.pointlist[mesh.data.trianglelist[j][1]].x + mesh.data.pointlist[mesh.data.trianglelist[j][2]].x) / 3,
+                        (mesh.data.pointlist[mesh.data.trianglelist[j][0]].y + mesh.data.pointlist[mesh.data.trianglelist[j][1]].y + mesh.data.pointlist[mesh.data.trianglelist[j][2]].y) / 3
+                    };
+                    points.push_back(cv::Point(x_offset + barycenter.x * x_scale, y_offset + barycenter.y * y_scale));
+                }
+            }
+            
+            // find the center of the points
+            cv::Point center = {0, 0};
+            for (uint8_t j = 0; j < points.size(); j++) {
+                center.x += points[j].x;
+                center.y += points[j].y;
+            }
+            // printf("count: %d\n", points.size());
+            center.x /= points.size();
+            center.y /= points.size();
+            // printf("center: %d %d\n", center.x, center.y);
+
+            // sort the points by angle
+            std::sort(points.begin(), points.end(), [center](cv::Point a, cv::Point b) {
+                return atan2(a.y - center.y, a.x - center.x) < atan2(b.y - center.y, b.x - center.x);
+            });
+
+            // draw the polygon
+            cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, points), c);
+        }
+    }
+
+    void MagnetostaticSimulation::NodeScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
+        cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+
+        if (!image.data) {
+            nexit("Could not create image");
+        }
+
+        NodeScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
+
+        cv::imshow("A", image);
+        printf("showing image\n");
+        cv::waitKey(0);
+        printf("done\n");
+    }
+
+    void MagnetostaticSimulation::NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh, bool plotRegions) {
+        cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+
+        if (!image.data) {
+            nexit("Could not create image");
+        }
+
+        NodeScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
 
         cv::imwrite(filename, image);
     }
@@ -315,7 +420,7 @@ namespace nikfemm {
         cv::imwrite(filename, image);
     }
 
-    void MagnetostaticSimulation::ScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
+    void MagnetostaticSimulation::ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
         // get mesh enclosing rectangle
         float min_x = -1.1 * mesh.radius;
         float min_y = -1.1 * mesh.radius;
@@ -339,9 +444,11 @@ namespace nikfemm {
         // double min_Scalar = scalar[0];
         std::vector<double> sortedScalar = scalar;
         std::sort(sortedScalar.begin(), sortedScalar.end());
-        // 99th percentile
-        double max_Scalar = 0.00000000000000000000001;
-        double min_Scalar = -0.00000000000000000000001;
+        // 95th percentile
+        double max_Scalar = sortedScalar[sortedScalar.size() * 0.95];
+        double min_Scalar = sortedScalar[sortedScalar.size() * 0.05];
+
+        printf("max_Scalar: %f, min_Scalar: %f\n", max_Scalar, min_Scalar);
 
         // max_B = 1e-6;
 
@@ -354,9 +461,9 @@ namespace nikfemm {
             Vector v2 = mesh.data.pointlist[e[1]];
             Vector v3 = mesh.data.pointlist[e[2]];
 
-            if (Vector::distance(v1, Vector(0, 0)) > mesh.radius + mesh.epsilon ||
-                Vector::distance(v2, Vector(0, 0)) > mesh.radius + mesh.epsilon || 
-                Vector::distance(v3, Vector(0, 0)) > mesh.radius + mesh.epsilon) {
+            if (Vector::distance(v1, Vector(0, 0)) > mesh.radius * 1.5 + mesh.epsilon ||
+                Vector::distance(v2, Vector(0, 0)) > mesh.radius * 1.5 + mesh.epsilon || 
+                Vector::distance(v3, Vector(0, 0)) > mesh.radius * 1.5 + mesh.epsilon) {
                 continue;
             }
 
@@ -411,12 +518,12 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticSimulation::ScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
+    void MagnetostaticSimulation::ElemScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh, bool plotRegions) {
         // create the image
         cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
         // render the mesh
-        ScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
+        ElemScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
 
         // show the image
         cv::imshow("B", image);
@@ -424,12 +531,12 @@ namespace nikfemm {
         cv::waitKey(0);
     }
 
-    void MagnetostaticSimulation::ScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh, bool plotRegions) {
+    void MagnetostaticSimulation::ElemScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh, bool plotRegions) {
         // create the image
         cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
         // render the mesh
-        ScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
+        ElemScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
 
         // save the image
         cv::imwrite(filename, image);
@@ -454,9 +561,11 @@ namespace nikfemm {
         }
     }
 
-    MagnetostaticSystem MagnetostaticSimulation::generateSystem() {
+    MagnetostaticSystem MagnetostaticSimulation::generateSystem(bool refine) {
         // get time in milliseconds
-        mesh.drawing.addRefiningPoints();
+        if (refine) {
+            mesh.drawing.addRefiningPoints();
+        }
 
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
@@ -572,6 +681,8 @@ namespace nikfemm {
     Vector MagnetostaticSimulation::computeForceIntegrals(Vector p) {
         // find the polygon that contains p
         Polygon integration_region;
+        Polygon boundary_region;
+        std::vector<Polygon> boundary_region_holes;
         Vector translated_p = p - mesh.center;
         std::vector<Polygon> polygons_that_contain_p;
         for (auto polygon : mesh.drawing.polygons) {
@@ -599,7 +710,424 @@ namespace nikfemm {
             }
         }
 
+        // find the region that immediately surrounds the integration region
+        std::vector<Polygon> polygons_that_contain_integration_region;
+        for (auto polygon : mesh.drawing.polygons) {
+            if (polygon.contains(integration_region) && polygon != integration_region) {
+                polygons_that_contain_integration_region.push_back(polygon);
+            }
+        }
+        // if there is more than one polygon that contains the integration region then we have to keep
+        // removing polygons that aren't contained by any other polygon that contains the integration region
+        // until we are left with one polygon
+        int count = 0;
+        while (polygons_that_contain_integration_region.size() > 1) {
+            for (auto polygon : polygons_that_contain_integration_region) {
+                bool is_outermost_polygon = true;
+                for (auto other_polygon : polygons_that_contain_integration_region) {
+                    if (polygon != other_polygon && polygon.contains(other_polygon)) {
+                        is_outermost_polygon = false;
+                        break;
+                    }
+                }
+                if (is_outermost_polygon) {
+                    // remove polygon from polygons_that_contain_integration_region
+                    polygons_that_contain_integration_region.erase(
+                        std::remove(polygons_that_contain_integration_region.begin(),
+                                    polygons_that_contain_integration_region.end(),
+                                    polygon),
+                        polygons_that_contain_integration_region.end());
+                }
+            }
+            count++;
+            if (count > 100) {
+                nexit("error: could not find outermost polygon");
+            }
+        }
+
+        // the boundary region is the polygon that is left
+        boundary_region = *polygons_that_contain_integration_region.begin();
+
+        // find the holes in the boundary region (every polygon that is contained by the boundary region but isn't contained by the integration region)
+        for (auto polygon : mesh.drawing.polygons) {
+            if (boundary_region.contains(polygon) && !integration_region.contains(polygon) && polygon != boundary_region && polygon != integration_region) {
+                boundary_region_holes.push_back(polygon);
+            }
+        }
+
         auto prop = mesh.drawing.getPolygonProp(integration_region);
+
+        // EGGSHELL WITH LAPLACE PROBLEM
+
+        auto coo = BuildMatCOO<double>(mesh.data.numberofpoints);
+        auto b = CV(mesh.data.numberofpoints);
+        auto b_dirichlet_mask = std::vector<bool>(mesh.data.numberofpoints, false);
+        // since the stiffness matrix is symmetric, this function only computes the upper triangular part
+
+        // COMPUTE FEM WEIGHTS
+        auto adjelems_ids = std::vector<std::array<uint32_t, 18>>(mesh.data.numberofpoints);
+        auto adjelems_count = std::vector<uint8_t>(mesh.data.numberofpoints, 0);
+
+        printf("computing adjelems_ids\n");
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            for (uint8_t j = 0; j < 3; j++) {
+                uint32_t myid = mesh.data.trianglelist[i][j];
+                adjelems_ids[myid][adjelems_count[myid]++] = i;
+            }
+        }
+
+        printf("computing elemadjelems_ids\n");
+        struct Edge {
+            uint8_t count = 0;
+            uint32_t elems[2];
+        };
+        uint64_t edge_count = (mesh.data.numberofpoints - 2) * 3;
+        std::unordered_map<uint64_t, Edge> edge_to_triangles(edge_count);
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            for (uint8_t j = 0; j < 3; j++) {
+                uint32_t v1 = mesh.data.trianglelist[i][j];
+                uint32_t v2 = mesh.data.trianglelist[i][(j + 1) % 3];
+                uint64_t edge = v1 < v2 ? (uint64_t)v1 << 32 | v2 : (uint64_t)v2 << 32 | v1;
+                edge_to_triangles[edge].elems[edge_to_triangles[edge].count++] = i;
+            }
+        }
+
+        printf("computing field error\n");
+        // compute field error for each element
+        std::vector<double> elem_field_errors = std::vector<double>(mesh.data.numberoftriangles, 0);
+        std::vector<double> elem_field_weights = std::vector<double>(mesh.data.numberoftriangles, 0);
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            double err = (1. / 3.) * B[i].norm();
+            Elem myelem = mesh.data.trianglelist[i];
+            // make sure the vertices are in counterclockwise order
+            if (Vector::doubleOrientedArea(mesh.data.pointlist[myelem[0]],
+                                           mesh.data.pointlist[myelem[1]],
+                                           mesh.data.pointlist[myelem[2]]) < 0) {
+                std::swap(myelem[0], myelem[1]);
+            }
+            for (uint8_t j = 0; j < 3; j++) {
+                uint32_t id1 = myelem[j];
+                uint32_t id2 = myelem[(j + 1) % 3];
+                Vector v1 = mesh.data.pointlist[id1];
+                Vector v2 = mesh.data.pointlist[id2];
+                double len = Vector::distance(v1, v2);
+                Vector n = (v2 - v1).normal().normalize();
+                uint64_t edge = id1 < id2 ? (uint64_t)id1 << 32 | id2 : (uint64_t)id2 << 32 | id1;
+                uint32_t adjid1 = edge_to_triangles[edge].elems[0];
+                uint32_t adjid2 = edge_to_triangles[edge].elems[1];
+                Vector Bp = B[adjid1 == i ? adjid2 : adjid1];
+                err += (n ^ (Bp - B[i])) * len;
+            }
+            elem_field_errors[i] = err;
+        }
+
+        printf("computing median field error\n");
+        // compute min and max field error
+        double min_err = std::numeric_limits<double>::max();
+        double max_err = std::numeric_limits<double>::min();
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            min_err = std::min(min_err, elem_field_errors[i]);
+            max_err = std::max(max_err, elem_field_errors[i]);
+        }
+
+        // square root of 2 / 2
+        Vector myS = Vector(1, 0).normalize();
+
+        printf("building fem matrix\n");
+        // surface integral
+        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+            for (uint8_t j = 0; j < adjelems_count[i]; j++) {
+                uint32_t v1, v2, v3;
+                v1 = i;
+                Elem myelem = mesh.data.trianglelist[adjelems_ids[i][j]];
+                Vector myB = B[adjelems_ids[i][j]];
+                if (i == mesh.data.trianglelist[adjelems_ids[i][j]][0]) {
+                    v2 = myelem[1];
+                    v3 = myelem[2];
+                } else if (i == myelem[1]) {
+                    v2 = myelem[2];
+                    v3 = myelem[0];
+                } else if (i == myelem[2]) {
+                    v2 = myelem[0];
+                    v3 = myelem[1];
+                } else {
+                    nexit("error: vertex not found in element");
+                }
+
+                double oriented_area = mesh.data.getDoubleOrientedArea(v1, v2, v3);
+                
+                if (oriented_area < 0) {
+                    std::swap(v2, v3);
+                }
+
+                double area = mesh.data.getDoubleOrientedArea(v1, v2, v3);
+
+                // elements are only added if they are in the upper triangle because the matrix is symmetric and this saves half the memory
+                double b1 = (mesh.data.pointlist[v2].y - mesh.data.pointlist[v3].y) / area;
+                double b2 = (mesh.data.pointlist[v3].y - mesh.data.pointlist[v1].y) / area;
+                double b3 = (mesh.data.pointlist[v1].y - mesh.data.pointlist[v2].y) / area;
+                double c1 = (mesh.data.pointlist[v3].x - mesh.data.pointlist[v2].x) / area;
+                double c2 = (mesh.data.pointlist[v1].x - mesh.data.pointlist[v3].x) / area;
+                double c3 = (mesh.data.pointlist[v2].x - mesh.data.pointlist[v1].x) / area;
+                // coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[i][j].mu));
+                // coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
+                // coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
+
+                double K1 = - 0.5 * myS.x * myB.x * myB.x + 0.5 * myS.x * myB.y * myB.y - myS.y * myB.x * myB.y;
+                double K2 = - 0.5 * myS.y * myB.y * myB.y + 0.5 * myS.y * myB.x * myB.x - myS.x * myB.x * myB.y;
+                // double K1 = 1;
+                // double K2 = 1;
+
+                double err = elem_field_errors[adjelems_ids[i][j]];
+                
+                double Wi = limit(map(sqrt(fabs(err)), min_err, max_err, 1, 1000), 1, 1000);
+                elem_field_weights[adjelems_ids[i][j]] = Wi;
+
+                // if (v1 >= i) coo(i, v1) += (Wi * Wi * area * (K1 * b1 + K2 * c1) * (K1 * b1 + K2 * c1));
+                // if (v2 >= i) coo(i, v2) += (Wi * Wi * area * (K1 * b2 + K2 * c2) * (K1 * b1 + K2 * c1));
+                // if (v3 >= i) coo(i, v3) += (Wi * Wi * area * (K1 * b3 + K2 * c3) * (K1 * b1 + K2 * c1));
+
+                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2 + 4 * b1 * c1 * K1 * K2);
+                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2 + 2 * K1 * K2 * (b1 * c2 + b2 * c1));
+                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2 + 2 * K1 * K2 * (b1 * c3 + b3 * c1));
+
+                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2 + 2 * K1 * K2 * b1 * c1);
+                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2 + 2 * K1 * K2 * b2 * c1);
+                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2 + 2 * K1 * K2 * b3 * c1);
+
+                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2 + 2 * K1 * K2 * c1 * b1);
+                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2 + 2 * K1 * K2 * c2 * b1);
+                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2 + 2 * K1 * K2 * c3 * b1);
+
+                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2);
+                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2);
+                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2);
+                
+                if (v1 >= i) coo(i, v1) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b1 + K2 * c1);
+                if (v2 >= i) coo(i, v2) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b2 + K2 * c2);
+                if (v3 >= i) coo(i, v3) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b3 + K2 * c3);
+
+                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 + c1 * c1);
+                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b1 * b2 + c1 * c2);
+                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b1 * b3 + c1 * c3);
+            }
+        }
+
+        printf("dirichlet boundary conditions\n");
+        // std::vector<double> test(mesh.data.numberofpoints, 0);
+        // // we have to set a 1 dirichlet boundary condition for all the vertices inside the integration region
+        // for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+        //     Vector mypoint = mesh.data.pointlist[i];
+        //     bool inside_integration_region = integration_region.contains(mypoint, true, mesh.epsilon);
+        //     bool inside_boundary_region = boundary_region.contains(mypoint, true, mesh.epsilon);
+        //     bool inside_boundary_region_hole = false;
+        //     for (auto& hole : boundary_region_holes) {
+        //         if (hole.contains(mypoint, false, mesh.epsilon)) {
+        //             inside_boundary_region_hole = true;
+        //             break;
+        //         }
+        //     }
+        //     // OPTIMIZE ---------------------------------------------------------------------------------------------
+        //     if (inside_integration_region) {
+        //         for (auto& e : coo.elems) {
+        //             uint32_t col = e.first >> 32;
+        //             uint32_t row = e.first & 0xFFFFFFFF;
+        //             double old_value = e.second;
+        //             // diagonal
+        //             if (row == i && col == i) {
+        //                 e.second = 1;
+        //                 b[i] = 1;
+        //                 //b_dirichlet_mask[i] = true;
+        //                 continue;
+        //             }
+        //             // row < col the matrix is stored in the upper triangular part
+        //             if (col == i) {
+        //                 if (!b_dirichlet_mask[i]) b[row] -= old_value;
+        //                 e.second = 0;
+        //             }
+        //             if (row == i) {
+        //                 e.second = 0;
+        //             }
+        //             std::swap(row, col);
+        //             if (col == i) {
+        //                 if (!b_dirichlet_mask[i]) b[col] -= old_value;
+        //             }
+        //         }
+        //         test [i] = 1;
+        //     } else if (!inside_boundary_region || inside_boundary_region_hole) {
+        //         for (auto& e : coo.elems) {
+        //             uint32_t row = e.first >> 32;
+        //             uint32_t col = e.first & 0xFFFFFFFF;
+        //             if (row == i || col == i) {
+        //                 e.second = 0;
+        //             }
+        //             if (row == i && col == i) {
+        //                 e.second = 1;
+        //             }
+        //         }
+        //         test [i] = 2;
+        //     }
+        //     if (i % 1000 == 0) {
+        //         printf("i: %d\n", i);
+        //     }
+        // }
+
+        for (auto& [id, value] : coo.elems) {
+            
+        }
+
+        MatCSRSymmetric Ai(coo);
+        auto g = CV(mesh.data.numberofpoints);
+
+        preconditionedSSORConjugateGradientSolver(Ai, b, g, 1.5, 1e-8, 10000);
+
+        NodeScalarPlotToFile(10000, 10000, g.val, "g.png");
+        // ElemScalarPlotToFile(10000, 10000, elem_field_errors, "errors.png");
+        // NodeScalarPlotToFile(10000, 10000, test, "test.png");        // A.plot("A.png");
+        // ElemScalarPlotToFile(10000, 10000, elem_field_weights, "weights.png");
+
+        // compute grad(g)
+        std::vector<Vector> nabla_g(mesh.data.numberoftriangles, {0, 0});
+        mesh.computeGrad(nabla_g, g);
+
+        std::vector<double> nabla_g_norm(mesh.data.numberoftriangles, 0);
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            nabla_g_norm[i] = nabla_g[i].norm();
+        }
+
+        ElemScalarPlotToFile(10000, 10000, nabla_g_norm, "nabla_g.png");
+        // ElemScalarPlotToFile(10000, 10000, boundary_elements_mask, "boundary.png");
+
+        // integrate force
+        Vector force = {0, 0};
+
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            Vector vertices[3] = {
+                mesh.data.pointlist[mesh.data.trianglelist[i][0]],
+                mesh.data.pointlist[mesh.data.trianglelist[i][1]],
+                mesh.data.pointlist[mesh.data.trianglelist[i][2]]
+            };
+
+            bool inside = true;
+            for (uint32_t j = 0; j < 3; j++) {
+                bool in_integration_region = integration_region.contains(vertices[j], false, mesh.epsilon);
+                bool in_boundary_region = boundary_region.contains(vertices[j], true, mesh.epsilon);
+                bool in_boundary_region_hole = false;
+                for (auto& hole : boundary_region_holes) {
+                    if (hole.contains(vertices[j], false, mesh.epsilon)) {
+                        in_boundary_region_hole = true;
+                        break;
+                    }
+                }
+
+                if (in_integration_region || !in_boundary_region || in_boundary_region_hole) {
+                    inside = false;
+                    break;
+                }
+            }
+
+            if (inside) {
+                uint32_t v1 = mesh.data.trianglelist[i][0];
+                uint32_t v2 = mesh.data.trianglelist[i][1];
+                uint32_t v3 = mesh.data.trianglelist[i][2];
+
+                Vector p1 = mesh.data.pointlist[v1];
+                Vector p2 = mesh.data.pointlist[v2];
+                Vector p3 = mesh.data.pointlist[v3];
+
+                Vector my_nabla_g = nabla_g[i];
+                Vector my_B = B[i];
+
+                double area = Vector::area(p1, p2, p3);
+
+                force += (my_nabla_g * 0.5 * my_B.normSquared() - my_B * (my_nabla_g * my_B)) * area;
+            }
+        }
+        force *= 1 / MU_0;
+        return force;
+
+        // EGGSHELL
+        /*
+        // debug plot
+        // create the image
+        uint32_t width = 10000;
+        uint32_t height = 10000;
+        bool plotMesh = true;
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // get mesh enclosing rectangle
+        float min_x = -1.1 * mesh.radius;
+        float min_y = -1.1 * mesh.radius;
+        float max_x = 1.1 * mesh.radius;
+        float max_y = 1.1 * mesh.radius;
+
+        // object to window ratio
+        float ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
+
+        // render
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            // get the triangle
+            Elem e = mesh.data.trianglelist[i];
+            // get the vertices
+            Vector v1 = mesh.data.pointlist[e[0]];
+            Vector v2 = mesh.data.pointlist[e[1]];
+            Vector v3 = mesh.data.pointlist[e[2]];
+
+            if (Vector::distance(v1, Vector(0, 0)) > mesh.radius + mesh.epsilon ||
+                Vector::distance(v2, Vector(0, 0)) > mesh.radius + mesh.epsilon || 
+                Vector::distance(v3, Vector(0, 0)) > mesh.radius + mesh.epsilon) {
+                continue;
+            }
+
+            // draw mesh edges
+            // draw lines from v1 to v2
+            if (plotMesh) {
+                cv::line(image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Scalar(255, 255, 255), 1);
+                cv::line(image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Scalar(255, 255, 255), 1);
+                cv::line(image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Scalar(255, 255, 255), 1);
+            }
+
+            // level curves
+            
+        }
+
+        // draw the geometry
+        // draw the segments
+        for (DrawingSegment s : mesh.drawing.segments) {
+            cv::line(image, cv::Point(x_scale * mesh.drawing.points[s.p1].x + x_offset,
+                                       y_scale * mesh.drawing.points[s.p1].y + y_offset), 
+                             cv::Point(x_scale * mesh.drawing.points[s.p2].x + x_offset, 
+                                       y_scale * mesh.drawing.points[s.p2].y + y_offset),
+                             cv::Scalar(255, 255, 255), 1);
+        }
+
+        // plot red x at the center of the integration region
+        Vector icenter = {0, 0};
+        for (auto point : integration_region.points) {
+            icenter += point;
+        }
+        icenter /= integration_region.points.size();
+        cv::line(image, cv::Point(x_scale * icenter.x + x_offset - 5, y_scale * icenter.y + y_offset - 5),
+                        cv::Point(x_scale * icenter.x + x_offset + 5, y_scale * icenter.y + y_offset + 5),
+                        cv::Scalar(0, 0, 255), 1);
+        cv::line(image, cv::Point(x_scale * icenter.x + x_offset - 5, y_scale * icenter.y + y_offset + 5),
+                        cv::Point(x_scale * icenter.x + x_offset + 5, y_scale * icenter.y + y_offset - 5),
+                        cv::Scalar(0, 0, 255), 1);
 
         // find all the elements that are on the exterior of the boundary of the polygon
         // get list of polygon segments and their normals
@@ -623,6 +1151,12 @@ namespace nikfemm {
             segment_normals.push_back(
                 {id1, id2, n}
             );
+
+            // plot the normals as arrows
+            Vector mid = Vector::midPoint(p1, p2);
+            cv::arrowedLine(image, cv::Point(x_scale * mid.x + x_offset, y_scale * mid.y + y_offset),
+                                   cv::Point(x_scale * (mid.x + n.x * 0.1) + x_offset, y_scale * (mid.y + n.y * 0.1) + y_offset),
+                                   cv::Scalar(0, 255, 0), 1);
         }
         
         // find all the nodes that are on the boundary of the polygon
@@ -639,11 +1173,22 @@ namespace nikfemm {
             }
         }
 
+        // plot bnodes as blue arrows
+        for (auto bnode : bnodes) {
+            uint32_t id = bnode.first;
+            Vector myp = mesh.data.pointlist[id];
+            Vector n = bnode.second;
+            cv::arrowedLine(image, cv::Point(x_scale * myp.x + x_offset, y_scale * myp.y + y_offset),
+                                   cv::Point(x_scale * (myp.x + n.x * 0.1) + x_offset, y_scale * (myp.y + n.y * 0.1) + y_offset),
+                                   cv::Scalar(255, 0, 0), 1);
+        }
+
         // find all the elements that are on the boundary of the polygon
         struct BElem {
             uint32_t id;
             Vector normal;
             double area;
+            double length;
             Vector B;
         };
 
@@ -686,11 +1231,21 @@ namespace nikfemm {
                     Vector n = bnodes[common_nodes[0]];
                     if (!integration_region.contains(anode) && !integration_region.contains(bnode)) {
                         // we have a boundary element
-                        double area = fabs(((anode - onode) ^ (bnode - onode)) * 0.5);
+                        double area = fabs(Vector::doubleOrientedArea(anode, onode, bnode) * 0.5);
+                        double length = Vector::distance(anode, bnode);
                         belems.push_back(
-                            {i, n, area, B[i]} // negative length because of parametric integration
+                            {i, n, area, -length, B[i]} // negative length because of parametric integration
                         );
+                        // plot the boundary element as a green filled triangle
+                        cv::Point points[1][3];
+                        points[0][0] = cv::Point(x_scale * anode.x + x_offset, y_scale * anode.y + y_offset);
+                        points[0][1] = cv::Point(x_scale * onode.x + x_offset, y_scale * onode.y + y_offset);
+                        points[0][2] = cv::Point(x_scale * bnode.x + x_offset, y_scale * bnode.y + y_offset);
+                        const cv::Point* ppt[1] = {points[0]};
+                        int npt[] = {3};
+                        cv::fillPoly(image, ppt, npt, 1, cv::Scalar(0, 255, 0));
                     }
+
                     break;
                 }
                 case 2: {
@@ -707,11 +1262,21 @@ namespace nikfemm {
                     }
                     if (!integration_region.contains(onode)) {
                         // we have a boundary element
-                        double area = fabs(((anode - onode) ^ (bnode - onode)) * 0.5);
+                        double area = fabs(Vector::doubleOrientedArea(anode, onode, bnode) * 0.5);
+                        double length = Vector::distance(anode, bnode);
                         belems.push_back(
-                            {i, (bnodes[common_nodes[0]] + bnodes[common_nodes[1]]) / 2, area, B[i]} // positive length because of parametric integration
+                            {i, (bnodes[common_nodes[0]] + bnodes[common_nodes[1]]) / 2, area, length, B[i]} // positive length because of parametric integration
                         );
+                        // plot the boundary element as a red filled triangle
+                        cv::Point points[1][3];
+                        points[0][0] = cv::Point(x_scale * anode.x + x_offset, y_scale * anode.y + y_offset);
+                        points[0][1] = cv::Point(x_scale * onode.x + x_offset, y_scale * onode.y + y_offset);
+                        points[0][2] = cv::Point(x_scale * bnode.x + x_offset, y_scale * bnode.y + y_offset);
+                        const cv::Point* ppt[1] = {points[0]};
+                        int npt[] = {3};
+                        cv::fillPoly(image, ppt, npt, 1, cv::Scalar(0, 0, 255));
                     }
+
                     break;
                 }
                 default:
@@ -726,14 +1291,23 @@ namespace nikfemm {
             Elem e = mesh.data.trianglelist[belem.id];
             Vector n = belem.normal;
             double area = belem.area;
+            double length = belem.length;
             Vector p1 = mesh.data.pointlist[e[0]];
             Vector p2 = mesh.data.pointlist[e[1]];
             Vector p3 = mesh.data.pointlist[e[2]];
             Vector Bm = belem.B;
-            Vector sigma = (Bm * (Bm * n)) * (1 / MU_0) - n * Bm.normSquared() * (1 / (MU_0 * 2));
+            Vector sigma = {
+                (+ 0.5 * (Bm.x * Bm.x - Bm.y * Bm.y) * n.x + Bm.x * Bm.y * n.y) * (1 / MU_0),
+                (- 0.5 * (Bm.x * Bm.x - Bm.y * Bm.y) * n.y + Bm.x * Bm.y * n.x) * (1 / MU_0)
+            };
             force_integral += sigma * area;
+            // force_integral += sigma * length * 0.5;
         }
 
+        // save the image
+        cv::imwrite("kek.png", image);
+
         return force_integral;
+        */
     }
 }

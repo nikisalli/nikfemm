@@ -42,7 +42,8 @@ namespace nikfemm {
         MagnetostaticSystem getFemSystem();
         void addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system);
         void addDirichletBoundaryConditions(MagnetostaticSystem& system, uint32_t id, double value);
-        void computeCurl(std::vector<Vector>& B, CV& A);
+        void computeCurl(std::vector<Vector>& B, CV& A) const;
+        void computeGrad(std::vector<Vector>& B, CV& A) const;
         void refineMeshAroundMagnets();
     };
 
@@ -422,35 +423,16 @@ namespace nikfemm {
                 // elements are only added if they are in the upper triangle because the matrix is symmetric and this saves half the memory
                 double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / area;
                 double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
-                // coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[i][j].mu));
-                // check if key exists
-                if (v1 <= i) {
-                    uint64_t key = BuildMatCOO<int>::get_key(i, v1);
-                    system.coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    system.coo.elems[key].addTerm(area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]);
-                }
-                if (v2 <= i) {
-                    double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
-                    double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
-                    // coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
-                    uint64_t key = BuildMatCOO<int>::get_key(i, v2);
-                    system.coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    system.coo.elems[key].addTerm(area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]);
-                }
-                if (v3 <= i) {
-                    double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
-                    double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
-                    // coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
-                    uint64_t key = BuildMatCOO<int>::get_key(i, v3);
-                    system.coo.elems.emplace(key, MagnetostaticNonLinearExpression());
-                    system.coo.elems[key].addTerm(area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]);
-                }
+                double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
+                double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
+                double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
+                double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
+                if (v1 >= i) system.coo(i, v1).addTerm(area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]);
+                if (v2 >= i) system.coo(i, v2).addTerm(area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]);
+                if (v3 >= i) system.coo(i, v3).addTerm(area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]);
 
                 // set the b vector
-                // b.add_elem(i, (area * (adjelems_props[i][j]->J + Jm[adjelems_ids[i][j]])) / 6);
-                // b.add_elem(i, (area * adjelems_props[i][j]->J) / 6);
                 system.b.expr[i].addToConstant((area * adjelems_props[i][j]->J) / 6);
-                // printf("area %.17g\n", area);
             }
         }
 
@@ -755,6 +737,19 @@ namespace nikfemm {
     }
 
     void MagnetostaticMesh::addDirichletBoundaryConditions(MagnetostaticSystem& system, uint32_t id, double value) {
+        // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
+
+        // wrong neeeds to be fixed. For now only zero boundary conditions are supported
+        if (value != 0) {
+            for (auto& elem : system.coo.elems) {
+                uint32_t m = elem.first >> 32;
+                uint32_t n = elem.first & 0xFFFFFFFF;
+                if (m == id || n == id) {
+                    system.b.expr[id] -= elem.second * value;
+                }
+            }
+        }
+
         // this function lets you set a Dirichlet boundary condition on a node
         for (auto& elem : system.coo.elems) {
             uint32_t m = elem.first >> 32;
@@ -763,20 +758,9 @@ namespace nikfemm {
                 elem.second.setToConstant(0);
             }
         }
-        system.coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
+        // system.coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
+        system.coo(id, id).setToConstant(1);
         system.b.expr[id].setToConstant(value);
-
-        // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
-
-        if (value != 0) {
-            for (auto& elem : system.coo.elems) {
-                uint32_t m = elem.first >> 32;
-                uint32_t n = elem.first & 0xFFFFFFFF;
-                if (m == id) {
-                    system.b.expr[n] -= elem.second * value;
-                }
-            }
-        }
     }
 
     void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system) {
@@ -809,7 +793,7 @@ namespace nikfemm {
         addDirichletBoundaryConditions(system, p3, 0);
     }
 
-    void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) {
+    void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) const {
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             Elem myelem = data.trianglelist[i];
             double x1 = data.pointlist[myelem[0]].x;
@@ -840,6 +824,40 @@ namespace nikfemm {
             // printf("dx = %.17g dy = %.17g for elem (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g)\n", dx, dy, x1, y1, z1, x2, y2, z2, x3, y3, z3);
 
             B[i] = Vector(-dy, dx);
+        }
+    }
+
+    void MagnetostaticMesh::computeGrad(std::vector<Vector>& B, CV &A) const {
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Elem myelem = data.trianglelist[i];
+            double x1 = data.pointlist[myelem[0]].x;
+            double y1 = data.pointlist[myelem[0]].y;
+            double z1 = A[myelem[0]];
+            double x2 = data.pointlist[myelem[1]].x;
+            double y2 = data.pointlist[myelem[1]].y;
+            double z2 = A[myelem[1]];
+            double x3 = data.pointlist[myelem[2]].x;
+            double y3 = data.pointlist[myelem[2]].y;
+            double z3 = A[myelem[2]];
+
+            // fit z = a + bx + cy to the three points
+            double a1 = x2 - x1;
+            double b1 = y2 - y1;
+            double c1 = z2 - z1;
+            double a2 = x3 - x1;
+            double b2 = y3 - y1;
+            double c2 = z3 - z1;
+
+            double a = b1 * c2 - b2 * c1;
+            double b = a2 * c1 - a1 * c2;
+            double c = a1 * b2 - b1 * a2;
+
+            double dx = -a / c;
+            double dy = -b / c;
+            
+            // printf("dx = %.17g dy = %.17g for elem (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g)\n", dx, dy, x1, y1, z1, x2, y2, z2, x3, y3, z3);
+
+            B[i] = Vector(dx, dy);
         }
     }
 

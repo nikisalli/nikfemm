@@ -26,6 +26,7 @@ namespace nikfemm {
         void print();
         void printCSR();
         void write_to_file(const char *filename);
+        void plot(std::string filename);
 
         double operator()(uint32_t i, uint32_t j) const;
     };

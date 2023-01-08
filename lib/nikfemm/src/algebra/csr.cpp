@@ -5,6 +5,10 @@
 #include <assert.h>
 #include <math.h>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 #include <constants.hpp>
 
 #include "csr.hpp"
@@ -109,6 +113,47 @@ namespace nikfemm {
             printf("\n");
         }
     }
+
+    void BaseCSR::plot(std::string filename) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(m, m, CV_8UC3);
+
+        // find min and max
+        double min = std::numeric_limits<double>::max();
+        double max = std::numeric_limits<double>::min();
+
+        for (uint32_t i = 0; i < nnz; i++) {
+            if (val[i] < min) {
+                min = val[i];
+            }
+            if (val[i] > max) {
+                max = val[i];
+            }
+        }
+
+        for (uint32_t i = 0; i < m; i++) {
+            if (diag[i] < min) {
+                min = diag[i];
+            }
+            if (diag[i] > max) {
+                max = diag[i];
+            }
+        }
+
+        // iterate over CSR elements
+        for (uint32_t i = 0; i < m; i++) {
+            for (uint32_t j = 0; j < m; j++) {
+                double val = (*this)(i, j);
+                if (val != 0.0) {
+                    cv::Scalar color = val2jet(val, min, max);
+                    image.at<cv::Vec3b>(i, j) = cv::Vec3b(color[0], color[1], color[2]);
+                }
+            }
+        }
+
+        // save the image
+        cv::imwrite(filename, image);
+    };
 
     double BaseCSR::operator()(uint32_t i, uint32_t j) const {
         if (i == j) {

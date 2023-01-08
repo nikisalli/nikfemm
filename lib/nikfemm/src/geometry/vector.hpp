@@ -116,6 +116,14 @@ namespace nikfemm {
                 return p1.x * p2.y - p1.x * p3.y - p2.x * p1.y + p2.x * p3.y + p3.x * p1.y - p3.x * p2.y;
             }
 
+            static inline double orientedArea(const Vector p1, const Vector p2, const Vector p3) {
+                return doubleOrientedArea(p1, p2, p3) / 2;
+            }
+
+            static inline double area(const Vector p1, const Vector p2, const Vector p3) {
+                return fabs(orientedArea(p1, p2, p3));
+            }
+
             static inline double distance(const Vector p1, const Vector p2) {
                 return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2));
             }

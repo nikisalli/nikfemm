@@ -105,7 +105,9 @@ namespace nikfemm {
         Mesh();
         ~Mesh();
 
-        void plot();
+        void plotRend(cv::Mat* image, double width, double height);
+        void plotToFile(uint32_t width, uint32_t height, std::string filename);
+        void plot(uint32_t width, uint32_t height);
         void mesh();
         void addKelvinBoundaryConditions(uint32_t boundary_points);
         void kelvinTransformCentered();
@@ -132,6 +134,107 @@ namespace nikfemm {
         free(data.holelist);
         free(data.edgelist);
         free(data.edgemarkerlist);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::plotRend(cv::Mat* image, double width, double height) {
+        // get mesh enclosing rectangle
+        float min_x = -1.1 * radius;
+        float min_y = -1.1 * radius;
+        float max_x = 1.1 * radius;
+        float max_y = 1.1 * radius;
+
+        // object to window ratio
+        float ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
+
+        // render
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            // get the triangle
+            Elem e = data.trianglelist[i];
+            // get the vertices
+            Vector v1 = data.pointlist[e[0]];
+            Vector v2 = data.pointlist[e[1]];
+            Vector v3 = data.pointlist[e[2]];
+
+            if (Vector::distance(v1, Vector(0, 0)) > radius + epsilon ||
+                Vector::distance(v2, Vector(0, 0)) > radius + epsilon || 
+                Vector::distance(v3, Vector(0, 0)) > radius + epsilon) {
+                continue;
+            }
+
+            // draw mesh edges
+            // draw lines from v1 to v2
+            cv::line(*image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                            cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                            cv::Scalar(255, 255, 255), 1);
+            cv::line(*image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                            cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                            cv::Scalar(255, 255, 255), 1);
+            cv::line(*image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                            cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                            cv::Scalar(255, 255, 255), 1);
+        }
+
+        // draw the geometry
+        // draw the segments
+        for (DrawingSegment s : drawing.segments) {
+            cv::line(*image, cv::Point(x_scale * drawing.points[s.p1].x + x_offset,
+                                       y_scale * drawing.points[s.p1].y + y_offset), 
+                             cv::Point(x_scale * drawing.points[s.p2].x + x_offset, 
+                                       y_scale * drawing.points[s.p2].y + y_offset),
+                             cv::Scalar(255, 255, 255), 1);
+        }
+
+        for (Vector p : drawing.points) {
+            cv::circle(*image, cv::Point(x_scale * p.x + x_offset, y_scale * p.y + y_offset), 2, cv::Scalar(255, 255, 255), -1);
+        }
+
+        // draw the regions
+        for (DrawingRegion r : drawing.regions) {
+            Vector pos = r.first;
+            // draw white cross
+            cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
+                                cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
+                                cv::Scalar(0, 0, 255), 1);
+            cv::line(*image, cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset - 5),
+                                cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset + 5),
+                                cv::Scalar(0, 0, 255), 1);
+        }
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::plot(uint32_t width, uint32_t height) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        plotRend(&image, width, height);
+
+        // show the image
+        cv::imshow("drawing", image);
+        // continue if image is closed
+        cv::waitKey(0);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::plotToFile(uint32_t width, uint32_t height, std::string filename) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        plotRend(&image, width, height);
+
+        // save the image
+        cv::imwrite(filename, image);
     }
 
     template <typename Prop>

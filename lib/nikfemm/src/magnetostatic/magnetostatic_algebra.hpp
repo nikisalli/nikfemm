@@ -23,6 +23,8 @@ namespace nikfemm {
         }
         double evaluate(std::vector<float>& mu);
         void setToConstant(double constant);
+        void setDirichlet();
+        void unsetDirichlet();
         void addToConstant(double constant);
         void addTerm(double linear_coefficient, uint32_t nonlinear_coefficient_element_index);
 
