@@ -41,6 +41,6 @@ int main(int argc, char** argv) {
     // simulation.AplotToFile(100000, 100000, "Aplot.png");
     simulation.BplotToFile(10000, 10000, "Bplot.png", false, false);
 
-    auto force = simulation.computeForceIntegrals({0, 5});
+    auto force = simulation.computeForceIntegrals({0, 1.5});
     printf("Force: %.17g, %.17g\n", force.x, force.y);
 }

@@ -679,6 +679,7 @@ namespace nikfemm {
     }
 
     Vector MagnetostaticSimulation::computeForceIntegrals(Vector p) {
+        auto start = std::chrono::high_resolution_clock::now();
         // find the polygon that contains p
         Polygon integration_region;
         Polygon boundary_region;
@@ -869,39 +870,14 @@ namespace nikfemm {
                 double c1 = (mesh.data.pointlist[v3].x - mesh.data.pointlist[v2].x) / area;
                 double c2 = (mesh.data.pointlist[v1].x - mesh.data.pointlist[v3].x) / area;
                 double c3 = (mesh.data.pointlist[v2].x - mesh.data.pointlist[v1].x) / area;
-                // coo.add_elem(i, v1, (area * (b1 * b1 + c1 * c1)) / (2 * adjelems_props[i][j].mu));
-                // coo.add_elem(i, v2, (area * (b2 * b1 + c2 * c1)) / (2 * adjelems_props[i][j].mu));
-                // coo.add_elem(i, v3, (area * (b3 * b1 + c3 * c1)) / (2 * adjelems_props[i][j].mu));
 
                 double K1 = - 0.5 * myS.x * myB.x * myB.x + 0.5 * myS.x * myB.y * myB.y - myS.y * myB.x * myB.y;
                 double K2 = - 0.5 * myS.y * myB.y * myB.y + 0.5 * myS.y * myB.x * myB.x - myS.x * myB.x * myB.y;
-                // double K1 = 1;
-                // double K2 = 1;
 
                 double err = elem_field_errors[adjelems_ids[i][j]];
                 
                 double Wi = limit(map(sqrt(fabs(err)), min_err, max_err, 1, 1000), 1, 1000);
                 elem_field_weights[adjelems_ids[i][j]] = Wi;
-
-                // if (v1 >= i) coo(i, v1) += (Wi * Wi * area * (K1 * b1 + K2 * c1) * (K1 * b1 + K2 * c1));
-                // if (v2 >= i) coo(i, v2) += (Wi * Wi * area * (K1 * b2 + K2 * c2) * (K1 * b1 + K2 * c1));
-                // if (v3 >= i) coo(i, v3) += (Wi * Wi * area * (K1 * b3 + K2 * c3) * (K1 * b1 + K2 * c1));
-
-                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2 + 4 * b1 * c1 * K1 * K2);
-                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2 + 2 * K1 * K2 * (b1 * c2 + b2 * c1));
-                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2 + 2 * K1 * K2 * (b1 * c3 + b3 * c1));
-
-                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2 + 2 * K1 * K2 * b1 * c1);
-                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2 + 2 * K1 * K2 * b2 * c1);
-                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2 + 2 * K1 * K2 * b3 * c1);
-
-                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2 + 2 * K1 * K2 * c1 * b1);
-                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2 + 2 * K1 * K2 * c2 * b1);
-                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2 + 2 * K1 * K2 * c3 * b1);
-
-                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 * K1 + c1 * c1 * K2);
-                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b2 * b1 * K1 + c2 * c1 * K2);
-                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b3 * b1 * K1 + c3 * c1 * K2);
                 
                 if (v1 >= i) coo(i, v1) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b1 + K2 * c1);
                 if (v2 >= i) coo(i, v2) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b2 + K2 * c2);
@@ -913,73 +889,131 @@ namespace nikfemm {
             }
         }
 
+        printf("find position of vertices\n");
+        struct VertexPosition {
+            bool inside_integration_region;
+            bool inside_integration_region_with_boundary;
+            bool inside_boundary_region;
+            bool inside_boundary_region_hole;
+        };
+
+        std::vector<VertexPosition> vertex_positions(mesh.data.numberofpoints);
+        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+            Vector mypoint = mesh.data.pointlist[i];
+            bool inside_integration_region_with_boundary = integration_region.contains(mypoint, true, mesh.epsilon);
+            bool inside_integration_region = integration_region.contains(mypoint, false, mesh.epsilon);
+            bool inside_boundary_region = boundary_region.contains(mypoint, true, mesh.epsilon);
+            bool inside_boundary_region_hole = false;
+            for (auto& hole : boundary_region_holes) {
+                if (hole.contains(mypoint, false, mesh.epsilon)) {
+                    inside_boundary_region_hole = true;
+                    break;
+                }
+            }
+
+            vertex_positions[i] = {
+                inside_integration_region,
+                inside_integration_region_with_boundary,
+                inside_boundary_region,
+                inside_boundary_region_hole
+            };
+        }
+
         printf("dirichlet boundary conditions\n");
         // std::vector<double> test(mesh.data.numberofpoints, 0);
-        // // we have to set a 1 dirichlet boundary condition for all the vertices inside the integration region
-        // for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
-        //     Vector mypoint = mesh.data.pointlist[i];
-        //     bool inside_integration_region = integration_region.contains(mypoint, true, mesh.epsilon);
-        //     bool inside_boundary_region = boundary_region.contains(mypoint, true, mesh.epsilon);
-        //     bool inside_boundary_region_hole = false;
-        //     for (auto& hole : boundary_region_holes) {
-        //         if (hole.contains(mypoint, false, mesh.epsilon)) {
-        //             inside_boundary_region_hole = true;
-        //             break;
-        //         }
-        //     }
-        //     // OPTIMIZE ---------------------------------------------------------------------------------------------
-        //     if (inside_integration_region) {
-        //         for (auto& e : coo.elems) {
-        //             uint32_t col = e.first >> 32;
-        //             uint32_t row = e.first & 0xFFFFFFFF;
-        //             double old_value = e.second;
-        //             // diagonal
-        //             if (row == i && col == i) {
-        //                 e.second = 1;
-        //                 b[i] = 1;
-        //                 //b_dirichlet_mask[i] = true;
-        //                 continue;
-        //             }
-        //             // row < col the matrix is stored in the upper triangular part
-        //             if (col == i) {
-        //                 if (!b_dirichlet_mask[i]) b[row] -= old_value;
-        //                 e.second = 0;
-        //             }
-        //             if (row == i) {
-        //                 e.second = 0;
-        //             }
-        //             std::swap(row, col);
-        //             if (col == i) {
-        //                 if (!b_dirichlet_mask[i]) b[col] -= old_value;
-        //             }
-        //         }
-        //         test [i] = 1;
-        //     } else if (!inside_boundary_region || inside_boundary_region_hole) {
-        //         for (auto& e : coo.elems) {
-        //             uint32_t row = e.first >> 32;
-        //             uint32_t col = e.first & 0xFFFFFFFF;
-        //             if (row == i || col == i) {
-        //                 e.second = 0;
-        //             }
-        //             if (row == i && col == i) {
-        //                 e.second = 1;
-        //             }
-        //         }
-        //         test [i] = 2;
-        //     }
-        //     if (i % 1000 == 0) {
-        //         printf("i: %d\n", i);
-        //     }
-        // }
+        // we have to set a 1 dirichlet boundary condition for all the vertices inside the integration region
+        /*
+        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+            Vector mypoint = mesh.data.pointlist[i];
+            bool inside_integration_region = integration_region.contains(mypoint, true, mesh.epsilon);
+            bool inside_boundary_region = boundary_region.contains(mypoint, true, mesh.epsilon);
+            bool inside_boundary_region_hole = false;
+            for (auto& hole : boundary_region_holes) {
+                if (hole.contains(mypoint, false, mesh.epsilon)) {
+                    inside_boundary_region_hole = true;
+                    break;
+                }
+            }
+            // OPTIMIZE ---------------------------------------------------------------------------------------------
+            if (inside_integration_region) {
+                for (auto& e : coo.elems) {
+                    uint32_t col = e.first >> 32;
+                    uint32_t row = e.first & 0xFFFFFFFF;
+                    double old_value = e.second;
+                    // diagonal
+                    if (row == i && col == i) {
+                        e.second = 1;
+                        b[i] = 1;
+                        //b_dirichlet_mask[i] = true;
+                        continue;
+                    }
+                    // row < col the matrix is stored in the upper triangular part
+                    if (col == i) {
+                        b[row] -= old_value;
+                        e.second = 0;
+                    }
+                    if (row == i) {
+                        e.second = 0;
+                    }
+                }
+                test [i] = 1;
+            } else if (!inside_boundary_region || inside_boundary_region_hole) {
+                for (auto& e : coo.elems) {
+                    uint32_t row = e.first >> 32;
+                    uint32_t col = e.first & 0xFFFFFFFF;
+                    if (row == i || col == i) {
+                        e.second = 0;
+                    }
+                    if (row == i && col == i) {
+                        e.second = 1;
+                    }
+                }
+                test [i] = 2;
+            }
+            if (i % 1000 == 0) {
+                printf("i: %d\n", i);
+            }
+        }
+        */
 
+        /*
+        */
+        uint32_t val = 0;
         for (auto& [id, value] : coo.elems) {
-            
+            uint32_t col = id >> 32;
+            uint32_t row = id & 0xFFFFFFFF;
+
+            VertexPosition col_pos = vertex_positions[col];
+            bool col_in_zero_region = !col_pos.inside_boundary_region || col_pos.inside_boundary_region_hole;
+            bool col_in_one_region = col_pos.inside_integration_region_with_boundary;
+
+            double old_value = value;
+
+            if (col_in_zero_region) {
+                if (row == col) {
+                    value = 1;
+                    b[row] = 0;
+                } else {
+                    value = 0;
+                }
+            } else if (col_in_one_region) {
+                if (row == col) {
+                    value = 1;
+                    b[row] = 1;
+                } else {
+                    value = 0;
+                    b[row] -= old_value;
+                }
+            }
+            val++;
         }
 
         MatCSRSymmetric Ai(coo);
+        // Ai.write_to_file("Ad.txt");
         auto g = CV(mesh.data.numberofpoints);
 
-        preconditionedSSORConjugateGradientSolver(Ai, b, g, 1.5, 1e-8, 10000);
+        // the error for this function varies a lot, so I just set the gradient to do at least 100 iterations and eventually stop at 1e-100
+        preconditionedSSORConjugateGradientSolver(Ai, b, g, 1.5, 1e-100, 100);
 
         NodeScalarPlotToFile(10000, 10000, g.val, "g.png");
         // ElemScalarPlotToFile(10000, 10000, elem_field_errors, "errors.png");
@@ -995,32 +1029,17 @@ namespace nikfemm {
             nabla_g_norm[i] = nabla_g[i].norm();
         }
 
-        ElemScalarPlotToFile(10000, 10000, nabla_g_norm, "nabla_g.png");
+        // ElemScalarPlotToFile(10000, 10000, nabla_g_norm, "nabla_g.png");
         // ElemScalarPlotToFile(10000, 10000, boundary_elements_mask, "boundary.png");
 
         // integrate force
         Vector force = {0, 0};
 
         for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
-            Vector vertices[3] = {
-                mesh.data.pointlist[mesh.data.trianglelist[i][0]],
-                mesh.data.pointlist[mesh.data.trianglelist[i][1]],
-                mesh.data.pointlist[mesh.data.trianglelist[i][2]]
-            };
-
             bool inside = true;
             for (uint32_t j = 0; j < 3; j++) {
-                bool in_integration_region = integration_region.contains(vertices[j], false, mesh.epsilon);
-                bool in_boundary_region = boundary_region.contains(vertices[j], true, mesh.epsilon);
-                bool in_boundary_region_hole = false;
-                for (auto& hole : boundary_region_holes) {
-                    if (hole.contains(vertices[j], false, mesh.epsilon)) {
-                        in_boundary_region_hole = true;
-                        break;
-                    }
-                }
-
-                if (in_integration_region || !in_boundary_region || in_boundary_region_hole) {
+                VertexPosition pos = vertex_positions[mesh.data.trianglelist[i][j]];
+                if (pos.inside_integration_region || !pos.inside_boundary_region || pos.inside_boundary_region_hole) {
                     inside = false;
                     break;
                 }
@@ -1044,6 +1063,9 @@ namespace nikfemm {
             }
         }
         force *= 1 / MU_0;
+
+        auto end = std::chrono::high_resolution_clock::now();
+        printf("Time elapsed: %f ms\n", std::chrono::duration<double, std::milli>(end - start).count());
         return force;
 
         // EGGSHELL
