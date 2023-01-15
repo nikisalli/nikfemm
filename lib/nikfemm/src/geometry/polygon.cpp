@@ -14,7 +14,7 @@ namespace nikfemm {
     }
 
     Polygon::Polygon(const Polygon& p) {
-        this->points = p.points;
+        points = p.points;
     }
 
     bool Polygon::operator==(const Polygon& p) const {
@@ -33,6 +33,11 @@ namespace nikfemm {
 
     bool Polygon::operator!=(const Polygon& p) const {
         return !(*this == p);
+    }
+
+    Polygon Polygon::operator=(const Polygon& p) {
+        points = p.points;
+        return *this;
     }
 
     bool Polygon::contains(Vector p) const {
@@ -92,5 +97,27 @@ namespace nikfemm {
         }
 
         return true;
+    }
+
+    Polygon& Polygon::translate(const Vector v) {
+        for (Vector& point : points) {
+            point += v;
+        }
+        return *this;
+    }
+
+    Polygon& Polygon::rotate(const double angle, const Vector center) {
+        for (Vector& point : points) {
+            point = point.rotate(angle, center);
+        }
+        return *this;
+    }
+
+    void Polygon::print() const {
+        printf("Polygon: ");
+        for (Vector point : points) {
+            printf("(%f, %f) ", point.x, point.y);
+        }
+        printf("\n");
     }
 }

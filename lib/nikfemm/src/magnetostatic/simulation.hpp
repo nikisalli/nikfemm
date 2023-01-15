@@ -17,26 +17,53 @@
 #include "mesh.hpp"
 
 namespace nikfemm {
+    struct SurroundingRegionBlockIntegralAssets {
+        std::vector<std::array<uint32_t, 18>> adjelems_ids;
+        std::vector<uint8_t> adjelems_count;
+        std::vector<double> elem_field_errors;
+        double min_err;
+        double max_err;
+        std::vector<bool> vertex_inside_integration_region;
+        std::vector<bool> vertex_inside_integration_region_with_boundary;
+        std::vector<bool> vertex_inside_boundary_region;
+        std::vector<bool> vertex_inside_boundary_region_hole;
+    };
+
+    struct StressTensor {
+        Vector Force;
+        double Torque;
+    };
+
     class MagnetostaticSimulation {
-        protected:
-        
         public:
             MagnetostaticMesh mesh;
             std::vector<Vector> B;
             CV A;
+            double depth;
 
+            MagnetostaticSimulation(double depth, double max_triangle_area = 1);
             MagnetostaticSimulation();
             ~MagnetostaticSimulation();
 
             MagnetostaticSystem generateSystem(bool refine = true);
             void solve(MagnetostaticSystem& system);
             Vector computeForceIntegrals(Vector p);
+            double computeTorqueIntegral(Vector p, Vector center);
+            StressTensor computeStressIntegral(Vector p, Vector center);
+            Vector computeBarycenter(Vector p);
+            double computeInertiaMoment(Vector p, Vector center, double density);
+            double computeMass(Vector p, double density);
         protected:
+            double computeAreaIntegral(Vector p);
+            Vector computeForceIntegrals(SurroundingRegionBlockIntegralAssets assets, Vector p);
+            double computeTorqueIntegral(SurroundingRegionBlockIntegralAssets assets, Vector p, Vector center);
+            Polygon getInnermostPolygon(Vector p);
             void AplotRend(cv::Mat* image, double width, double height);
             void BplotRend(cv::Mat* image, double width, double height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool plotCurves = false, uint32_t curve_number = 100);
             void ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
             void NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
             static void updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter);
+            auto getSurroundingRegionBlockIntegralAssets(Vector p);
         public:
             void Aplot(uint32_t width, uint32_t height);
             void Bplot(uint32_t width, uint32_t height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool plotCurves = false, uint32_t curve_number = 100);

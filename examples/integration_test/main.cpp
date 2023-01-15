@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
-    nikfemm::MagnetostaticSimulation simulation;
+    nikfemm::MagnetostaticSimulation simulation(1, 1);
    
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(0, -0.1), nikfemm::Vector(1, 0.9));
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(0, 2.1), nikfemm::Vector(1, 3.1));
@@ -41,6 +41,6 @@ int main(int argc, char** argv) {
     // simulation.AplotToFile(100000, 100000, "Aplot.png");
     simulation.BplotToFile(10000, 10000, "Bplot.png", false, false);
 
-    auto force = simulation.computeForceIntegrals({0, 1.5});
-    printf("Force: %.17g, %.17g\n", force.x, force.y);
+    auto stress = simulation.computeStressIntegral({0, 1.5}, {0, 1.5});
+    printf("Force: %.17g, %.17g, Torque: %.17g\n", stress.Force.x, stress.Force.y, stress.Torque);
 }

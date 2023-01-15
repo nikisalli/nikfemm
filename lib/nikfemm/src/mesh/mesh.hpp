@@ -20,33 +20,33 @@ namespace nikfemm {
 
     // this was copied from the triangle library, I changed some types to be able to reinterpret_cast and use the data in a more intuitive way
     struct MeshData {
-        Vector *pointlist;                                               /* In / out */
-        TRI_REAL *pointattributelist;                                      /* In / out */
-        int *pointmarkerlist;                                          /* In / out */
+        Vector *pointlist = nullptr;                                               /* In / out */
+        TRI_REAL *pointattributelist = nullptr;                                      /* In / out */
+        int *pointmarkerlist = nullptr;                                          /* In / out */
         int numberofpoints;                                            /* In / out */
         int numberofpointattributes;                                   /* In / out */
 
-        Elem *trianglelist;                                             /* In / out */
-        TRI_REAL *triangleattributelist;                                   /* In / out */
-        TRI_REAL *trianglearealist;                                         /* In only */
-        int *neighborlist;                                             /* Out only */
+        Elem *trianglelist = nullptr;                                             /* In / out */
+        TRI_REAL *triangleattributelist = nullptr;                                   /* In / out */
+        TRI_REAL *trianglearealist = nullptr;                                         /* In only */
+        int *neighborlist = nullptr;                                             /* Out only */
         int numberoftriangles;                                         /* In / out */
         int numberofcorners;                                           /* In / out */
         int numberoftriangleattributes;                                /* In / out */
 
-        int *segmentlist;                                              /* In / out */
-        int *segmentmarkerlist;                                        /* In / out */
+        int *segmentlist = nullptr;                                              /* In / out */
+        int *segmentmarkerlist = nullptr;                                        /* In / out */
         int numberofsegments;                                          /* In / out */
 
-        TRI_REAL *holelist;                        /* In / pointer to array copied out */
+        TRI_REAL *holelist = nullptr;                        /* In / pointer to array copied out */
         int numberofholes;                                      /* In / copied out */
 
-        TRI_REAL *regionlist;                      /* In / pointer to array copied out */
+        TRI_REAL *regionlist = nullptr;                      /* In / pointer to array copied out */
         int numberofregions;                                    /* In / copied out */
 
-        int *edgelist;                                                 /* Out only */
-        int *edgemarkerlist;            /* Not used with Voronoi diagram; out only */
-        TRI_REAL *normlist;                /* Used only with Voronoi diagram; out only */
+        int *edgelist = nullptr;                                                 /* Out only */
+        int *edgemarkerlist = nullptr;            /* Not used with Voronoi diagram; out only */
+        TRI_REAL *normlist = nullptr;                /* Used only with Voronoi diagram; out only */
         int numberofedges;                                             /* Out only */
 
         int hullsize;                                                  /* Out only */
@@ -98,10 +98,12 @@ namespace nikfemm {
         double radius = 0;
         Prop default_prop;
         double epsilon;
+        double max_triangle_area;
 
         MeshData data;
         Drawing<Prop> drawing;
 
+        Mesh(double max_triangle_area);
         Mesh();
         ~Mesh();
 
@@ -114,26 +116,31 @@ namespace nikfemm {
         void computeEpsilon();
     };
 
+    template <typename Prop>
+    Mesh<Prop>::Mesh(double max_triangle_area) {
+        this->max_triangle_area = max_triangle_area;
+    }
+
     // templated member functions must be defined in the header file
     template <typename Prop>
     Mesh<Prop>::Mesh() {
-
+        max_triangle_area = 1e-0;
     }
 
     template <typename Prop>
     Mesh<Prop>::~Mesh() {
         // we don't know how triangle allocated the memory
-        free(data.pointlist);
-        free(data.pointattributelist);
-        free(data.pointmarkerlist);
-        free(data.trianglelist);
-        free(data.triangleattributelist);
-        free(data.neighborlist);
-        free(data.segmentlist);
-        free(data.segmentmarkerlist);
-        free(data.holelist);
-        free(data.edgelist);
-        free(data.edgemarkerlist);
+        if (data.pointlist != nullptr) free(data.pointlist);
+        if (data.pointattributelist != nullptr) free(data.pointattributelist);
+        if (data.pointmarkerlist != nullptr) free(data.pointmarkerlist);
+        if (data.trianglelist != nullptr) free(data.trianglelist);
+        if (data.triangleattributelist != nullptr) free(data.triangleattributelist);
+        if (data.neighborlist != nullptr) free(data.neighborlist);
+        if (data.segmentlist != nullptr) free(data.segmentlist);
+        if (data.segmentmarkerlist != nullptr) free(data.segmentmarkerlist);
+        if (data.holelist != nullptr) free(data.holelist);
+        if (data.edgelist != nullptr) free(data.edgelist);
+        if (data.edgemarkerlist != nullptr) free(data.edgemarkerlist);
     }
 
     template <typename Prop>
@@ -306,7 +313,7 @@ namespace nikfemm {
         }
         // printf("----------------------\n");
         char switches[30];
-        sprintf(switches, "pzq33AQa%.17f", MAX_TRIANGLE_AREA);
+        sprintf(switches, "pzq33AQa%.17g", max_triangle_area);
         
 
         /* Make necessary initializations so that Triangle can return a */

@@ -26,8 +26,14 @@
 #include "../algebra/solvers.hpp"
 
 namespace nikfemm {
-    MagnetostaticSimulation::MagnetostaticSimulation() {
+    MagnetostaticSimulation::MagnetostaticSimulation(double depth, double max_triangle_area) {
+        this->depth = depth;
+        this->mesh.max_triangle_area = max_triangle_area;
+    }
 
+    MagnetostaticSimulation::MagnetostaticSimulation() {
+        this->depth = 1.0;
+        this->mesh.max_triangle_area = 1.0;
     }
 
     MagnetostaticSimulation::~MagnetostaticSimulation() {
@@ -581,7 +587,7 @@ namespace nikfemm {
         // make circle double the size of the smallest circle
         Circle boundary_circle = Circle(Vector(0, 0), 2 * smallest_circle.radius);
         double circumferential_length = boundary_circle.circumference();
-        uint32_t boundary_points = (uint32_t)((circumferential_length / sqrt((MAX_TRIANGLE_AREA * 4) / sqrt(3))) * 2);
+        uint32_t boundary_points = (uint32_t)((circumferential_length / sqrt((mesh.max_triangle_area * 4) / sqrt(3))) * 2);
         printf("boundary points: %d\n", boundary_points);
         mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
@@ -678,12 +684,9 @@ namespace nikfemm {
         mesh.computeCurl(B, A);
     }
 
-    Vector MagnetostaticSimulation::computeForceIntegrals(Vector p) {
-        auto start = std::chrono::high_resolution_clock::now();
+    Polygon MagnetostaticSimulation::getInnermostPolygon(Vector p) {
         // find the polygon that contains p
         Polygon integration_region;
-        Polygon boundary_region;
-        std::vector<Polygon> boundary_region_holes;
         Vector translated_p = p - mesh.center;
         std::vector<Polygon> polygons_that_contain_p;
         for (auto polygon : mesh.drawing.polygons) {
@@ -693,7 +696,10 @@ namespace nikfemm {
         }
 
         // if there is more than one polygon that contains p then we have to find the polygon that isn't contained by any other polygon that contains p
-        if (polygons_that_contain_p.size() == 1) {
+        if (polygons_that_contain_p.size() == 0) {
+            printf("ERROR: no polygon contains p\n");
+            exit(1);
+        } else if (polygons_that_contain_p.size() == 1) {
             integration_region = polygons_that_contain_p[0];
         } else {
             for (auto polygon : polygons_that_contain_p) {
@@ -710,6 +716,15 @@ namespace nikfemm {
                 }
             }
         }
+
+        return integration_region;
+    }
+
+    auto MagnetostaticSimulation::getSurroundingRegionBlockIntegralAssets(Vector p) {
+        // find the polygon that contains p
+        Polygon integration_region = getInnermostPolygon(p);
+        Polygon boundary_region;
+        std::vector<Polygon> boundary_region_holes;
 
         // find the region that immediately surrounds the integration region
         std::vector<Polygon> polygons_that_contain_integration_region;
@@ -760,11 +775,6 @@ namespace nikfemm {
 
         // EGGSHELL WITH LAPLACE PROBLEM
 
-        auto coo = BuildMatCOO<double>(mesh.data.numberofpoints);
-        auto b = CV(mesh.data.numberofpoints);
-        auto b_dirichlet_mask = std::vector<bool>(mesh.data.numberofpoints, false);
-        // since the stiffness matrix is symmetric, this function only computes the upper triangular part
-
         // COMPUTE FEM WEIGHTS
         auto adjelems_ids = std::vector<std::array<uint32_t, 18>>(mesh.data.numberofpoints);
         auto adjelems_count = std::vector<uint8_t>(mesh.data.numberofpoints, 0);
@@ -796,7 +806,7 @@ namespace nikfemm {
         printf("computing field error\n");
         // compute field error for each element
         std::vector<double> elem_field_errors = std::vector<double>(mesh.data.numberoftriangles, 0);
-        std::vector<double> elem_field_weights = std::vector<double>(mesh.data.numberoftriangles, 0);
+        // std::vector<double> elem_field_weights = std::vector<double>(mesh.data.numberoftriangles, 0);
         for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
             double err = (1. / 3.) * B[i].norm();
             Elem myelem = mesh.data.trianglelist[i];
@@ -830,6 +840,64 @@ namespace nikfemm {
             min_err = std::min(min_err, elem_field_errors[i]);
             max_err = std::max(max_err, elem_field_errors[i]);
         }
+
+        printf("find position of vertices\n");
+        std::vector<bool> vertex_inside_integration_region(mesh.data.numberofpoints);
+        std::vector<bool> vertex_inside_integration_region_with_boundary(mesh.data.numberofpoints);
+        std::vector<bool> vertex_inside_boundary_region(mesh.data.numberofpoints);
+        std::vector<bool> vertex_inside_boundary_region_hole(mesh.data.numberofpoints);
+
+        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+            Vector mypoint = mesh.data.pointlist[i];
+            bool inside_integration_region_with_boundary = integration_region.contains(mypoint, true, mesh.epsilon);
+            bool inside_integration_region = integration_region.contains(mypoint, false, mesh.epsilon);
+            bool inside_boundary_region = boundary_region.contains(mypoint, true, mesh.epsilon);
+            bool inside_boundary_region_hole = false;
+            for (auto& hole : boundary_region_holes) {
+                if (hole.contains(mypoint, false, mesh.epsilon)) {
+                    inside_boundary_region_hole = true;
+                    break;
+                }
+            }
+
+            vertex_inside_integration_region[i] = inside_integration_region;
+            vertex_inside_integration_region_with_boundary[i] = inside_integration_region_with_boundary;
+            vertex_inside_boundary_region[i] = inside_boundary_region;
+            vertex_inside_boundary_region_hole[i] = inside_boundary_region_hole;
+        }
+
+        return SurroundingRegionBlockIntegralAssets{
+            adjelems_ids,
+            adjelems_count, 
+            elem_field_errors, 
+            min_err, 
+            max_err, 
+            vertex_inside_integration_region,
+            vertex_inside_integration_region_with_boundary,
+            vertex_inside_boundary_region,
+            vertex_inside_boundary_region_hole
+        };
+    }
+
+    Vector MagnetostaticSimulation::computeForceIntegrals(SurroundingRegionBlockIntegralAssets assets, Vector p) {
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        auto [
+            adjelems_ids, 
+            adjelems_count, 
+            elem_field_errors, 
+            min_err, 
+            max_err, 
+            vertex_inside_integration_region,
+            vertex_inside_integration_region_with_boundary,
+            vertex_inside_boundary_region,
+            vertex_inside_boundary_region_hole
+        ] = assets;
+
+        auto coo = BuildMatCOO<double>(mesh.data.numberofpoints);
+        auto b = CV(mesh.data.numberofpoints);
+        auto b_dirichlet_mask = std::vector<bool>(mesh.data.numberofpoints, false);
+        // since the stiffness matrix is symmetric, this function only computes the upper triangular part
 
         // square root of 2 / 2
         Vector myS = Vector(1, 0).normalize();
@@ -877,7 +945,7 @@ namespace nikfemm {
                 double err = elem_field_errors[adjelems_ids[i][j]];
                 
                 double Wi = limit(map(sqrt(fabs(err)), min_err, max_err, 1, 1000), 1, 1000);
-                elem_field_weights[adjelems_ids[i][j]] = Wi;
+                // elem_field_weights[adjelems_ids[i][j]] = Wi;
                 
                 if (v1 >= i) coo(i, v1) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b1 + K2 * c1);
                 if (v2 >= i) coo(i, v2) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b2 + K2 * c2);
@@ -889,103 +957,17 @@ namespace nikfemm {
             }
         }
 
-        printf("find position of vertices\n");
-        struct VertexPosition {
-            bool inside_integration_region;
-            bool inside_integration_region_with_boundary;
-            bool inside_boundary_region;
-            bool inside_boundary_region_hole;
-        };
-
-        std::vector<VertexPosition> vertex_positions(mesh.data.numberofpoints);
-        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
-            Vector mypoint = mesh.data.pointlist[i];
-            bool inside_integration_region_with_boundary = integration_region.contains(mypoint, true, mesh.epsilon);
-            bool inside_integration_region = integration_region.contains(mypoint, false, mesh.epsilon);
-            bool inside_boundary_region = boundary_region.contains(mypoint, true, mesh.epsilon);
-            bool inside_boundary_region_hole = false;
-            for (auto& hole : boundary_region_holes) {
-                if (hole.contains(mypoint, false, mesh.epsilon)) {
-                    inside_boundary_region_hole = true;
-                    break;
-                }
-            }
-
-            vertex_positions[i] = {
-                inside_integration_region,
-                inside_integration_region_with_boundary,
-                inside_boundary_region,
-                inside_boundary_region_hole
-            };
-        }
-
         printf("dirichlet boundary conditions\n");
         // std::vector<double> test(mesh.data.numberofpoints, 0);
         // we have to set a 1 dirichlet boundary condition for all the vertices inside the integration region
-        /*
-        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
-            Vector mypoint = mesh.data.pointlist[i];
-            bool inside_integration_region = integration_region.contains(mypoint, true, mesh.epsilon);
-            bool inside_boundary_region = boundary_region.contains(mypoint, true, mesh.epsilon);
-            bool inside_boundary_region_hole = false;
-            for (auto& hole : boundary_region_holes) {
-                if (hole.contains(mypoint, false, mesh.epsilon)) {
-                    inside_boundary_region_hole = true;
-                    break;
-                }
-            }
-            // OPTIMIZE ---------------------------------------------------------------------------------------------
-            if (inside_integration_region) {
-                for (auto& e : coo.elems) {
-                    uint32_t col = e.first >> 32;
-                    uint32_t row = e.first & 0xFFFFFFFF;
-                    double old_value = e.second;
-                    // diagonal
-                    if (row == i && col == i) {
-                        e.second = 1;
-                        b[i] = 1;
-                        //b_dirichlet_mask[i] = true;
-                        continue;
-                    }
-                    // row < col the matrix is stored in the upper triangular part
-                    if (col == i) {
-                        b[row] -= old_value;
-                        e.second = 0;
-                    }
-                    if (row == i) {
-                        e.second = 0;
-                    }
-                }
-                test [i] = 1;
-            } else if (!inside_boundary_region || inside_boundary_region_hole) {
-                for (auto& e : coo.elems) {
-                    uint32_t row = e.first >> 32;
-                    uint32_t col = e.first & 0xFFFFFFFF;
-                    if (row == i || col == i) {
-                        e.second = 0;
-                    }
-                    if (row == i && col == i) {
-                        e.second = 1;
-                    }
-                }
-                test [i] = 2;
-            }
-            if (i % 1000 == 0) {
-                printf("i: %d\n", i);
-            }
-        }
-        */
 
-        /*
-        */
         uint32_t val = 0;
         for (auto& [id, value] : coo.elems) {
             uint32_t col = id >> 32;
             uint32_t row = id & 0xFFFFFFFF;
 
-            VertexPosition col_pos = vertex_positions[col];
-            bool col_in_zero_region = !col_pos.inside_boundary_region || col_pos.inside_boundary_region_hole;
-            bool col_in_one_region = col_pos.inside_integration_region_with_boundary;
+            bool col_in_zero_region = !vertex_inside_boundary_region[col] || vertex_inside_boundary_region_hole[col];
+            bool col_in_one_region = vertex_inside_integration_region_with_boundary[col];
 
             double old_value = value;
 
@@ -1015,7 +997,7 @@ namespace nikfemm {
         // the error for this function varies a lot, so I just set the gradient to do at least 100 iterations and eventually stop at 1e-100
         preconditionedSSORConjugateGradientSolver(Ai, b, g, 1.5, 1e-100, 100);
 
-        NodeScalarPlotToFile(10000, 10000, g.val, "g.png");
+        // NodeScalarPlotToFile(10000, 10000, g.val, "g.png");
         // ElemScalarPlotToFile(10000, 10000, elem_field_errors, "errors.png");
         // NodeScalarPlotToFile(10000, 10000, test, "test.png");        // A.plot("A.png");
         // ElemScalarPlotToFile(10000, 10000, elem_field_weights, "weights.png");
@@ -1038,8 +1020,8 @@ namespace nikfemm {
         for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
             bool inside = true;
             for (uint32_t j = 0; j < 3; j++) {
-                VertexPosition pos = vertex_positions[mesh.data.trianglelist[i][j]];
-                if (pos.inside_integration_region || !pos.inside_boundary_region || pos.inside_boundary_region_hole) {
+                uint32_t v = mesh.data.trianglelist[i][j];
+                if (vertex_inside_integration_region[v] || !vertex_inside_boundary_region[v] || vertex_inside_boundary_region_hole[v]) {
                     inside = false;
                     break;
                 }
@@ -1063,273 +1045,269 @@ namespace nikfemm {
             }
         }
         force *= 1 / MU_0;
+        force *= depth;
 
         auto end = std::chrono::high_resolution_clock::now();
         printf("Time elapsed: %f ms\n", std::chrono::duration<double, std::milli>(end - start).count());
         return force;
+    }
 
-        // EGGSHELL
-        /*
-        // debug plot
-        // create the image
-        uint32_t width = 10000;
-        uint32_t height = 10000;
-        bool plotMesh = true;
-        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
-
-        // get mesh enclosing rectangle
-        float min_x = -1.1 * mesh.radius;
-        float min_y = -1.1 * mesh.radius;
-        float max_x = 1.1 * mesh.radius;
-        float max_y = 1.1 * mesh.radius;
-
-        // object to window ratio
-        float ratio = 0.9;
-
-        // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
-        // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
-        // x offset to center mesh in window
-        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
-        // y offset to center mesh in window
-        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
-
-        // render
-        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
-            // get the triangle
-            Elem e = mesh.data.trianglelist[i];
-            // get the vertices
-            Vector v1 = mesh.data.pointlist[e[0]];
-            Vector v2 = mesh.data.pointlist[e[1]];
-            Vector v3 = mesh.data.pointlist[e[2]];
-
-            if (Vector::distance(v1, Vector(0, 0)) > mesh.radius + mesh.epsilon ||
-                Vector::distance(v2, Vector(0, 0)) > mesh.radius + mesh.epsilon || 
-                Vector::distance(v3, Vector(0, 0)) > mesh.radius + mesh.epsilon) {
-                continue;
-            }
-
-            // draw mesh edges
-            // draw lines from v1 to v2
-            if (plotMesh) {
-                cv::line(image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
-                                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
-                                cv::Scalar(255, 255, 255), 1);
-                cv::line(image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
-                                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
-                                cv::Scalar(255, 255, 255), 1);
-                cv::line(image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
-                                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
-                                cv::Scalar(255, 255, 255), 1);
-            }
-
-            // level curves
-            
-        }
-
-        // draw the geometry
-        // draw the segments
-        for (DrawingSegment s : mesh.drawing.segments) {
-            cv::line(image, cv::Point(x_scale * mesh.drawing.points[s.p1].x + x_offset,
-                                       y_scale * mesh.drawing.points[s.p1].y + y_offset), 
-                             cv::Point(x_scale * mesh.drawing.points[s.p2].x + x_offset, 
-                                       y_scale * mesh.drawing.points[s.p2].y + y_offset),
-                             cv::Scalar(255, 255, 255), 1);
-        }
-
-        // plot red x at the center of the integration region
-        Vector icenter = {0, 0};
-        for (auto point : integration_region.points) {
-            icenter += point;
-        }
-        icenter /= integration_region.points.size();
-        cv::line(image, cv::Point(x_scale * icenter.x + x_offset - 5, y_scale * icenter.y + y_offset - 5),
-                        cv::Point(x_scale * icenter.x + x_offset + 5, y_scale * icenter.y + y_offset + 5),
-                        cv::Scalar(0, 0, 255), 1);
-        cv::line(image, cv::Point(x_scale * icenter.x + x_offset - 5, y_scale * icenter.y + y_offset + 5),
-                        cv::Point(x_scale * icenter.x + x_offset + 5, y_scale * icenter.y + y_offset - 5),
-                        cv::Scalar(0, 0, 255), 1);
-
-        // find all the elements that are on the exterior of the boundary of the polygon
-        // get list of polygon segments and their normals
-        struct SegmentNormal {
-            uint32_t p1;
-            uint32_t p2;
-            Vector normal;
-        };
-        std::vector<SegmentNormal> segment_normals;
-        for (uint32_t i = 0; i < integration_region.points.size(); i++) {
-            uint32_t id1 = i;
-            uint32_t id2 = (i + 1) % integration_region.points.size();
-            Vector p1 = integration_region.points[id1];
-            Vector p2 = integration_region.points[id2];
-            Vector n = (p2 - p1).normal().normalize();
-            // we need the outward normal
-            Vector test = Vector::midPoint(p1, p2) + (n * mesh.epsilon * 0.1);  // 0.1 just to make sure that we get no false negatives
-            if (integration_region.contains(test)) {
-                n = n * -1;
-            }
-            segment_normals.push_back(
-                {id1, id2, n}
-            );
-
-            // plot the normals as arrows
-            Vector mid = Vector::midPoint(p1, p2);
-            cv::arrowedLine(image, cv::Point(x_scale * mid.x + x_offset, y_scale * mid.y + y_offset),
-                                   cv::Point(x_scale * (mid.x + n.x * 0.1) + x_offset, y_scale * (mid.y + n.y * 0.1) + y_offset),
-                                   cv::Scalar(0, 255, 0), 1);
-        }
+    double MagnetostaticSimulation::computeTorqueIntegral(SurroundingRegionBlockIntegralAssets assets, Vector p, Vector center) {
+        auto start = std::chrono::high_resolution_clock::now();
         
-        // find all the nodes that are on the boundary of the polygon
-        std::unordered_map<uint32_t, Vector> bnodes;
+        auto [
+            adjelems_ids, 
+            adjelems_count, 
+            elem_field_errors, 
+            min_err, 
+            max_err, 
+            vertex_inside_integration_region,
+            vertex_inside_integration_region_with_boundary,
+            vertex_inside_boundary_region,
+            vertex_inside_boundary_region_hole
+        ] = assets;
+
+        auto coo = BuildMatCOO<double>(mesh.data.numberofpoints);
+        auto b = CV(mesh.data.numberofpoints);
+        auto b_dirichlet_mask = std::vector<bool>(mesh.data.numberofpoints, false);
+        // since the stiffness matrix is symmetric, this function only computes the upper triangular part
+
+        printf("building fem matrix\n");
+        // surface integral
         for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
-            Vector myp = mesh.data.pointlist[i];
-            for (auto segment_normal : segment_normals) {
-                Vector p1 = integration_region.points[segment_normal.p1];
-                Vector p2 = integration_region.points[segment_normal.p2];
-                double dist = Segment::pointSegmentDistance(myp, p1, p2);
-                if (dist < mesh.epsilon * 0.1) {
-                    bnodes[i] = (bnodes[i] + segment_normal.normal) / 2;
+            for (uint8_t j = 0; j < adjelems_count[i]; j++) {
+                uint32_t v1, v2, v3;
+                v1 = i;
+                Elem myelem = mesh.data.trianglelist[adjelems_ids[i][j]];
+                Vector myB = B[adjelems_ids[i][j]];
+                if (i == mesh.data.trianglelist[adjelems_ids[i][j]][0]) {
+                    v2 = myelem[1];
+                    v3 = myelem[2];
+                } else if (i == myelem[1]) {
+                    v2 = myelem[2];
+                    v3 = myelem[0];
+                } else if (i == myelem[2]) {
+                    v2 = myelem[0];
+                    v3 = myelem[1];
+                } else {
+                    nexit("error: vertex not found in element");
                 }
+
+                double oriented_area = mesh.data.getDoubleOrientedArea(v1, v2, v3);
+                
+                if (oriented_area < 0) {
+                    std::swap(v2, v3);
+                }
+
+                double area = mesh.data.getDoubleOrientedArea(v1, v2, v3);
+
+                // elements are only added if they are in the upper triangle because the matrix is symmetric and this saves half the memory
+                double b1 = (mesh.data.pointlist[v2].y - mesh.data.pointlist[v3].y) / area;
+                double b2 = (mesh.data.pointlist[v3].y - mesh.data.pointlist[v1].y) / area;
+                double b3 = (mesh.data.pointlist[v1].y - mesh.data.pointlist[v2].y) / area;
+                double c1 = (mesh.data.pointlist[v3].x - mesh.data.pointlist[v2].x) / area;
+                double c2 = (mesh.data.pointlist[v1].x - mesh.data.pointlist[v3].x) / area;
+                double c3 = (mesh.data.pointlist[v2].x - mesh.data.pointlist[v1].x) / area;
+
+                Vector barycenter = (mesh.data.pointlist[v1] + mesh.data.pointlist[v2] + mesh.data.pointlist[v3]) / 3;
+                Vector r = barycenter - center;
+
+                double K1 = - r.y * 0.5 * myB.normSquared() - myB.x * (r ^ myB);
+                double K2 = r.x * 0.5 * myB.normSquared() - myB.y * (r ^ myB);
+
+                double err = elem_field_errors[adjelems_ids[i][j]];
+                
+                double Wi = limit(map(sqrt(fabs(err)), min_err, max_err, 1, 1000), 1, 1000);
+                // elem_field_weights[adjelems_ids[i][j]] = Wi;
+                
+                if (v1 >= i) coo(i, v1) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b1 + K2 * c1);
+                if (v2 >= i) coo(i, v2) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b2 + K2 * c2);
+                if (v3 >= i) coo(i, v3) += area * Wi * (K1 * b1 + K2 * c1) * (K1 * b3 + K2 * c3);
+
+                // if (v1 >= i) coo(i, v1) += area * 0.5 * Wi * Wi * (b1 * b1 + c1 * c1);
+                // if (v2 >= i) coo(i, v2) += area * 0.5 * Wi * Wi * (b1 * b2 + c1 * c2);
+                // if (v3 >= i) coo(i, v3) += area * 0.5 * Wi * Wi * (b1 * b3 + c1 * c3);
             }
         }
 
-        // plot bnodes as blue arrows
-        for (auto bnode : bnodes) {
-            uint32_t id = bnode.first;
-            Vector myp = mesh.data.pointlist[id];
-            Vector n = bnode.second;
-            cv::arrowedLine(image, cv::Point(x_scale * myp.x + x_offset, y_scale * myp.y + y_offset),
-                                   cv::Point(x_scale * (myp.x + n.x * 0.1) + x_offset, y_scale * (myp.y + n.y * 0.1) + y_offset),
-                                   cv::Scalar(255, 0, 0), 1);
+        printf("dirichlet boundary conditions\n");
+        // std::vector<double> test(mesh.data.numberofpoints, 0);
+        // we have to set a 1 dirichlet boundary condition for all the vertices inside the integration region
+
+        uint32_t val = 0;
+        for (auto& [id, value] : coo.elems) {
+            uint32_t col = id >> 32;
+            uint32_t row = id & 0xFFFFFFFF;
+
+            bool col_in_zero_region = !vertex_inside_boundary_region[col] || vertex_inside_boundary_region_hole[col];
+            bool col_in_one_region = vertex_inside_integration_region_with_boundary[col];
+
+            double old_value = value;
+
+            if (col_in_zero_region) {
+                if (row == col) {
+                    value = 1;
+                    b[row] = 0;
+                } else {
+                    value = 0;
+                }
+            } else if (col_in_one_region) {
+                if (row == col) {
+                    value = 1;
+                    b[row] = 1;
+                } else {
+                    value = 0;
+                    b[row] -= old_value;
+                }
+            }
+            val++;
         }
 
-        // find all the elements that are on the boundary of the polygon
-        struct BElem {
-            uint32_t id;
-            Vector normal;
-            double area;
-            double length;
-            Vector B;
-        };
+        MatCSRSymmetric Ai(coo);
+        // Ai.write_to_file("Ad.txt");
+        auto g = CV(mesh.data.numberofpoints);
 
-        std::vector<BElem> belems;
+        // the error for this function varies a lot, so I just set the gradient to do at least 100 iterations and eventually stop at 1e-100
+        preconditionedSSORConjugateGradientSolver(Ai, b, g, 1.5, 1e-100, 100);
+
+        // NodeScalarPlotToFile(10000, 10000, g.val, "g_torque.png");
+        // ElemScalarPlotToFile(10000, 10000, elem_field_errors, "errors.png");
+        // NodeScalarPlotToFile(10000, 10000, test, "test.png");        // A.plot("A.png");
+        // ElemScalarPlotToFile(10000, 10000, elem_field_weights, "weights.png");
+
+        // compute grad(g)
+        std::vector<Vector> nabla_g(mesh.data.numberoftriangles, {0, 0});
+        mesh.computeGrad(nabla_g, g);
+
+        std::vector<double> nabla_g_norm(mesh.data.numberoftriangles, 0);
         for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
-            Elem e = mesh.data.trianglelist[i];
-            uint32_t common_nodes[2] = {0, 0};
-            uint32_t common_nodes_count = 0;
-            for (auto bnode : bnodes) {
-                uint32_t id = bnode.first;
-                Vector myp = mesh.data.pointlist[id];
-                Vector n = bnode.second;
-                if (e[0] == id || e[1] == id || e[2] == id) {
-                    common_nodes[common_nodes_count] = id;
-                    common_nodes_count++;
-                    if (common_nodes_count > 3) {
-                        nexit("too many common nodes, this should never happen");
-                    }
+            nabla_g_norm[i] = nabla_g[i].norm();
+        }
+
+        // ElemScalarPlotToFile(10000, 10000, nabla_g_norm, "nabla_g_torque.png");
+        // ElemScalarPlotToFile(10000, 10000, boundary_elements_mask, "boundary.png");
+
+        // integrate force
+        double torque = 0;
+
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            bool inside = true;
+            for (uint32_t j = 0; j < 3; j++) {
+                uint32_t v = mesh.data.trianglelist[i][j];
+                if (vertex_inside_integration_region[v] || !vertex_inside_boundary_region[v] || vertex_inside_boundary_region_hole[v]) {
+                    inside = false;
+                    break;
                 }
             }
-            switch (common_nodes_count) {
-                case 0:
-                    break;
-                case 3:  // this triangle has one node in the intersection of two segments of the polygon and is inside the polygon
-                    break;
-                case 1: {
-                    // check both other nodes are outside the polygon
-                    Vector onode = mesh.data.pointlist[common_nodes[0]];
-                    Vector anode, bnode;
-                    if (e[0] == common_nodes[0]) {
-                        anode = mesh.data.pointlist[e[1]];
-                        bnode = mesh.data.pointlist[e[2]];
-                    } else if (e[1] == common_nodes[0]) {
-                        anode = mesh.data.pointlist[e[0]];
-                        bnode = mesh.data.pointlist[e[2]];
-                    } else if (e[2] == common_nodes[0]) {
-                        anode = mesh.data.pointlist[e[0]];
-                        bnode = mesh.data.pointlist[e[1]];
-                    }
-                    Vector n = bnodes[common_nodes[0]];
-                    if (!integration_region.contains(anode) && !integration_region.contains(bnode)) {
-                        // we have a boundary element
-                        double area = fabs(Vector::doubleOrientedArea(anode, onode, bnode) * 0.5);
-                        double length = Vector::distance(anode, bnode);
-                        belems.push_back(
-                            {i, n, area, -length, B[i]} // negative length because of parametric integration
-                        );
-                        // plot the boundary element as a green filled triangle
-                        cv::Point points[1][3];
-                        points[0][0] = cv::Point(x_scale * anode.x + x_offset, y_scale * anode.y + y_offset);
-                        points[0][1] = cv::Point(x_scale * onode.x + x_offset, y_scale * onode.y + y_offset);
-                        points[0][2] = cv::Point(x_scale * bnode.x + x_offset, y_scale * bnode.y + y_offset);
-                        const cv::Point* ppt[1] = {points[0]};
-                        int npt[] = {3};
-                        cv::fillPoly(image, ppt, npt, 1, cv::Scalar(0, 255, 0));
-                    }
 
-                    break;
-                }
-                case 2: {
-                    // check the other node is outside the polygon
-                    Vector anode = mesh.data.pointlist[common_nodes[0]];
-                    Vector bnode = mesh.data.pointlist[common_nodes[1]];
-                    Vector onode;
-                    if (e[0] != common_nodes[0] && e[0] != common_nodes[1]) {
-                        onode = mesh.data.pointlist[e[0]];
-                    } else if (e[1] != common_nodes[0] && e[1] != common_nodes[1]) {
-                        onode = mesh.data.pointlist[e[1]];
-                    } else if (e[2] != common_nodes[0] && e[2] != common_nodes[1]) {
-                        onode = mesh.data.pointlist[e[2]];
-                    }
-                    if (!integration_region.contains(onode)) {
-                        // we have a boundary element
-                        double area = fabs(Vector::doubleOrientedArea(anode, onode, bnode) * 0.5);
-                        double length = Vector::distance(anode, bnode);
-                        belems.push_back(
-                            {i, (bnodes[common_nodes[0]] + bnodes[common_nodes[1]]) / 2, area, length, B[i]} // positive length because of parametric integration
-                        );
-                        // plot the boundary element as a red filled triangle
-                        cv::Point points[1][3];
-                        points[0][0] = cv::Point(x_scale * anode.x + x_offset, y_scale * anode.y + y_offset);
-                        points[0][1] = cv::Point(x_scale * onode.x + x_offset, y_scale * onode.y + y_offset);
-                        points[0][2] = cv::Point(x_scale * bnode.x + x_offset, y_scale * bnode.y + y_offset);
-                        const cv::Point* ppt[1] = {points[0]};
-                        int npt[] = {3};
-                        cv::fillPoly(image, ppt, npt, 1, cv::Scalar(0, 0, 255));
-                    }
+            if (inside) {
+                uint32_t v1 = mesh.data.trianglelist[i][0];
+                uint32_t v2 = mesh.data.trianglelist[i][1];
+                uint32_t v3 = mesh.data.trianglelist[i][2];
 
-                    break;
-                }
-                default:
-                    nexit("too many common nodes, this should never happen");
+                Vector p1 = mesh.data.pointlist[v1];
+                Vector p2 = mesh.data.pointlist[v2];
+                Vector p3 = mesh.data.pointlist[v3];
+
+                Vector my_nabla_g = nabla_g[i];
+                Vector my_B = B[i];
+
+                double area = Vector::area(p1, p2, p3);
+
+                Vector barycenter = (p1 + p2 + p3) / 3;
+                Vector r = barycenter - center;
+
+                torque += ((r ^ my_nabla_g) * my_B.normSquared() * 0.5 - (r ^ my_B) * (my_B * my_nabla_g)) * area;
+                // force += (my_nabla_g * 0.5 * my_B.normSquared() - my_B * (my_nabla_g * my_B)) * area;
+            }
+        }
+        torque *= 1 / MU_0;
+        torque *= depth;
+
+        auto end = std::chrono::high_resolution_clock::now();
+        printf("Time elapsed: %f ms\n", std::chrono::duration<double, std::milli>(end - start).count());
+        return torque;
+    }
+
+    Vector MagnetostaticSimulation::computeForceIntegrals(Vector p) {
+        auto assets = getSurroundingRegionBlockIntegralAssets(p);
+        return computeForceIntegrals(assets, p);
+    }
+
+    double MagnetostaticSimulation::computeTorqueIntegral(Vector p, Vector center) {
+        auto assets = getSurroundingRegionBlockIntegralAssets(p);
+        return computeTorqueIntegral(assets, p, center);
+    }
+
+    StressTensor MagnetostaticSimulation::computeStressIntegral(Vector p, Vector center) {
+        auto assets = getSurroundingRegionBlockIntegralAssets(p);
+        Vector force = computeForceIntegrals(assets, p);
+        double torque = computeTorqueIntegral(assets, p, center);
+        return {force, torque};
+    }
+
+    double MagnetostaticSimulation::computeAreaIntegral(Vector p) {
+        Polygon integration_region = getInnermostPolygon(p);
+
+        double area = 0;
+        
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            Vector p1 = mesh.data.pointlist[mesh.data.trianglelist[i][0]];
+            Vector p2 = mesh.data.pointlist[mesh.data.trianglelist[i][1]];
+            Vector p3 = mesh.data.pointlist[mesh.data.trianglelist[i][2]];
+
+            if (integration_region.contains(p1) && integration_region.contains(p2) && integration_region.contains(p3)) {
+                area += Vector::area(p1, p2, p3);
             }
         }
 
-        // compute the force integral
-        Vector force_integral = Vector(0, 0);
+        return area;
+    }
 
-        for (auto belem : belems) {
-            Elem e = mesh.data.trianglelist[belem.id];
-            Vector n = belem.normal;
-            double area = belem.area;
-            double length = belem.length;
-            Vector p1 = mesh.data.pointlist[e[0]];
-            Vector p2 = mesh.data.pointlist[e[1]];
-            Vector p3 = mesh.data.pointlist[e[2]];
-            Vector Bm = belem.B;
-            Vector sigma = {
-                (+ 0.5 * (Bm.x * Bm.x - Bm.y * Bm.y) * n.x + Bm.x * Bm.y * n.y) * (1 / MU_0),
-                (- 0.5 * (Bm.x * Bm.x - Bm.y * Bm.y) * n.y + Bm.x * Bm.y * n.x) * (1 / MU_0)
-            };
-            force_integral += sigma * area;
-            // force_integral += sigma * length * 0.5;
+    double MagnetostaticSimulation::computeMass(Vector p, double density) {
+        double area = computeAreaIntegral(p);
+        return area * depth * density;
+    }
+
+    Vector MagnetostaticSimulation::computeBarycenter(Vector p) {
+        Polygon integration_region = getInnermostPolygon(p);
+
+        double area = 0;
+        Vector barycenter = {0, 0};
+
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            Vector p1 = mesh.data.pointlist[mesh.data.trianglelist[i][0]];
+            Vector p2 = mesh.data.pointlist[mesh.data.trianglelist[i][1]];
+            Vector p3 = mesh.data.pointlist[mesh.data.trianglelist[i][2]];
+
+            if (integration_region.contains(p1) && integration_region.contains(p2) && integration_region.contains(p3)) {
+                double triangle_area = Vector::area(p1, p2, p3);
+                area += triangle_area;
+                barycenter += ((p1 + p2 + p3) / 3) * triangle_area;
+            }
         }
 
-        // save the image
-        cv::imwrite("kek.png", image);
+        return barycenter / area;
+    }
 
-        return force_integral;
-        */
+    double MagnetostaticSimulation::computeInertiaMoment(Vector p, Vector center, double density) {
+        Polygon integration_region = getInnermostPolygon(p);
+
+        double moment = 0;
+
+        for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
+            Vector p1 = mesh.data.pointlist[mesh.data.trianglelist[i][0]];
+            Vector p2 = mesh.data.pointlist[mesh.data.trianglelist[i][1]];
+            Vector p3 = mesh.data.pointlist[mesh.data.trianglelist[i][2]];
+
+            if (integration_region.contains(p1) && integration_region.contains(p2) && integration_region.contains(p3)) {
+                double triangle_area = Vector::area(p1, p2, p3);
+                Vector triangle_barycenter = (p1 + p2 + p3) / 3;
+                Vector r = triangle_barycenter - center;
+                moment += triangle_area * r.normSquared();
+            }
+        }
+
+        return moment * depth * density;
     }
 }

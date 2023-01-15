@@ -30,9 +30,16 @@
 
 namespace nikfemm {
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
+        MagnetostaticMesh(double max_triangle_area) {
+            // default material property
+            default_prop = {0, {0, 0}, materials::air, {}, 0, {0, 0}};
+            this->max_triangle_area = max_triangle_area;
+        }
+
         MagnetostaticMesh() {
             // default material property
             default_prop = {0, {0, 0}, materials::air, {}, 0, {0, 0}};
+            max_triangle_area = 1e-0;
         }
 
         ~MagnetostaticMesh() {
@@ -41,7 +48,7 @@ namespace nikfemm {
 
         MagnetostaticSystem getFemSystem();
         void addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system);
-        void addDirichletBoundaryConditions(MagnetostaticSystem& system, uint32_t id, double value);
+        void addDirichletZeroBoundaryConditions(MagnetostaticSystem& system, uint32_t id);
         void computeCurl(std::vector<Vector>& B, CV& A) const;
         void computeGrad(std::vector<Vector>& B, CV& A) const;
         void refineMeshAroundMagnets();
@@ -736,19 +743,8 @@ namespace nikfemm {
         return system;
     }
 
-    void MagnetostaticMesh::addDirichletBoundaryConditions(MagnetostaticSystem& system, uint32_t id, double value) {
+    void MagnetostaticMesh::addDirichletZeroBoundaryConditions(MagnetostaticSystem& system, uint32_t id) {
         // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
-
-        // wrong neeeds to be fixed. For now only zero boundary conditions are supported
-        if (value != 0) {
-            for (auto& elem : system.coo.elems) {
-                uint32_t m = elem.first >> 32;
-                uint32_t n = elem.first & 0xFFFFFFFF;
-                if (m == id || n == id) {
-                    system.b.expr[id] -= elem.second * value;
-                }
-            }
-        }
 
         // this function lets you set a Dirichlet boundary condition on a node
         for (auto& elem : system.coo.elems) {
@@ -760,7 +756,7 @@ namespace nikfemm {
         }
         // system.coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
         system.coo(id, id).setToConstant(1);
-        system.b.expr[id].setToConstant(value);
+        system.b.expr[id].setToConstant(0);
     }
 
     void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system) {
@@ -788,9 +784,9 @@ namespace nikfemm {
         }
 
         // make the magnetic vector potential zero on the three points
-        addDirichletBoundaryConditions(system, p1, 0);
-        addDirichletBoundaryConditions(system, p2, 0);
-        addDirichletBoundaryConditions(system, p3, 0);
+        addDirichletZeroBoundaryConditions(system, p1);
+        addDirichletZeroBoundaryConditions(system, p2);
+        addDirichletZeroBoundaryConditions(system, p3);
     }
 
     void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) const {

@@ -17,10 +17,43 @@ namespace nikfemm {
 
         bool operator==(const Polygon& p) const;
         bool operator!=(const Polygon& p) const;
+        Polygon operator=(const Polygon& p);
 
         bool contains(Vector p) const;
         bool contains(Vector p, bool on_boundary_counts, double epsilon) const;
         bool contains(Polygon p) const;
+
+        Polygon& translate(const Vector v);
+        Polygon& rotate(const double angle, const Vector center);
+
+        void print() const;
+
+        inline Polygon& operator+=(const Vector v) {
+            translate(v);
+            return *this;
+        }
+
+        inline Polygon& operator-=(const Vector v) {
+            translate(-v);
+            return *this;
+        }
+
+        inline Polygon operator+(const Vector v) const {
+            Polygon p = *this;
+            p.translate(v);
+            return p;
+        }
+
+
+        inline Polygon operator-(const Vector v) const {
+            Polygon p = *this;
+            p.translate(-v);
+            return p;
+        }
+
+        inline Polygon copy() const {
+            return Polygon(points);
+        }
     };
 }
 

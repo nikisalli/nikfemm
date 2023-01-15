@@ -108,6 +108,10 @@ namespace nikfemm {
                 return Vector(x * c - y * s, x * s + y * c);
             }
 
+            inline Vector rotate(double angle, Vector center) const {
+                return (*this - center).rotate(angle) + center;
+            }
+
             inline Vector normal() const {
                 return Vector(-y, x);
             }
@@ -154,6 +158,10 @@ namespace nikfemm {
                 float det = ax * by - ay * bx;
                 float angle = atan2(det, dot);
                 return angle;
+            }
+
+            inline void print() const {
+                printf("Vector(%.17g, %.17g)\n", x, y);
             }
     };
 }
