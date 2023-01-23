@@ -28,8 +28,8 @@ run an example
 
 ![alt text](https://github.com/nikisalli/nikfemm/raw/main/images/iron.jpg "B plot iron C electromagnet and I iron piece")
 
-![alt text](https://github.com/nikisalli/nikfemm/raw/main/images/motor.mp4 "outrunner BLDC motor")
+https://user-images.githubusercontent.com/31286021/214172922-65dab262-b9d2-44be-afaf-7bbbd28cfe62.mp4
 
-![alt text](https://github.com/nikisalli/nikfemm/raw/main/images/magnets.mp4 "2D moving magnets")
+https://user-images.githubusercontent.com/31286021/214172986-e43e3fb3-43c8-4816-b682-b8a7dd3aaa1b.mp4
 
 ![alt text](https://github.com/nikisalli/nikfemm/raw/main/images/motor.jpg "outrunner BLDC motor 2")
