@@ -22,14 +22,14 @@ run an example
 
 # simulation example results
 
-![alt text](https://github.com/nikisalli/fdtd/raw/master/images/conductors.jpg "magnetic vector potential of rectangular conductors")
+![alt text](https://github.com/nikisalli/nikfemm/raw/master/images/conductors.jpg "magnetic vector potential of rectangular conductors")
 
-![alt text](https://github.com/nikisalli/fdtd/raw/master/images/halbach.jpg "halbach array")
+![alt text](https://github.com/nikisalli/nikfemm/raw/master/images/halbach.jpg "halbach array")
 
-![alt text](https://github.com/nikisalli/fdtd/raw/master/images/iron.jpg "B plot iron C electromagnet and I iron piece")
+![alt text](https://github.com/nikisalli/nikfemm/raw/master/images/iron.jpg "B plot iron C electromagnet and I iron piece")
 
-![alt text](https://github.com/nikisalli/fdtd/raw/master/images/motor.mp4 "outrunner BLDC motor")
+![alt text](https://github.com/nikisalli/nikfemm/raw/master/images/motor.mp4 "outrunner BLDC motor")
 
-![alt text](https://github.com/nikisalli/fdtd/raw/master/images/magnets.mp4 "2D moving magnets")
+![alt text](https://github.com/nikisalli/nikfemm/raw/master/images/magnets.mp4 "2D moving magnets")
 
-![alt text](https://github.com/nikisalli/fdtd/raw/master/images/motor.jpg "outrunner BLDC motor 2")
+![alt text](https://github.com/nikisalli/nikfemm/raw/master/images/motor.jpg "outrunner BLDC motor 2")
