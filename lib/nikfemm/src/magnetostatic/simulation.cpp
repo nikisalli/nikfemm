@@ -81,7 +81,9 @@ namespace nikfemm {
         float max_A = A_sorted[0.9 * A_sorted.size()];
         float min_A = A_sorted[0.1 * A_sorted.size()];
 
+        #ifdef DEBUG_PRINT
         printf("max_A: %f, min_A: %f\n", max_A, min_A);
+        #endif
 
         // draw the points
         for (int64_t i = 0; i < mesh.data.numberofpoints; i++) {    
@@ -140,10 +142,17 @@ namespace nikfemm {
 
         AplotRend(&image, width, height);
 
+        // flip image horizontally
+        cv::flip(image, image, 0);
+
         cv::imshow("A", image);
+        #ifdef DEBUG_PRINT
         printf("showing image\n");
+        #endif
         cv::waitKey(0);
+        #ifdef DEBUG_PRINT
         printf("done\n");
+        #endif
     }
 
     void MagnetostaticSimulation::AplotToFile(uint32_t width, uint32_t height, std::string filename) {
@@ -154,6 +163,9 @@ namespace nikfemm {
         }
 
         AplotRend(&image, width, height);
+
+        // flip image horizontally
+        cv::flip(image, image, 0);
 
         cv::imwrite(filename, image);
     }
@@ -184,7 +196,9 @@ namespace nikfemm {
         float max_A = A_sorted[0.9 * A_sorted.size()];
         float min_A = A_sorted[0.1 * A_sorted.size()];
 
+        #ifdef DEBUG_PRINT
         printf("max_A: %f, min_A: %f\n", max_A, min_A);
+        #endif
 
         // draw the points
         for (int64_t i = 0; i < mesh.data.numberofpoints; i++) {    
@@ -243,10 +257,17 @@ namespace nikfemm {
 
         NodeScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
 
+        // flip image horizontally
+        cv::flip(image, image, 0);
+
         cv::imshow("A", image);
+        #ifdef DEBUG_PRINT
         printf("showing image\n");
+        #endif
         cv::waitKey(0);
+        #ifdef DEBUG_PRINT
         printf("done\n");
+        #endif
     }
 
     void MagnetostaticSimulation::NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh, bool plotRegions) {
@@ -257,6 +278,9 @@ namespace nikfemm {
         }
 
         NodeScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
+
+        // flip image horizontally
+        cv::flip(image, image, 0);
 
         cv::imwrite(filename, image);
     }
@@ -312,8 +336,10 @@ namespace nikfemm {
             min_B = minB;
         }
 
+        #ifdef DEBUG_PRINT
         printf("max B: %f\n", max_B);
         printf("min B: %f\n", min_B);
+        #endif
 
         // max_B = 1e-6;
 
@@ -402,17 +428,24 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticSimulation::Bplot(uint32_t width, uint32_t height, bool plotMesh, bool plotRegions, double maxB, double minB, bool plotCurves, uint32_t curve_number) {
+    void MagnetostaticSimulation::Bplot(uint32_t width, uint32_t height, bool plotMesh, bool plotRegions, double maxB, double minB, bool waitkey, bool plotCurves, uint32_t curve_number) {
         // create the image
         cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
 
         // render the mesh
         BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB, plotCurves, curve_number);
 
+        // flip image horizontally
+        cv::flip(image, image, 0);
+
         // show the image
         cv::imshow("B", image);
         // continue if image is closed
-        cv::waitKey(0);
+        if (waitkey) {
+            cv::waitKey(0);
+        } else {
+            cv::waitKey(1);
+        }
     }
 
     void MagnetostaticSimulation::BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh, bool plotRegions, double maxB, double minB, bool plotCurves, uint32_t curve_number) {
@@ -421,6 +454,9 @@ namespace nikfemm {
 
         // render the mesh
         BplotRend(&image, width, height, plotMesh, plotRegions, maxB, minB, plotCurves, curve_number);
+
+        // flip image horizontally
+        cv::flip(image, image, 0);
 
         // save the image
         cv::imwrite(filename, image);
@@ -454,7 +490,9 @@ namespace nikfemm {
         double max_Scalar = sortedScalar[sortedScalar.size() * 0.95];
         double min_Scalar = sortedScalar[sortedScalar.size() * 0.05];
 
+        #ifdef DEBUG_PRINT
         printf("max_Scalar: %f, min_Scalar: %f\n", max_Scalar, min_Scalar);
+        #endif
 
         // max_B = 1e-6;
 
@@ -531,6 +569,9 @@ namespace nikfemm {
         // render the mesh
         ElemScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
 
+        // flip image horizontally
+        cv::flip(image, image, 0);
+
         // show the image
         cv::imshow("B", image);
         // continue if image is closed
@@ -543,6 +584,9 @@ namespace nikfemm {
 
         // render the mesh
         ElemScalarPlotRend(&image, width, height, scalar, plotMesh, plotRegions);
+
+        // flip image horizontally
+        cv::flip(image, image, 0);
 
         // save the image
         cv::imwrite(filename, image);
@@ -575,20 +619,24 @@ namespace nikfemm {
 
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
-        Circle smallest_circle = Circle::getMinimumEnclosingCircle(mesh.drawing.points);
+        // Circle smallest_circle = Circle::getMinimumEnclosingCircle(mesh.drawing.points);
+        Circle smallest_circle = Circle::getEnclosingCircle(mesh.drawing.points);
         if (mesh.drawing.points.size() == 0) {
             smallest_circle.radius = 1;
         }
+        double coeff = 1.5;  // make the circle [coeff] times the size of the smallest circle
         // set simulation offset and boundary radius
         mesh.center = smallest_circle.center;
-        mesh.radius = smallest_circle.radius * 2;
+        mesh.radius = smallest_circle.radius * coeff;
         // translate everything to the origin
         mesh.drawing.translate(-mesh.center);
         // make circle double the size of the smallest circle
-        Circle boundary_circle = Circle(Vector(0, 0), 2 * smallest_circle.radius);
+        Circle boundary_circle = Circle(Vector(0, 0), smallest_circle.radius * coeff);
         double circumferential_length = boundary_circle.circumference();
         uint32_t boundary_points = (uint32_t)((circumferential_length / sqrt((mesh.max_triangle_area * 4) / sqrt(3))) * 2);
+        #ifdef DEBUG_PRINT
         printf("boundary points: %d\n", boundary_points);
+        #endif
         mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
         mesh.drawing.drawRegion(Vector(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
@@ -605,8 +653,8 @@ namespace nikfemm {
         mesh.computeEpsilon();
         #ifdef DEBUG_PRINT
         // mesh.plot();
-        #endif
         printf("the mesh has %u nodes and %u elements\n", mesh.data.numberofpoints, mesh.data.numberoftriangles);
+        #endif
 
         auto system = mesh.getFemSystem();
         mesh.addDirichletInfiniteBoundaryConditions(system);
@@ -643,11 +691,15 @@ namespace nikfemm {
         }
 
         if (all_linear) {
+            #ifdef DEBUG_PRINT
             printf("all materials are linear\n");
+            #endif
             preconditionedSSORConjugateGradientSolver(FemMat, system.b, A, 1.5, 1e-6, 100000);
             // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-6, 100000);
         } else {
+            #ifdef DEBUG_PRINT
             printf("nonlinear materials detected, starting non linear newton solver\n");
+            #endif
             CV r(system.b.val.size());  // residual
 
             double residual = 1e10;
@@ -674,7 +726,9 @@ namespace nikfemm {
                     break;
                 }
                 // printf("%.17g, %.17g; ", K, residual);
+                #ifdef DEBUG_PRINT
                 printf("nonlinear iteration %d, residual: %.17g\n", i, residual);
+                #endif
                 // print mu
                 // printf("%f,", residual);
                 fflush(stdout);
@@ -697,8 +751,7 @@ namespace nikfemm {
 
         // if there is more than one polygon that contains p then we have to find the polygon that isn't contained by any other polygon that contains p
         if (polygons_that_contain_p.size() == 0) {
-            printf("ERROR: no polygon contains p\n");
-            exit(1);
+            nexit("ERROR: no polygon contains p\n");
         } else if (polygons_that_contain_p.size() == 1) {
             integration_region = polygons_that_contain_p[0];
         } else {
@@ -779,7 +832,9 @@ namespace nikfemm {
         auto adjelems_ids = std::vector<std::array<uint32_t, 18>>(mesh.data.numberofpoints);
         auto adjelems_count = std::vector<uint8_t>(mesh.data.numberofpoints, 0);
 
+        #ifdef DEBUG_PRINT
         printf("computing adjelems_ids\n");
+        #endif
         for (uint32_t i = 0; i < mesh.data.numberoftriangles; i++) {
             for (uint8_t j = 0; j < 3; j++) {
                 uint32_t myid = mesh.data.trianglelist[i][j];
@@ -787,7 +842,9 @@ namespace nikfemm {
             }
         }
 
+        #ifdef DEBUG_PRINT
         printf("computing elemadjelems_ids\n");
+        #endif
         struct Edge {
             uint8_t count = 0;
             uint32_t elems[2];
@@ -803,7 +860,9 @@ namespace nikfemm {
             }
         }
 
+        #ifdef DEBUG_PRINT
         printf("computing field error\n");
+        #endif
         // compute field error for each element
         std::vector<double> elem_field_errors = std::vector<double>(mesh.data.numberoftriangles, 0);
         // std::vector<double> elem_field_weights = std::vector<double>(mesh.data.numberoftriangles, 0);
@@ -832,7 +891,9 @@ namespace nikfemm {
             elem_field_errors[i] = err;
         }
 
+        #ifdef DEBUG_PRINT
         printf("computing median field error\n");
+        #endif
         // compute min and max field error
         double min_err = std::numeric_limits<double>::max();
         double max_err = std::numeric_limits<double>::min();
@@ -841,7 +902,9 @@ namespace nikfemm {
             max_err = std::max(max_err, elem_field_errors[i]);
         }
 
+        #ifdef DEBUG_PRINT
         printf("find position of vertices\n");
+        #endif
         std::vector<bool> vertex_inside_integration_region(mesh.data.numberofpoints);
         std::vector<bool> vertex_inside_integration_region_with_boundary(mesh.data.numberofpoints);
         std::vector<bool> vertex_inside_boundary_region(mesh.data.numberofpoints);
@@ -902,7 +965,9 @@ namespace nikfemm {
         // square root of 2 / 2
         Vector myS = Vector(1, 0).normalize();
 
+        #ifdef DEBUG_PRINT
         printf("building fem matrix\n");
+        #endif
         // surface integral
         for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
             for (uint8_t j = 0; j < adjelems_count[i]; j++) {
@@ -957,7 +1022,9 @@ namespace nikfemm {
             }
         }
 
+        #ifdef DEBUG_PRINT
         printf("dirichlet boundary conditions\n");
+        #endif
         // std::vector<double> test(mesh.data.numberofpoints, 0);
         // we have to set a 1 dirichlet boundary condition for all the vertices inside the integration region
 
@@ -1048,7 +1115,9 @@ namespace nikfemm {
         force *= depth;
 
         auto end = std::chrono::high_resolution_clock::now();
+        #ifdef DEBUG_PRINT
         printf("Time elapsed: %f ms\n", std::chrono::duration<double, std::milli>(end - start).count());
+        #endif
         return force;
     }
 
@@ -1072,7 +1141,9 @@ namespace nikfemm {
         auto b_dirichlet_mask = std::vector<bool>(mesh.data.numberofpoints, false);
         // since the stiffness matrix is symmetric, this function only computes the upper triangular part
 
+        #ifdef DEBUG_PRINT
         printf("building fem matrix\n");
+        #endif
         // surface integral
         for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
             for (uint8_t j = 0; j < adjelems_count[i]; j++) {
@@ -1130,7 +1201,9 @@ namespace nikfemm {
             }
         }
 
+        #ifdef DEBUG_PRINT
         printf("dirichlet boundary conditions\n");
+        #endif
         // std::vector<double> test(mesh.data.numberofpoints, 0);
         // we have to set a 1 dirichlet boundary condition for all the vertices inside the integration region
 
@@ -1225,7 +1298,9 @@ namespace nikfemm {
         torque *= depth;
 
         auto end = std::chrono::high_resolution_clock::now();
+        #ifdef DEBUG_PRINT
         printf("Time elapsed: %f ms\n", std::chrono::duration<double, std::milli>(end - start).count());
+        #endif
         return torque;
     }
 

@@ -547,7 +547,9 @@ namespace nikfemm {
             edges.insert({(uint32_t)data.trianglelist[i][2], (uint32_t)data.trianglelist[i][0]});
         }
 
+        #ifdef DEBUG_PRINT
         printf("number of edges: %d, predicted number of edges: %d\n", edges.size(), (data.numberofpoints - 2) * 3);
+        #endif
 
         for (auto edge : edges) {
             Vector p1 = data.pointlist[edge.v1];
@@ -738,7 +740,9 @@ namespace nikfemm {
         */
 
         auto end = std::chrono::high_resolution_clock::now();
+        #ifdef DEBUG_PRINT
         std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
+        #endif
 
         return system;
     }
@@ -761,8 +765,12 @@ namespace nikfemm {
 
     void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system) {
         // find three furthest points from the center
-        uint32_t p1, p2, p3;
-        double d1, d2, d3;
+        uint32_t p1 = 0;
+        uint32_t p2 = 0;
+        uint32_t p3 = 0;
+        double d1 = 0;
+        double d2 = 0;
+        double d3 = 0;
         for (uint32_t i = 0; i < data.numberofpoints; i++) {
             double dist = Vector::distance(data.pointlist[i], Vector(0, 0));
             if (dist > d1) {
@@ -896,7 +904,9 @@ namespace nikfemm {
                 }
             }
         }
+        #ifdef DEBUG_PRINT
         printf("Found %lu magnets\n", magnets.size());
+        #endif
         for (auto polygon : magnets) {
             for (uint32_t i = 0; i < polygon.points.size(); i++) {
                 Vector p1 = polygon.points[i];

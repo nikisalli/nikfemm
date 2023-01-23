@@ -66,7 +66,7 @@ namespace nikfemm {
             auto getSurroundingRegionBlockIntegralAssets(Vector p);
         public:
             void Aplot(uint32_t width, uint32_t height);
-            void Bplot(uint32_t width, uint32_t height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool plotCurves = false, uint32_t curve_number = 100);
+            void Bplot(uint32_t width, uint32_t height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool waitkey = true, bool plotCurves = false, uint32_t curve_number = 100);
             void ElemScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
             void NodeScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
             void AplotToFile(uint32_t width, uint32_t height, std::string filename);

@@ -66,6 +66,7 @@ namespace nikfemm {
         public:
             static Circle getMinimumEnclosingCircle(std::vector<Vector> points);
             static Circle getMinimumEnclosingCircle(std::unordered_set<Vector> points);
+            static Circle getEnclosingCircle(std::vector<Vector> points);
     };
 }
 

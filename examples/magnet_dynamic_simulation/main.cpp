@@ -1,14 +1,20 @@
 #include <nikfemm.hpp>
 #include <stdio.h>
 #include <stdlib.h>
+#include <chrono>
+
+uint64_t time_ms() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
 
 int main(int argc, char** argv) {
     nikfemm::MagnetostaticSimulation simulation(1, 0.1);
 
     nikfemm::Vector center1 = {0, 0};
-    nikfemm::Vector center2 = {2, 2};
+    nikfemm::Vector center2 = {3, 3};
     double angle1 = 0;
-    double angle2 = 0;
+    double angle2 = PI;
+    double ndfeb_density = 7.8e3;
     nikfemm::Vector magnetization1 = {0, 1000};
     nikfemm::Vector magnetization2 = {0, 1000};
 
@@ -30,20 +36,21 @@ int main(int argc, char** argv) {
     auto system = simulation.generateSystem();
     simulation.solve(system);
 
-    simulation.Bplot(1000, 1000, false, true);
+    // simulation.Bplot(1000, 1000, false, true);
 
-    double moment_of_inertia1 = simulation.computeInertiaMoment(center1, center1, 7);
-    double moment_of_inertia2 = simulation.computeInertiaMoment(center2, center2, 7);
-    double mass1 = simulation.computeMass(center1, 7);
-    double mass2 = simulation.computeMass(center2, 7);
+    double moment_of_inertia1 = simulation.computeInertiaMoment(center1, center1, ndfeb_density);
+    double moment_of_inertia2 = simulation.computeInertiaMoment(center2, center2, ndfeb_density);
+    double mass1 = simulation.computeMass(center1, ndfeb_density);
+    double mass2 = simulation.computeMass(center2, ndfeb_density);
     printf("Moment of inertia 1: %.17g, Moment of inertia 2: %.17g, Mass 1: %.17g, Mass 2: %.17g\n", moment_of_inertia1, moment_of_inertia2, mass1, mass2);
 
-    double dt = 0.1;
+    double dt = 10;
 
     nikfemm::Vector velocity1 = {0, 0};
     nikfemm::Vector velocity2 = {0, 0};
     double angular_velocity1 = 0;
     double angular_velocity2 = 0;
+    uint64_t last_time = time_ms();
     for (int i = 0; i < 10000; i++) {
         nikfemm::MagnetostaticSimulation sim(1, 1);
         sim.mesh.drawing.drawPolygon(square.copy().translate(center1).rotate(angle1, center1));
@@ -56,7 +63,10 @@ int main(int argc, char** argv) {
         auto system = sim.generateSystem();
         sim.solve(system);
 
-        sim.Bplot(1000, 1000, false, true);
+        sim.Bplot(1000, 1000, false, true, NAN, NAN, false);
+        // wait 100ms
+        // while (time_ms() - last_time < 1000) {}
+        // last_time = time_ms();
 
         auto stress1 = sim.computeStressIntegral(center1, center1);
         auto stress2 = sim.computeStressIntegral(center2, center2);

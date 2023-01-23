@@ -83,4 +83,18 @@ namespace nikfemm {
         }
         return getMinimumEnclosingCircle(p);
     }
+
+    Circle Circle::getEnclosingCircle(std::vector<Vector> points) {
+        double maxmod = 0;
+        Vector center = {0, 0};
+        for (auto p : points) {
+            double mod = p.norm();
+            if (mod > maxmod) {
+                maxmod = mod;
+            }
+            center += p;
+        }
+        center /= points.size();
+        return Circle(center, maxmod);
+    }
 }

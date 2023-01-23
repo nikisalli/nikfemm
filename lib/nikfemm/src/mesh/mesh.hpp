@@ -262,7 +262,9 @@ namespace nikfemm {
         }
         epsilon *= 0.5;
         this->epsilon = epsilon;
+        #ifdef DEBUG_PRINT
         printf("epsilon: %.17g\n", epsilon);
+        #endif
     }
 
     template <typename Prop>
