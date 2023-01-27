@@ -1,6 +1,8 @@
 #include "polygon.hpp"
 #include "segment.hpp"
 
+#include "../utils/utils.hpp"
+
 namespace nikfemm {
     Polygon::Polygon() {
     }
@@ -114,7 +116,7 @@ namespace nikfemm {
     }
 
     void Polygon::print() const {
-        printf("Polygon: ");
+        nloginfo("Polygon: ");
         for (Vector point : points) {
             printf("(%f, %f) ", point.x, point.y);
         }

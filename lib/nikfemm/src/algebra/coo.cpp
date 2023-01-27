@@ -45,6 +45,7 @@ namespace nikfemm {
     }
 
     void BaseCOO::printCOO() {
+        nloginfo("BaseCOO::printCOO()");
         for (uint32_t i = 0; i < elems.size(); i++) {
             printf("(%u, %u, %.1f) ", elems[i].row, elems[i].col, elems[i].val);
         }
@@ -52,6 +53,7 @@ namespace nikfemm {
 
     void BaseCOO::print() {
         // assume sorted
+        nloginfo("BaseCOO::print()");
         uint32_t i = 0;
         for (uint32_t row = 0; row < m; row++) {
             for (uint32_t col = 0; col < m; col++) {
@@ -67,6 +69,7 @@ namespace nikfemm {
     }
 
     void BaseCOO::write_to_file(const char *filename) {
+        nloginfo("BaseCOO::write_to_file(%s)", filename);
         FILE *f = fopen(filename, "w");
         // assume sorted
         uint32_t i = 0;

@@ -338,7 +338,7 @@ int main(int argc, char** argv) {
                 0.5 // magnet_magnetization
             );
         });
-        break;
+        break;  // remove this to run for all angles in parallel
         num++;
     }
     return 0;

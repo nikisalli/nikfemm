@@ -6,7 +6,7 @@
 #define MU_0                        (4 * PI * 1e-7)
 
 // print some debug info
-// #define DEBUG_PRINT
+#define DEBUG_LOG
 
 // parallel using OpenMP (not working yet)
 // #define NIK_PARALLEL

@@ -55,8 +55,6 @@ int main(int argc, char** argv) {
         nikfemm::MagnetostaticSimulation sim(1, 1);
         sim.mesh.drawing.drawPolygon(square.copy().translate(center1).rotate(angle1, center1));
         sim.mesh.drawing.drawPolygon(square.copy().translate(center2).rotate(angle2, center2));
-        center1.print();
-        center2.print();
         sim.mesh.drawing.drawRegion(center1, {0, magnetization1.rotate(angle1), nikfemm::materials::neodymium});
         sim.mesh.drawing.drawRegion(center2, {0, magnetization2.rotate(angle2), nikfemm::materials::neodymium});
 

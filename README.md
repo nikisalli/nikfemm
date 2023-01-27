@@ -6,6 +6,11 @@ clone the repo first:
 
 ``` git clone https://github.com/nikisalli/nikfemm.git ```
 
+update submodules
+
+``` git submodule update --init --remote ```
+
+
 create build dir
 
 ``` mkdir build && cd build ```

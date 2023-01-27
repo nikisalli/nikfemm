@@ -159,10 +159,6 @@ namespace nikfemm {
                 float angle = atan2(det, dot);
                 return angle;
             }
-
-            inline void print() const {
-                printf("Vector(%.17g, %.17g)\n", x, y);
-            }
     };
 }
 

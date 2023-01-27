@@ -1,3 +1,5 @@
+#include <cstdarg>
+
 #include "utils.hpp"
 
 namespace nikfemm {
@@ -9,6 +11,39 @@ namespace nikfemm {
         if (!condition) {
             throw std::runtime_error(message);
         }
+    }
+
+    void nloginfo(std::string format, ...) {
+#ifdef DEBUG_LOG
+        va_list args;
+        va_start(args, format);
+        std::cout << "[INFO] ";
+        vprintf(format.c_str(), args);
+        std::cout << std::endl;
+        va_end(args);
+#endif
+    }
+
+    void nlogwarn(std::string format, ...) {
+#ifdef DEBUG_LOG
+        va_list args;
+        va_start(args, format);
+        std::cout << "[WARN] ";
+        vprintf(format.c_str(), args);
+        std::cout << std::endl;
+        va_end(args);
+#endif
+    }
+
+    void nlogerror(std::string format, ...) {
+#ifdef DEBUG_LOG
+        va_list args;
+        va_start(args, format);
+        std::cout << "[ERROR] ";
+        vprintf(format.c_str(), args);
+        std::cout << std::endl;
+        va_end(args);
+#endif
     }
 
     cv::Scalar val2jet(float v, float vmin, float vmax) {

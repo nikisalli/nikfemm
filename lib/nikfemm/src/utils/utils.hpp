@@ -12,7 +12,12 @@
 namespace nikfemm {
     void nexit(std::string message);
     void nassert(bool condition, std::string message);
+    void nloginfo(std::string format, ...);
+    void nlogwarn(std::string format, ...);
+    void nlogerror(std::string format, ...);
+
     cv::Scalar val2jet(float v, float vmin, float vmax);
+
     inline double map(double x, double in_min, double in_max, double out_min, double out_max) {
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
     }

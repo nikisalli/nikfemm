@@ -23,6 +23,7 @@ namespace nikfemm {
     }
 
     void CV::print() const {
+        nloginfo("CV::print()");
         printf("[");
         for (uint32_t i = 0; i < val.size(); i++) {
             printf("%.17g ", val[i]);
@@ -32,6 +33,7 @@ namespace nikfemm {
     }
 
     void CV::write_to_file(const char *filename) {
+        nloginfo("CV::write_to_file(%s)", filename);
         FILE *f = fopen(filename, "w");
         for (uint32_t i = 0; i < val.size(); i++) {
             fprintf(f, "%.17g ", val[i]);
@@ -47,6 +49,24 @@ namespace nikfemm {
                 result[mat.col_ind[j]] += mat.val[j] * cv[i];
             }
         }
+
+        /*
+        for (uint32_t i = 0; i < mat.m; i++) {
+            result[i] = mat.diag[i] * cv[i];
+        }
+
+        for (uint32_t i = 0; i < mat.m; i++) {
+            for (uint32_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
+                result[i] += mat.val[j] * cv[mat.col_ind[j]];
+            }
+        }
+
+        for (uint32_t i = 0; i < mat.m; i++) {
+            for (uint32_t j = mat.row_ptr[i]; j < mat.row_ptr[i + 1]; j++) {
+                result[mat.col_ind[j]] += mat.val[j] * cv[i];
+            }
+        }
+        */
     }
 
     void CV::mult(CV& result, const MatCSRLowerTri& mat, const CV& cv) {
@@ -69,8 +89,7 @@ namespace nikfemm {
 
     void CV::mult(CV& result, const double d, const CV& cv) {
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
-        for (uint32_t i = 0; i < cv.val.size(); i++) {
+        for (size_t i = 0; i < cv.val.size(); i += 8) {
             result[i] = d * cv[i];
         }
         #else
@@ -81,10 +100,8 @@ namespace nikfemm {
         #endif
     }
 
-
     void CV::mult(CV& result, const CV& cv1, const CV& cv2) {
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] * cv2[i];
         }
@@ -101,7 +118,6 @@ namespace nikfemm {
         // assert(cv1.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] + cv2[i];
         }
@@ -118,7 +134,6 @@ namespace nikfemm {
         // assert(cv1.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] - cv2[i];
         }
@@ -134,7 +149,6 @@ namespace nikfemm {
         // assert(cv.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i] / d;
         }
@@ -151,7 +165,6 @@ namespace nikfemm {
         // assert(cv1.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] / cv2[i];
         }
@@ -167,7 +180,6 @@ namespace nikfemm {
         // assert(cv.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i] - d;
         }
@@ -183,7 +195,6 @@ namespace nikfemm {
         // assert(cv.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i] + d;
         }
@@ -200,7 +211,6 @@ namespace nikfemm {
         // assert(cv.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv.val.size(); i++) {
             result[i] = cv[i];
         }
@@ -215,7 +225,6 @@ namespace nikfemm {
 
         #ifdef NIK_PARALLEL
         double result = 0;
-        #pragma omp parallel for reduction(+:result)
         for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result += cv1[i] * cv2[i];
         }
@@ -231,7 +240,6 @@ namespace nikfemm {
         // assert(cv1.val.size() == result.val.size());
 
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for
         for (uint32_t i = 0; i < cv1.val.size(); i++) {
             result[i] = cv1[i] + d * cv2[i];
         }
@@ -246,7 +254,6 @@ namespace nikfemm {
     double CV::squareSum(const CV& cv) {
         double result = 0;
         #ifdef NIK_PARALLEL
-        #pragma omp parallel for reduction(+:result)
         for (uint32_t i = 0; i < cv.val.size(); i++) {
             result += cv[i] * cv[i];
         }

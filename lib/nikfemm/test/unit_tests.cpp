@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 
     // conjugateGradientSolver(csr, b, x0, 1e-6, 10);
 
-    printf("x0 = %d\n", x0.val.size());
+    nloginfo("x0 = %d", x0.val.size());
     x0.print();
 }
 

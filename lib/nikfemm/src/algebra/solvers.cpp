@@ -135,37 +135,24 @@ namespace nikfemm {
         CV::copy(p, r);
         double rTr = CV::squareSum(r);
         double squareError = CV::squareSum(r);
-        if (squareError < maxError * maxError) {
-            #ifdef DEBUG_PRINT
-            printf("converged after %lu iterations\n", i);
-            printf("x:\n");
-            x.print();
-            #endif
-        }
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
             double pAp = CV::dot(p, Ap);
             if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
                 pAp = std::numeric_limits<double>::epsilon();
-                #ifdef DEBUG_PRINT
-                printf("warning: pAp is zero. approximating with epsilon");
-                #endif
+                nlogwarn("warning: pAp is zero. approximating with epsilon");
             }
             double alpha = rTr / pAp;
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             double rTrNew = CV::squareSum(r);
-            #ifdef DEBUG_PRINT
             if (i % 100 == 0) {
-                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+                nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
-            #endif
             if (rTrNew < maxError * maxError) {
-            #ifdef DEBUG_PRINT
-                printf("converged after %lu iterations\n", i);
-                printf("x:\n");
-                x.print();
-            #endif
+            nloginfo("converged after %lu iterations", i);
+                // nloginfo("x:");
+                // x.print();
                 break;
             }
             double beta = rTrNew / rTr;
@@ -189,37 +176,24 @@ namespace nikfemm {
         CV Ap(b.val.size());
         double rTzold;
         double squareError = CV::squareSum(r);
-        if (squareError < maxError * maxError) {
-            #ifdef DEBUG_PRINT
-            printf("converged after %lu iterations\n", i);
-            printf("x:\n");
-            x.print();
-            #endif
-        }
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
                 alpha = std::numeric_limits<double>::epsilon();
-                #ifdef DEBUG_PRINT
-                printf("warning: alpha is zero. approximating with epsilon\n");
-                #endif
+                nlogwarn("warning: alpha is zero. approximating with epsilon");
             }
             rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            #ifdef DEBUG_PRINT
             if (i % 100 == 0) {
-                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+                nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
-            #endif
             if (squareError < maxError * maxError) {
-                #ifdef DEBUG_PRINT
-                printf("converged after %lu iterations\n", i);
-                printf("x:\n");
-                x.print();
-                #endif
+                nloginfo("converged after %lu iterations", i);
+                // nloginfo("x:");
+                // x.print();
                 break;
             }
             CV::mult(z, P, r);
@@ -240,11 +214,9 @@ namespace nikfemm {
         double rTzold;
         double squareError = CV::squareSum(r);
         if (squareError < maxError * maxError) {
-            #ifdef DEBUG_PRINT
-            printf("converged after 0 iterations\n");
-            printf("x:\n");
-            x.print();
-            #endif
+            nloginfo("converged after 0 iterations");
+            // nloginfo("x:");
+            // x.print();
             return;
         }
         for (uint32_t i = 0; i < maxIterations; i++) {
@@ -252,34 +224,26 @@ namespace nikfemm {
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
                 alpha = std::numeric_limits<double>::epsilon();
-                #ifdef DEBUG_PRINT
-                printf("warning: alpha is zero. approximating with epsilon\n");
-                #endif
+                nlogwarn("warning: alpha is zero. approximating with epsilon");
             }
             rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            #ifdef DEBUG_PRINT
             if (i % 100 == 0) {
-                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+                nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
-            #endif
             if (squareError < maxError * maxError) {
-                #ifdef DEBUG_PRINT
-                printf("converged after %lu iterations\n", i);
-                printf("x:\n");
-                x.print();
-                #endif
+                nloginfo("converged after %lu iterations", i);
+                // nloginfo("x:");
+                // x.print();
                 return;
             }
             multSSORPreconditioner(A, z, r, omega);
             double beta = CV::dot(r, z) / rTzold;
             CV::addScaled(p, z, beta, p);
         }
-        #ifdef DEBUG_PRINT
-        printf("didn't converge, last error: %.17g\n", sqrt(squareError));
-        #endif
+        nloginfo("didn't converge, last error: %.17g", sqrt(squareError));
     }
 
     void preconditionedIncompleteCholeskyConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double maxError, uint32_t maxIterations) {
@@ -288,13 +252,9 @@ namespace nikfemm {
         CV::sub(r, b, r);
         CV z(b.val.size());
         CV tmp(b.val.size());
-        #ifdef DEBUG_PRINT
-        printf("computing incomplete cholesky preconditioner\n");
-        #endif
+        nloginfo("computing incomplete cholesky preconditioner");
         MatCSRLowerTri L = incompleteCholeskyDecomposition(A);
-        #ifdef DEBUG_PRINT
-        printf("done computing incomplete cholesky preconditioner\n");
-        #endif
+        nloginfo("done computing incomplete cholesky preconditioner");
         CV::mult(tmp, (MatCSRLowerTri)L, r);
         CV::mult(z, (MatCSRUpperTri)L, tmp);
         CV p(b.val.size());
@@ -303,11 +263,9 @@ namespace nikfemm {
         double rTzold;
         double squareError = CV::squareSum(r);
         if (squareError < maxError * maxError) {
-            #ifdef DEBUG_PRINT
-            printf("converged after 0 iterations\n");
-            printf("x:\n");
-            x.print();
-            #endif
+            nloginfo("converged after 0 iterations");
+            // nloginfo("x:");
+            // x.print();
             return;
         }
         for (uint32_t i = 0; i < maxIterations; i++) {
@@ -315,25 +273,19 @@ namespace nikfemm {
             double alpha = CV::dot(r, z) / CV::dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
                 alpha = std::numeric_limits<double>::epsilon();
-                #ifdef DEBUG_PRINT
-                printf("warning: alpha is zero. approximating with epsilon\n");
-                #endif
+                nlogwarn("warning: alpha is zero. approximating with epsilon");
             }
             rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
-            #ifdef DEBUG_PRINT
             if (i % 100 == 0) {
-                printf("iteration %u, error: %.17g\n", i, sqrt(squareError));
+                nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
-            #endif
             if (squareError < maxError * maxError) {
-                #ifdef DEBUG_PRINT
-                printf("converged after %u iterations\n", i);
-                printf("x:\n");
-                x.print();
-                #endif
+                nloginfo("converged after %u iterations", i);
+                // nloginfo("x:");
+                // x.print();
                 break;
             }
             CV::mult(tmp, (MatCSRLowerTri)L, r);

@@ -547,9 +547,8 @@ namespace nikfemm {
             edges.insert({(uint32_t)data.trianglelist[i][2], (uint32_t)data.trianglelist[i][0]});
         }
 
-        #ifdef DEBUG_PRINT
-        printf("number of edges: %d, predicted number of edges: %d\n", edges.size(), (data.numberofpoints - 2) * 3);
-        #endif
+        nloginfo("number of edges: %d, predicted number of edges: %d", edges.size(), (data.numberofpoints - 2) * 3);
+        
 
         for (auto edge : edges) {
             Vector p1 = data.pointlist[edge.v1];
@@ -740,9 +739,8 @@ namespace nikfemm {
         */
 
         auto end = std::chrono::high_resolution_clock::now();
-        #ifdef DEBUG_PRINT
-        std::cout << "FEM matrix construction took " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms" << std::endl;
-        #endif
+        nloginfo("FEM matrix construction took %d ms", std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
+        
 
         return system;
     }
@@ -904,9 +902,7 @@ namespace nikfemm {
                 }
             }
         }
-        #ifdef DEBUG_PRINT
-        printf("Found %lu magnets\n", magnets.size());
-        #endif
+        nloginfo("Found %lu magnets", magnets.size());
         for (auto polygon : magnets) {
             for (uint32_t i = 0; i < polygon.points.size(); i++) {
                 Vector p1 = polygon.points[i];

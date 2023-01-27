@@ -26,6 +26,7 @@ namespace nikfemm {
     }
 
     void BaseCSR::printCSR() {
+        nloginfo("BaseCSR::printCSR()");
         printf("m: %u, nnz: %u\n", m, nnz);
         printf("row_ptr: ");
         for (uint32_t i = 0; i < m + 1; i++) {
@@ -105,6 +106,7 @@ namespace nikfemm {
     }
 
     void BaseCSR::print() {
+        nloginfo("BaseCSR::print()");
         // iterate over CSR elements
         for (uint32_t i = 0; i < m; i++) {
             for (uint32_t j = 0; j < m; j++) {
@@ -171,9 +173,10 @@ namespace nikfemm {
     }
 
     void BaseCSR::write_to_file(const char *filename) {
+        nloginfo("BaseCSR::write_to_file(%s)", filename);
         FILE *f = fopen(filename, "w");
         if (f == NULL) {
-            nexit("Error opening file!\n");
+            nexit("Error opening file!");
         }
 
         // iterate over CSR elements

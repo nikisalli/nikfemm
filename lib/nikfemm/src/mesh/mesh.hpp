@@ -262,10 +262,8 @@ namespace nikfemm {
         }
         epsilon *= 0.5;
         this->epsilon = epsilon;
-        #ifdef DEBUG_PRINT
-        printf("epsilon: %.17g\n", epsilon);
-        #endif
-    }
+        nloginfo("epsilon: %.17g", epsilon);
+        }
 
     template <typename Prop>
     void Mesh<Prop>::mesh() {
@@ -306,7 +304,7 @@ namespace nikfemm {
         i = 0;
 
         for (auto r : drawing.regions) {
-            // printf("adding region %f %f %lu\n", r.first.x, r.first.y, r.second);
+            // nloginfo("adding region %f %f %lu\n", r.first.x, r.first.y, r.second);
             in.regionlist[4 * i] = r.first.x;
             in.regionlist[4 * i + 1] = r.first.y;
             in.regionlist[4 * i + 2] = r.second;
@@ -360,13 +358,11 @@ namespace nikfemm {
                 Vector v = data.pointlist[i];
                 double mag_squared = v.x * v.x + v.y * v.y;
                 double scale = R_squared / mag_squared;
-                // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f\n", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
+                // printf("v = (%f, %f) -> (%f, %f), mag = %f, scale = %f", v->p.x, v->p.y, v->p.x * scale, v->p.y * scale, mag_squared, scale);
                 double dist = Vector::distance(v, center);
                 if (dist < max_x) {
                 // if (false) {
-                    #ifdef DEBUG_PRINT
-                    printf("kelvin transform too large\n");
-                    #endif
+                    nloginfo("kelvin transform too large");
                     data.pointlist[i] = v * ((radius * max_radius_coeff) / dist);
                 } else {
                     data.pointlist[i] = v * scale;
