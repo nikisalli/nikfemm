@@ -26,7 +26,7 @@ configure and build
 
 run an example
 
-``` ./bin/test ```
+``` ../bin/test ```
 
 # simulation example results
 
