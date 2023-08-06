@@ -11,34 +11,29 @@
 #include <set>
 #include <opencv2/opencv.hpp>
 
-#include "../../lib/triangle/triangle.h"
-#include "../triangle/util.h"
-
-#include "../constants.hpp"
+extern "C" {
+    #include "../../lib/triangle/triangle.h"
+}
 
 #include "../utils/utils.hpp"
 #include "../drawing/drawing.hpp"
 #include "../mesh/mesh.hpp"
 #include "../algebra/simple_vector.hpp"
-#include "../algebra/csr.hpp"
 #include "../algebra/build_coo.hpp"
-#include "../algebra/solvers.hpp"
-#include "../constants.hpp"
 #include "magnetostatic_algebra.hpp"
 #include "properties.hpp"
-#include "simulation.hpp"
 
 namespace nikfemm {
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
         MagnetostaticMesh(double max_triangle_area) {
             // default material property
-            default_prop = {0, {0, 0}, materials::air, {}, 0, {0, 0}};
+            default_prop = {0, {0, 0}, static_cast<float>(materials::air), {}};
             this->max_triangle_area = max_triangle_area;
         }
 
         MagnetostaticMesh() {
             // default material property
-            default_prop = {0, {0, 0}, materials::air, {}, 0, {0, 0}};
+            default_prop = {0, {0, 0}, static_cast<float>(materials::air), {}};
             max_triangle_area = 1e-0;
         }
 
@@ -54,7 +49,7 @@ namespace nikfemm {
         void refineMeshAroundMagnets();
     };
 
-    MagnetostaticSystem MagnetostaticMesh::getFemSystem() {
+    inline MagnetostaticSystem MagnetostaticMesh::getFemSystem() {
         MagnetostaticSystem system = {
             BuildMatCOO<MagnetostaticNonLinearExpression>(data.numberofpoints),
             MagnetostaticCV(data.numberofpoints)
@@ -745,7 +740,7 @@ namespace nikfemm {
         return system;
     }
 
-    void MagnetostaticMesh::addDirichletZeroBoundaryConditions(MagnetostaticSystem& system, uint32_t id) {
+    inline void MagnetostaticMesh::addDirichletZeroBoundaryConditions(MagnetostaticSystem& system, uint32_t id) {
         // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
 
         // this function lets you set a Dirichlet boundary condition on a node
@@ -761,7 +756,7 @@ namespace nikfemm {
         system.b.expr[id].setToConstant(0);
     }
 
-    void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system) {
+    inline void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system) {
         // find three furthest points from the center
         uint32_t p1 = 0;
         uint32_t p2 = 0;
@@ -795,7 +790,7 @@ namespace nikfemm {
         addDirichletZeroBoundaryConditions(system, p3);
     }
 
-    void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) const {
+    inline void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) const {
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             Elem myelem = data.trianglelist[i];
             double x1 = data.pointlist[myelem[0]].x;
@@ -829,7 +824,7 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticMesh::computeGrad(std::vector<Vector>& B, CV &A) const {
+    inline void MagnetostaticMesh::computeGrad(std::vector<Vector>& B, CV &A) const {
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             Elem myelem = data.trianglelist[i];
             double x1 = data.pointlist[myelem[0]].x;
@@ -863,7 +858,7 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticMesh::refineMeshAroundMagnets() {
+    inline void MagnetostaticMesh::refineMeshAroundMagnets() {
 
         // add magnets refining points
         // first we have to find the polygons that are magnets

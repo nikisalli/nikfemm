@@ -57,7 +57,7 @@ namespace nikfemm {
     }
 
     bool MagnetostaticProp::operator==(const MagnetostaticProp& p) const {
-        return mu == p.mu && J == p.J && M == p.M && A == p.A && B == p.B && bh_curve == p.bh_curve;
+        return mu == p.mu && J == p.J && M == p.M && bh_curve == p.bh_curve;
     }
 
     bool MagnetostaticProp::operator!=(const MagnetostaticProp& p) const {

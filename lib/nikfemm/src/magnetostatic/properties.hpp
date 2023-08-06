@@ -39,8 +39,6 @@ namespace nikfemm {
         Vector M; // magnetization
         float mu; // permeability
         BH_Curve bh_curve; // BH curve
-        float A; // magnetic vector potential
-        Vector B; // magnetic flux density
 
         float getMu(float B) const;
         bool isLinear() const;
@@ -63,14 +61,14 @@ namespace nikfemm {
 template <>
 struct std::hash<nikfemm::MagnetostaticProp> {
     inline std::size_t operator()(const nikfemm::MagnetostaticProp& p) const {
-        return std::hash<float>()(p.mu) ^ std::hash<float>()(p.J) ^ std::hash<nikfemm::Vector>()(p.M) ^ std::hash<float>()(p.A) ^ std::hash<nikfemm::Vector>()(p.B);
+        return std::hash<float>()(p.mu) ^ std::hash<float>()(p.J) ^ std::hash<nikfemm::Vector>()(p.M);
     }
 };
 
 template <>
 struct std::equal_to<nikfemm::MagnetostaticProp> {
     inline bool operator()(const nikfemm::MagnetostaticProp& p1, const nikfemm::MagnetostaticProp& p2) const {
-        return p1.mu == p2.mu && p1.J == p2.J && p1.M == p2.M && p1.A == p2.A && p1.B == p2.B && p1.bh_curve == p2.bh_curve;
+        return p1.mu == p2.mu && p1.J == p2.J && p1.M == p2.M && p1.bh_curve == p2.bh_curve;
     }
 };
 

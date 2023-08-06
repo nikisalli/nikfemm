@@ -2,7 +2,7 @@
 #define UTIL_H
 
 extern "C" {
-#include "../../lib/triangle/triangle.h"
+    #include "../../lib/triangle/triangle.h"
 }
 
 void syntax();

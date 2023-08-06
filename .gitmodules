@@ -1,3 +1,6 @@
 [submodule "lib/nikfemm/lib/triangle"]
 	path = lib/nikfemm/lib/triangle
 	url = https://github.com/nikisalli/triangle.git
+[submodule "lib/nikfemm/lib/vuda"]
+	path = lib/nikfemm/lib/vuda
+	url = https://github.com/jgbit/vuda.git

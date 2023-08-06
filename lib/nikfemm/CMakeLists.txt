@@ -1,5 +1,5 @@
 
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.5.0)
 project(nikfemm LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -30,6 +30,24 @@ if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
+
+# shader compiler helper
+function(add_spirv_shader INPUT_FILE OUTPUT_FILE)
+    add_custom_command(
+            OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_FILE}
+            COMMAND glslc ${INPUT_FILE} -o ${CMAKE_CURRENT_BINARY_DIR}/${OUTPUT_FILE}
+            MAIN_DEPENDENCY ${INPUT_FILE}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+endfunction()
+
+# add vulkan and if found set the variable
+find_package(Vulkan)
+if (Vulkan_FOUND)
+    set (NIK_VULKAN_FOUND TRUE)
+    include_directories(${Vulkan_INCLUDE_DIRS})
+    target_link_libraries(nikfemm ${Vulkan_LIBRARIES})
 endif()
 
 # get Triangle from lib

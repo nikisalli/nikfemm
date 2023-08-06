@@ -263,7 +263,7 @@ namespace nikfemm {
         epsilon *= 0.5;
         this->epsilon = epsilon;
         nloginfo("epsilon: %.17g", epsilon);
-        }
+    }
 
     template <typename Prop>
     void Mesh<Prop>::mesh() {

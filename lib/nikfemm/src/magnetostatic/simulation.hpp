@@ -7,7 +7,9 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include "../../lib/triangle/triangle.h"
+extern "C" {
+    #include "../../lib/triangle/triangle.h"
+}
 #include "../../src/triangle/util.h"
 #include "../constants.hpp"
 #include "../geometry/segment.hpp"
