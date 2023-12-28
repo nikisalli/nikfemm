@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "magnetostatic_algebra.hpp"
+#include "algebra.hpp"
 
 namespace nikfemm {
     double MagnetostaticNonLinearExpression::evaluate(std::vector<float>& mu) {

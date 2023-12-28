@@ -148,7 +148,7 @@ namespace nikfemm {
         nloginfo("showing image");
         cv::waitKey(0);
         nloginfo("done");
-        }
+    }
 
     void MagnetostaticSimulation::AplotToFile(uint32_t width, uint32_t height, std::string filename) {
         cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
@@ -592,7 +592,7 @@ namespace nikfemm {
             if (props[i]->isLinear()) {
                 mu[i] = props[i]->getMu(Bmag);
             } else {
-                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + materials::vacuum * residual * residual) * (1 - kalman_scemo)); 
+                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + magnetostatic_materials::vacuum * residual * residual) * (1 - kalman_scemo)); 
                 // mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;  // mu += (mu_new - mu) * 0.1
                 // mu[i] += props[i]->getMu(Bmag);  // pure newton-raphson
             }
@@ -601,9 +601,6 @@ namespace nikfemm {
 
     MagnetostaticSystem MagnetostaticSimulation::generateSystem(bool refine) {
         // get time in milliseconds
-        if (refine) {
-            mesh.drawing.addRefiningPoints();
-        }
 
         /* auto boundary */
         // find smallest enclosing circle using Welzl's algorithm
@@ -625,12 +622,17 @@ namespace nikfemm {
         nloginfo("boundary points: %d", boundary_points);
         mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
-        mesh.drawing.drawRegion(Vector(boundary_circle.radius * 0.9, 0), {0, {0, 0}, materials::air});
+        mesh.drawing.drawRegion(Vector(boundary_circle.radius * 0.9, 0), {0, {0, 0}, magnetostatic_materials::air});
         // add the boundary 
         // mesh.drawing.plot();
         #ifdef NIK_REFINE_MAGNETS
             mesh.refineMeshAroundMagnets();
         #endif
+
+        if (refine) {
+            mesh.drawing.addRefiningPoints();
+        }
+
         mesh.mesh();
         // mesh.plot();
         mesh.addKelvinBoundaryConditions(boundary_points);
@@ -655,7 +657,7 @@ namespace nikfemm {
             props[i] = mesh.drawing.getRegionPtrFromId(mesh.data.triangleattributelist[i]);
         }
 
-        MagnetostaticMatCSRSymmetric FemMat(system.coo);
+        MagnetostaticMatCSRSymmetric FemMat(system.A);
 
         // initialize mu
         for (uint32_t i = 0; i < B.size(); i++) {
@@ -664,7 +666,7 @@ namespace nikfemm {
         FemMat.updateFromMu(mu);
         system.b.updateFromMu(mu);
 
-        // check if materials are all linear
+        // check if magnetostatic_materials are all linear
         bool all_linear = true;
         for (uint32_t i = 0; i < props.size(); i++) {
             if (!props[i]->isLinear()) {
@@ -675,11 +677,11 @@ namespace nikfemm {
 
         auto tstart = std::chrono::high_resolution_clock::now();
         if (all_linear) {
-            nloginfo("all materials are linear");
+            nloginfo("all magnetostatic_materials are linear");
             preconditionedSSORConjugateGradientSolver(FemMat, system.b, A, 1.5, 1e-6, 100000);
             // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-6, 100000);
         } else {
-            nloginfo("nonlinear materials detected, starting non linear newton solver");
+            nloginfo("nonlinear magnetostatic_materials detected, starting non linear newton solver");
             CV r(system.b.val.size());  // residual
 
             double residual = 1e10;

@@ -1,4 +1,6 @@
 #include "../src/magnetostatic/simulation.hpp"
+#include "../src/current_density/simulation.hpp"
 #include "../src/geometry/polygon.hpp"
 #include "../src/geometry/vector.hpp"
 #include "../src/geometry/circle.hpp"
+#include "../src/algebra/solvers.hpp"

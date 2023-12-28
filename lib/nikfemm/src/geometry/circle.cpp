@@ -1,6 +1,7 @@
 #include <math.h>
 #include <assert.h>
 #include <algorithm>
+#include <random>
 #include <vector>
 #include <unordered_set>
 
@@ -71,7 +72,8 @@ namespace nikfemm {
     }
 
     Circle Circle::getMinimumEnclosingCircle(std::vector<Vector> points) {
-        std::random_shuffle(points.begin(), points.end());
+        auto rng = std::default_random_engine {};
+        std::shuffle(points.begin(), points.end(), rng);
         return welzlHelper(points, std::vector<Vector>(), points.size());
     }
 

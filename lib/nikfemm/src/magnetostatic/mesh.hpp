@@ -20,20 +20,20 @@ extern "C" {
 #include "../mesh/mesh.hpp"
 #include "../algebra/simple_vector.hpp"
 #include "../algebra/build_coo.hpp"
-#include "magnetostatic_algebra.hpp"
+#include "algebra.hpp"
 #include "properties.hpp"
 
 namespace nikfemm {
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
         MagnetostaticMesh(double max_triangle_area) {
             // default material property
-            default_prop = {0, {0, 0}, static_cast<float>(materials::air), {}};
+            default_prop = {0, {0, 0}, static_cast<float>(magnetostatic_materials::air), {}};
             this->max_triangle_area = max_triangle_area;
         }
 
         MagnetostaticMesh() {
             // default material property
-            default_prop = {0, {0, 0}, static_cast<float>(materials::air), {}};
+            default_prop = {0, {0, 0}, static_cast<float>(magnetostatic_materials::air), {}};
             max_triangle_area = 1e-0;
         }
 
@@ -414,27 +414,27 @@ namespace nikfemm {
                     nexit("error: vertex not found in element");
                 }
 
-                double oriented_area = data.getDoubleOrientedArea(v1, v2, v3);
+                double double_oriented_area = data.getDoubleOrientedArea(v1, v2, v3);
                 
-                if (oriented_area < 0) {
+                if (double_oriented_area < 0) {
                     std::swap(v2, v3);
                 }
 
-                double area = data.getDoubleOrientedArea(v1, v2, v3);
+                double double_area = data.getDoubleOrientedArea(v1, v2, v3);
 
                 // elements are only added if they are in the upper triangle because the matrix is symmetric and this saves half the memory
-                double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / area;
-                double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / area;
-                double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / area;
-                double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / area;
-                double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / area;
-                double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / area;
-                if (v1 >= i) system.coo(i, v1).addTerm(area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]);
-                if (v2 >= i) system.coo(i, v2).addTerm(area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]);
-                if (v3 >= i) system.coo(i, v3).addTerm(area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]);
+                double b1 = (data.pointlist[v2].y - data.pointlist[v3].y) / double_area;
+                double c1 = (data.pointlist[v3].x - data.pointlist[v2].x) / double_area;
+                double b2 = (data.pointlist[v3].y - data.pointlist[v1].y) / double_area;
+                double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / double_area;
+                double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / double_area;
+                double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / double_area;
+                if (v1 >= i) system.A(i, v1).addTerm(double_area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]);
+                if (v2 >= i) system.A(i, v2).addTerm(double_area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]);
+                if (v3 >= i) system.A(i, v3).addTerm(double_area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]);
 
                 // set the b vector
-                system.b.expr[i].addToConstant((area * adjelems_props[i][j]->J) / 6);
+                system.b.expr[i].addToConstant((double_area * adjelems_props[i][j]->J) / 6);
             }
         }
 
@@ -744,7 +744,7 @@ namespace nikfemm {
         // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
 
         // this function lets you set a Dirichlet boundary condition on a node
-        for (auto& elem : system.coo.elems) {
+        for (auto& elem : system.A.elems) {
             uint32_t m = elem.first >> 32;
             uint32_t n = elem.first & 0xFFFFFFFF;
             if (m == id || n == id) {
@@ -752,7 +752,7 @@ namespace nikfemm {
             }
         }
         // system.coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
-        system.coo(id, id).setToConstant(1);
+        system.A(id, id).setToConstant(1);
         system.b.expr[id].setToConstant(0);
     }
 

@@ -48,7 +48,8 @@ namespace nikfemm {
     };
 
     // default material property
-    namespace materials {
+    namespace magnetostatic_materials {
+        // specify mu or bh_curve, if both the latter is used
         const double vacuum = 4 * PI * 1e-7;
         const double air = 4 * PI * 1e-7;
         const double copper = 1.256629e-6;

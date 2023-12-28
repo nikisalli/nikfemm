@@ -211,8 +211,9 @@ namespace nikfemm {
         CV p(b.val.size());
         CV::copy(p, z);
         CV Ap(b.val.size());
-        double rTzold;
+        double rTzold, rTz;
         double squareError = CV::squareSum(r);
+        rTz = CV::dot(r, z);
         if (squareError < maxError * maxError) {
             nloginfo("converged after 0 iterations");
             // nloginfo("x:");
@@ -221,12 +222,11 @@ namespace nikfemm {
         }
         for (uint32_t i = 0; i < maxIterations; i++) {
             CV::mult(Ap, A, p);
-            double alpha = CV::dot(r, z) / CV::dot(p, Ap);
+            double alpha = rTz / CV::dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
                 alpha = std::numeric_limits<double>::epsilon();
                 nlogwarn("warning: alpha is zero. approximating with epsilon");
             }
-            rTzold = CV::dot(r, z);
             CV::addScaled(x, x, alpha, p);
             CV::addScaled(r, r, -alpha, Ap);
             squareError = CV::squareSum(r);
@@ -240,7 +240,9 @@ namespace nikfemm {
                 return;
             }
             multSSORPreconditioner(A, z, r, omega);
-            double beta = CV::dot(r, z) / rTzold;
+            rTzold = rTz;
+            rTz = CV::dot(r, z);
+            double beta = rTz / rTzold;
             CV::addScaled(p, z, beta, p);
         }
         nloginfo("didn't converge, last error: %.17g", sqrt(squareError));

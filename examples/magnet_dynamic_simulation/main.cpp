@@ -30,8 +30,8 @@ int main(int argc, char** argv) {
 
     simulation.mesh.drawing.drawPolygon(square.copy().translate(center1).rotate(angle1, center1));
     simulation.mesh.drawing.drawPolygon(square.copy().translate(center2).rotate(angle2, center2));
-    simulation.mesh.drawing.drawRegion(center1, {0, magnetization1.rotate(angle1), nikfemm::materials::neodymium});
-    simulation.mesh.drawing.drawRegion(center2, {0, magnetization2.rotate(angle2), nikfemm::materials::neodymium});
+    simulation.mesh.drawing.drawRegion(center1, {0, magnetization1.rotate(angle1), nikfemm::magnetostatic_materials::neodymium});
+    simulation.mesh.drawing.drawRegion(center2, {0, magnetization2.rotate(angle2), nikfemm::magnetostatic_materials::neodymium});
 
     auto system = simulation.generateSystem();
     simulation.solve(system);
@@ -55,8 +55,8 @@ int main(int argc, char** argv) {
         nikfemm::MagnetostaticSimulation sim(1, 1);
         sim.mesh.drawing.drawPolygon(square.copy().translate(center1).rotate(angle1, center1));
         sim.mesh.drawing.drawPolygon(square.copy().translate(center2).rotate(angle2, center2));
-        sim.mesh.drawing.drawRegion(center1, {0, magnetization1.rotate(angle1), nikfemm::materials::neodymium});
-        sim.mesh.drawing.drawRegion(center2, {0, magnetization2.rotate(angle2), nikfemm::materials::neodymium});
+        sim.mesh.drawing.drawRegion(center1, {0, magnetization1.rotate(angle1), nikfemm::magnetostatic_materials::neodymium});
+        sim.mesh.drawing.drawRegion(center2, {0, magnetization2.rotate(angle2), nikfemm::magnetostatic_materials::neodymium});
 
         auto system = sim.generateSystem();
         sim.solve(system);

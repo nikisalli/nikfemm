@@ -21,10 +21,10 @@ double cost_function(double winding_thickness, double height, double iron_thickn
     sim.mesh.drawing.drawRectangle({iron_radius, 0}, {-iron_radius, height});
     sim.mesh.drawing.drawRectangle({-0.5, -1}, {0.5, -2});
 
-    sim.mesh.drawing.drawRegion({0, height / 2}, {0, {0, 0}, nikfemm::materials::iron_linear});
-    sim.mesh.drawing.drawRegion({iron_radius + winding_thickness / 4, height / 2}, {current_density, {0, 0}, nikfemm::materials::copper});
-    sim.mesh.drawing.drawRegion({-iron_radius - winding_thickness / 4, height / 2}, {-current_density, {0, 0}, nikfemm::materials::copper});
-    sim.mesh.drawing.drawRegion({0, -1.5}, {0, {0, 0}, nikfemm::materials::iron_linear});
+    sim.mesh.drawing.drawRegion({0, height / 2}, {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
+    sim.mesh.drawing.drawRegion({iron_radius + winding_thickness / 4, height / 2}, {current_density, {0, 0}, nikfemm::magnetostatic_materials::copper});
+    sim.mesh.drawing.drawRegion({-iron_radius - winding_thickness / 4, height / 2}, {-current_density, {0, 0}, nikfemm::magnetostatic_materials::copper});
+    sim.mesh.drawing.drawRegion({0, -1.5}, {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 
     auto system = sim.generateSystem();
     sim.solve(system);

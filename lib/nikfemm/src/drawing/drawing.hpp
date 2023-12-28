@@ -303,7 +303,17 @@ namespace nikfemm {
                         break;
                     }
                 }
-                if (!too_close) {
+
+                // check if point is contained in a polygon because vertices without edges result in zero valued elements in the stiffness matrix
+                bool is_contained_in_a_polygon = false;
+                for (Polygon polygon : polygons) {
+                    if (polygon.contains(p)) {
+                        is_contained_in_a_polygon = true;
+                        break;
+                    }
+                }
+
+                if (!too_close && is_contained_in_a_polygon) {
                     points.push_back(p);
                 }
             }

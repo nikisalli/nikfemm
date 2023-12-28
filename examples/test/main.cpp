@@ -30,10 +30,10 @@ int main(int argc, char** argv) {
         }
     );
 
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {-1, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 2.5), {1, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 1.5), {0, {0, 0}, 0, nikfemm::materials::iron});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 5), {0, {0, 0}, 0, nikfemm::materials::iron});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {-1, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 2.5), {1, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 1.5), {0, {0, 0}, 0, nikfemm::magnetostatic_materials::iron});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 5), {0, {0, 0}, 0, nikfemm::magnetostatic_materials::iron});
     */
     
    
@@ -43,22 +43,22 @@ int main(int argc, char** argv) {
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(3, 0), nikfemm::Vector(4, 1));
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(4, 0), nikfemm::Vector(5, 1));
 
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(-1, 0), {0, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {0, {-1, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(1.5, 0.5), {0, {0, -1}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(2.5, 0.5), {0, {1, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(3.5, 0.5), {0, {0, 1}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(4.5, 0.5), {0, {-1, 0}, nikfemm::materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(-1, 0), {0, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {0, {-1, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(1.5, 0.5), {0, {0, -1}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(2.5, 0.5), {0, {1, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(3.5, 0.5), {0, {0, 1}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(4.5, 0.5), {0, {-1, 0}, nikfemm::magnetostatic_materials::air});
 
     /*
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(1, 1), nikfemm::Vector(0.9, -1));
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(-1, 1), nikfemm::Vector(-0.9, -1));
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(1, 5), nikfemm::Vector(0.9, 3));
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(-1, 5), nikfemm::Vector(-0.9, 3));
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.95, 0), {1, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(-0.95, 0), {-1, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.95, 4), {1, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(-0.95, 4), {-1, {0, 0}, nikfemm::materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.95, 0), {1, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(-0.95, 0), {-1, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.95, 4), {1, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(-0.95, 4), {-1, {0, 0}, nikfemm::magnetostatic_materials::air});
     */
 
     auto system = simulation.generateSystem();

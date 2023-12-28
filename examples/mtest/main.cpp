@@ -176,7 +176,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
         sim.mesh.drawing.drawRegion(polar_to_scalar(
             (winding_end_radius - winding_start_radius) / 2 + winding_start_radius,
             center_angle - pole_stem_half - winding_angle_step / 2
-        ), {-current, {0, 0}, nikfemm::materials::air});
+        ), {-current, {0, 0}, nikfemm::magnetostatic_materials::air});
 
         sim.mesh.drawing.drawPolygon({
             polar_to_scalar(winding_start_radius, center_angle + pole_stem_half),
@@ -188,7 +188,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
         sim.mesh.drawing.drawRegion(polar_to_scalar(
             (winding_end_radius - winding_start_radius) / 2 + winding_start_radius,
             center_angle + pole_stem_half + winding_angle_step / 2
-        ), {current, {0, 0}, nikfemm::materials::air});
+        ), {current, {0, 0}, nikfemm::magnetostatic_materials::air});
 
         // draw air region
     }
@@ -198,16 +198,16 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
     sim.mesh.drawing.drawCircle(Vector(0, 0), stator_inner_radius, stator_poles * 10);
 
     // stator core
-    sim.mesh.drawing.drawRegion(polar_to_scalar(stator_outer_radius, 0), {0, {0, 0}, nikfemm::materials::iron_linear});
+    sim.mesh.drawing.drawRegion(polar_to_scalar(stator_outer_radius, 0), {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 
     // inter stator-rotor gap
     sim.mesh.drawing.drawRegion(polar_to_scalar(
         stator_outer_radius + winding_to_pole_and_core_distance / 2,
         angle_step / 2
-    ), {0, {0, 0}, nikfemm::materials::air});
+    ), {0, {0, 0}, nikfemm::magnetostatic_materials::air});
 
     // stator center hole
-    sim.mesh.drawing.drawRegion(Vector(0, 0), {0, {0, 0}, nikfemm::materials::air});
+    sim.mesh.drawing.drawRegion(Vector(0, 0), {0, {0, 0}, nikfemm::magnetostatic_materials::air});
 
     // draw rotor
     sim.mesh.drawing.drawCircle(Vector(0, 0), rotor_outer_radius, rotor_poles * 10);
@@ -232,7 +232,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
         // magnet
         sim.mesh.drawing.drawRegion(
             polar_to_scalar(rotor_inner_radius - (magnet_thickness / 2), center_angle),
-            {0, polar_to_scalar(magnet_orientation, center_angle), nikfemm::materials::iron_linear}
+            {0, polar_to_scalar(magnet_orientation, center_angle), nikfemm::magnetostatic_materials::iron_linear}
         );
         
         magnet_inner_rotor.push_back(polar_to_scalar(rotor_inner_radius, center_angle - magnet_width_half));
@@ -241,7 +241,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
 
     sim.mesh.drawing.drawPolygon(magnet_inner_rotor);
     // rotor
-    sim.mesh.drawing.drawRegion(polar_to_scalar((rotor_outer_radius + rotor_inner_radius) / 2, angle), {0, {0, 0}, nikfemm::materials::iron_linear});
+    sim.mesh.drawing.drawRegion(polar_to_scalar((rotor_outer_radius + rotor_inner_radius) / 2, angle), {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 }
 
 void simulate(int num, double angle, double max_B, double min_B,

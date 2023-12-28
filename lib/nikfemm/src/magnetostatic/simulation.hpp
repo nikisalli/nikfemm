@@ -1,5 +1,5 @@
-#ifndef NIK_SIMULATION_H
-#define NIK_SIMULATION_H
+#ifndef NIK_MAGNETOSTATIC_SIMULATION_H
+#define NIK_MAGNETOSTATIC_SIMULATION_H
 
 #include <stdio.h>
 #include <stdlib.h>

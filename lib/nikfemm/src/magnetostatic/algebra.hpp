@@ -82,7 +82,7 @@ namespace nikfemm {
     };
 
     struct MagnetostaticSystem {
-        BuildMatCOO<MagnetostaticNonLinearExpression> coo;
+        BuildMatCOO<MagnetostaticNonLinearExpression> A;
         MagnetostaticCV b;
     };
 }

@@ -29,10 +29,10 @@ int main(int argc, char** argv) {
         }
     );
 
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {-1, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 2.5), {1, {0, 0}, nikfemm::materials::air});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 1.5), {0, {0, 0}, nikfemm::materials::iron_linear});
-    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 5), {0, {0, 0}, nikfemm::materials::iron_linear});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {-1, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 2.5), {1, {0, 0}, nikfemm::magnetostatic_materials::air});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 1.5), {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
+    simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 5), {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 
     auto system = simulation.generateSystem();
     simulation.solve(system);

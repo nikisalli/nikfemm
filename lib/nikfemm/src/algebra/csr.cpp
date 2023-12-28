@@ -110,7 +110,7 @@ namespace nikfemm {
         // iterate over CSR elements
         for (uint32_t i = 0; i < m; i++) {
             for (uint32_t j = 0; j < m; j++) {
-                printf("%.1f ", (*this)(i, j));
+                printf("%.17g ", (*this)(i, j));
             }
             printf("\n");
         }
