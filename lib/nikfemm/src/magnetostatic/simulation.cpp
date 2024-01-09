@@ -1079,7 +1079,7 @@ namespace nikfemm {
                 force += (my_nabla_g * 0.5 * my_B.normSquared() - my_B * (my_nabla_g * my_B)) * area;
             }
         }
-        force *= 1 / MU_0;
+        force *= 1 / (4 * PI * 1e-7);
         force *= depth;
 
         auto end = std::chrono::high_resolution_clock::now();
@@ -1256,7 +1256,7 @@ namespace nikfemm {
                 // force += (my_nabla_g * 0.5 * my_B.normSquared() - my_B * (my_nabla_g * my_B)) * area;
             }
         }
-        torque *= 1 / MU_0;
+        torque *= 1 / (4 * PI * 1e-7);
         torque *= depth;
 
         auto end = std::chrono::high_resolution_clock::now();
