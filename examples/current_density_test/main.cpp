@@ -5,7 +5,7 @@
 int main(int argc, char** argv) {
     nikfemm::CurrentDensitySimulation simulation;
     simulation.depth = 70e-6;
-    simulation.mesh.max_triangle_area = 1e-0;
+    simulation.mesh.max_triangle_area = 1e-2;
 
     // simulation.mesh.drawing.drawRectangle(nikfemm::Vector(0, 0), nikfemm::Vector(1, 1));
 
@@ -33,8 +33,8 @@ int main(int argc, char** argv) {
 
     auto system = simulation.generateSystem();
 
-    system.addDirichletBoundaryCondition(0, 0.0);
-    system.addDirichletBoundaryCondition(2, 1.0);
+    simulation.setVoltage(system, nikfemm::Vector(0.5, 0.5), 1);
+    simulation.setVoltage(system, nikfemm::Vector(3.5, 3.5), 0);
 
     simulation.solve(system);
 

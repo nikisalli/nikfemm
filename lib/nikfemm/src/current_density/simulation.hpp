@@ -26,7 +26,7 @@ namespace nikfemm {
 
             CurrentDensitySystem generateSystem(bool refine = true);
             void solve(CurrentDensitySystem& system);
-            Vector computeBarycenter(Vector p);
+            void setVoltage(CurrentDensitySystem& system, Vector p, double V);
         protected:
             void VplotRend(cv::Mat* image, double width, double height);
             void JplotRend(cv::Mat* image, double width, double height);

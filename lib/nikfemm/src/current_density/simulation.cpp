@@ -40,6 +40,27 @@ namespace nikfemm {
         
     }
 
+    void CurrentDensitySimulation::setVoltage(CurrentDensitySystem& system, Vector p, double V) {
+        // find the closest node
+        int32_t closest_node = -1;
+        double closest_distance = INFINITY;
+        for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
+            double distance = (mesh.data.pointlist[i].x - p.x) * (mesh.data.pointlist[i].x - p.x) + (mesh.data.pointlist[i].y - p.y) * (mesh.data.pointlist[i].y - p.y);
+            if (distance < closest_distance) {
+                closest_node = i;
+                closest_distance = distance;
+            }
+        }
+
+        if (closest_node == -1) {
+            nlogerror("could not find closest node");
+            return;
+        }
+
+        // set the voltage
+        system.addDirichletBoundaryCondition(closest_node, V);
+    }
+
     void CurrentDensitySimulation::VplotRend(cv::Mat* image, double width, double height) {
         float min_x = mesh.data.pointlist[0].x;
         float min_y = mesh.data.pointlist[0].y;
@@ -294,7 +315,7 @@ namespace nikfemm {
         MatCSRSymmetric FemMat(system.A);
 
         auto start = std::chrono::high_resolution_clock::now();
-        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-10, 100000);
+        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-12, 100000);
         // preconditionedJacobiConjugateGradientSolver(FemMat, system.b, V, 1e-6, 100000);
         auto end = std::chrono::high_resolution_clock::now();
         nloginfo("solver took %f ms", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0);
