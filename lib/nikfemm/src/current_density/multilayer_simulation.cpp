@@ -125,16 +125,20 @@ namespace nikfemm {
                     node1_id = i;
                     node1_dist = dist;
                 }
+            }
 
-                dist = (meshes[interconnection.layer1_id].data.pointlist[i] - interconnection.p2).norm();
+            for (uint64_t i = 0; i < meshes[interconnection.layer2_id].data.numberofpoints; i++) {
+                double dist = 0;
+
+                dist = (meshes[interconnection.layer2_id].data.pointlist[i] - interconnection.p2).norm();
                 if (dist < node2_dist) {
                     node2_id = i;
                     node2_dist = dist;
                 }
             }
 
-            nloginfo("Nearest node to p1 is %d", node1_id);
-            nloginfo("Nearest node to p2 is %d", node2_id);
+            nloginfo("Nearest node to p1 is %d at x: %f, y: %f", node1_id, meshes[interconnection.layer1_id].data.pointlist[node1_id].x, meshes[interconnection.layer1_id].data.pointlist[node1_id].y);
+            nloginfo("Nearest node to p2 is %d at x: %f, y: %f", node2_id, meshes[interconnection.layer2_id].data.pointlist[node2_id].x, meshes[interconnection.layer2_id].data.pointlist[node2_id].y);
 
             interconnection_indices_list.push_back({interconnection.layer1_id, interconnection.layer2_id, node1_id, node2_id, interconnection.R});
         }
@@ -189,46 +193,88 @@ namespace nikfemm {
 
         printf("b.size(): %d\n", merged_system.b.val.size());
 
-        // add the interconnections to the merged system
-        
+        // add the interconnections to the merged system        
         for (auto& interconnection : interconnection_indices_list) {
             // add the interconnection to the merged system
             uint64_t m1 = interconnection.node1_id + offsets[interconnection.mesh1_id];
             uint64_t m2 = interconnection.node2_id + offsets[interconnection.mesh2_id];
             double R = interconnection.R;
 
-            // get all the elements with m as the row
-            for (auto& elem : merged_system.A.elems) {
-                uint64_t elem_m = elem.first >> 32;
-                uint64_t elem_n = elem.first & 0xFFFFFFFF;
+            // get all the rows that have a nonzero element in column m1
+            std::unordered_set<uint64_t> rows_with_m1;
+            std::unordered_set<uint64_t> rows_with_m2;
 
-                if (elem_m == m1) {
-                    if (elem_n == m1) {
-                        printf("(%d, %d) of layer %d of value %.17g is being changed to %.17g\n", elem_m, elem_n, interconnection.mesh1_id, elem.second, (R * elem.second) - 1);
-                        elem.second = (R * elem.second) +1;
-                    } else {
-                        printf("(%d, %d) of layer %d of value %.17g is being changed to %.17g\n", elem_m, elem_n, interconnection.mesh1_id, elem.second, R * elem.second);
-                        elem.second *= R;
-                    }
-                } else if (elem_m == m2) {
-                    if (elem_n == m2) {
-                        printf("(%d, %d) of layer %d of value %.17g is being changed to %.17g\n", elem_m, elem_n, interconnection.mesh2_id, elem.second, (R * elem.second) - 1);
-                        elem.second = (R * elem.second) +1;
-                    } else {
-                        printf("(%d, %d) of layer %d of value %.17g is being changed to %.17g\n", elem_m, elem_n, interconnection.mesh2_id, elem.second, R * elem.second);
-                        elem.second *= R;
-                    }
-                }                        
+            for (auto& elem : merged_system.A.elems) {
+                uint64_t m = elem.first >> 32;
+                uint64_t n = elem.first & 0xFFFFFFFF;
+
+                if (n == m1) {
+                    rows_with_m1.insert(m);
+                }
+                if (n == m2) {
+                    rows_with_m2.insert(m);
+                }
             }
+
+            // now for every row that has a nonzero element in column m1 we should:
+            // 1. for every nonzero element in that row, multiply it by R and add + 1 if the column index is m1
+            // 2. add a new element to the merged system with the value -1 in column m2 and the same row index
+
+            // then for every row that has a nonzero element in column m2 we should:
+            // 1. for every nonzero element in that row, multiply it by R and add + 1 if the column index is m2
+            // 2. add a new element to the merged system with the value -1 in column m1 and the same row index
+
+            // 1.
+            for (auto& elem : merged_system.A.elems) {
+                uint64_t m = elem.first >> 32;
+                uint64_t n = elem.first & 0xFFFFFFFF;
+
+                if (rows_with_m1.find(m) != rows_with_m1.end()) {
+                    elem.second *= (-1 / R) + 1;
+                    if (n == m1) {
+                        elem.second += 1;
+                    }
+                } else if (rows_with_m2.find(m) != rows_with_m2.end()) {
+                    elem.second *= (-1 / R) + 1;
+                    if (n == m2) {
+                        elem.second += 1;
+                    }
+                }
+            }
+
 
             // now subtract the corresponding element from the other system
             if (m2 >= m1) {
-                merged_system.A(m1, m2) = -1;
+                merged_system.A(m1, m2) = +1;
                 // printf("adding separate element (%d, %d) of layer %d of value %.17g to (%d, %d) of merged system\n", m1, m2, interconnection.mesh1_id, -1, m1, m2);
             } else {
-                merged_system.A(m2, m1) = -1;
+                merged_system.A(m2, m1) = +1;
                 // printf("adding separate element (%d, %d) of layer %d of value %.17g to (%d, %d) of merged system\n", m2, m1, interconnection.mesh2_id, -1, m2, m1);
             }
+
+            /*
+            // 2.
+            for (auto& elem : merged_system.A.elems) {
+                uint64_t m = elem.first >> 32;
+                uint64_t n = elem.first & 0xFFFFFFFF;
+
+                if (rows_with_m1.find(m) != rows_with_m1.end()) {
+                    if (n == m1) {
+                        // the system is symmetric so we only need to add one of the two elements
+                        // since it is stored in upper triangular form
+                        if(m2 >= m) merged_system.A(m, m2) = -1;
+                        else merged_system.A(m2, m) = -1;
+                    }
+                } else if (rows_with_m2.find(m) != rows_with_m2.end()) {
+                    if (n == m2) {
+                        // the system is symmetric so we only need to add one of the two elements
+                        // since it is stored in upper triangular form
+                        if(m1 >= m) merged_system.A(m, m1) = -1;
+                        else merged_system.A(m1, m) = -1;
+                    }
+                }
+            }
+            */
         }
 
         for (auto& elem : merged_system.A.elems) {
@@ -251,9 +297,9 @@ namespace nikfemm {
         uint64_t offset = 0;
 
         // system.b == mesh.data.numberofpoints == A.n == A.m
-        for (auto& mesh : meshes) {
+        for (auto& _mesh : meshes) {
             offsets.push_back(offset);
-            offset += mesh.data.numberofpoints;
+            offset += _mesh.data.numberofpoints;
         }
 
         for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {
@@ -281,7 +327,7 @@ namespace nikfemm {
         MatCSRSymmetric FemMat(system.A);
 
         auto start = std::chrono::high_resolution_clock::now();
-        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-12, 100000);
+        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-16, 100000);
         // preconditionedJacobiConjugateGradientSolver(FemMat, system.b, V, 1e-6, 100000);
         auto end = std::chrono::high_resolution_clock::now();
         nloginfo("solver took %f ms", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0);
@@ -292,9 +338,24 @@ namespace nikfemm {
         for (uint64_t i = 0; i < meshes.size(); i++) {
             images.push_back(cv::Mat(height, width, CV_8UC3, cv::Scalar(255, 255, 255)));
         }
+
+        double max_V = -INFINITY;
+        double min_V = INFINITY;
+
+        for (auto v : V.val) {
+            if (v > max_V) {
+                max_V = v;
+            }
+            if (v < min_V) {
+                min_V = v;
+            }
+        }
+
+        printf("max_V: %f\n", max_V);
+        printf("min_V: %f\n", min_V);
         
         for (uint64_t i = 0; i < meshes.size(); i++) {
-            VplotRend(&images[i], width, height, i);
+            VplotRend(&images[i], width, height, i, max_V, min_V);
             cv::flip(images[i], images[i], 0); // flip image horizontally
         }
 
@@ -305,7 +366,7 @@ namespace nikfemm {
         cv::waitKey(0);
     }
 
-    void MultiLayerCurrentDensitySimulation::VplotRend(cv::Mat* image, double width, double height, uint64_t layer_id) {
+    void MultiLayerCurrentDensitySimulation::VplotRend(cv::Mat* image, double width, double height, uint64_t layer_id, double max_V, double min_V) {
         auto& mesh = meshes[layer_id];
         float min_x = mesh.data.pointlist[0].x;
         float min_y = mesh.data.pointlist[0].y;
@@ -350,15 +411,6 @@ namespace nikfemm {
 
         // get the range of values for the given layer
         std::vector<float> _V = std::vector<float>(V.val.begin() + offsets[layer_id], V.val.begin() + offsets[layer_id] + meshes[layer_id].data.numberofpoints);
-
-        std::vector<float> V_sorted(V.val.size());
-        std::copy(V.val.begin(), V.val.end(), V_sorted.begin());
-        std::sort(V_sorted.begin(), V_sorted.end());
-        float max_V = V_sorted[0.9 * V_sorted.size()];
-        float min_V = V_sorted[0.1 * V_sorted.size()];
-
-        nloginfo("max V: %f", max_V);
-        nloginfo("min V: %f", min_V);
 
         // draw the points
         for (uint32_t i = 0; i < mesh.data.numberofpoints; i++) {

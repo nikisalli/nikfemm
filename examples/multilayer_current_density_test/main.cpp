@@ -18,11 +18,11 @@ int main(int argc, char** argv) {
     simulation.meshes[0].drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {nikfemm::current_density_materials::copper});
     simulation.meshes[1].drawing.drawRegion(nikfemm::Vector(2.5, 2.5), {nikfemm::current_density_materials::copper});
 
-    simulation.interconnections.push_back({nikfemm::Vector(1.5, 1.5), nikfemm::Vector(1.5, 1.5), 0, 1, 0});
+    simulation.interconnections.push_back({nikfemm::Vector(1.5, 1.5), nikfemm::Vector(1.5, 1.5), 0, 1, 100});
 
     auto system = simulation.generateSystem();
 
-    simulation.setVoltage(system, nikfemm::Vector(0.1, 0.1), 0, 0);
+    simulation.setVoltage(system, nikfemm::Vector(0.1, 0.1), -1, 0);
     simulation.setVoltage(system, nikfemm::Vector(2.9, 2.9), 1, 1);
 
     simulation.solve(system);
