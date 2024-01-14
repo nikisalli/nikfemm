@@ -5,7 +5,7 @@
 
 namespace nikfemm {
     struct CurrentDensityProp {
-        float sigma; // conductivity
+        float sigma; // conductivity 
 
         bool operator==(const CurrentDensityProp& p) const;
         bool operator!=(const CurrentDensityProp& p) const;
@@ -13,7 +13,7 @@ namespace nikfemm {
 
     // default material property
     namespace current_density_materials {
-        const double copper = 16.78e-9; // 16.78 nΩ•m
+        const double copper = (1.0 / 16.78e-9); // 16.78 nΩ•m
     }
 }
 

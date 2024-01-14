@@ -126,10 +126,8 @@ namespace nikfemm {
                 center.x += points[j].x;
                 center.y += points[j].y;
             }
-            // printf("count: %d\n", points.size());
             center.x /= points.size();
             center.y /= points.size();
-            // printf("center: %d %d\n", center.x, center.y);
 
             // sort the points by angle
             std::sort(points.begin(), points.end(), [center](cv::Point a, cv::Point b) {

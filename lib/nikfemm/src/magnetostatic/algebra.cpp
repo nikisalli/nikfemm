@@ -84,7 +84,6 @@ namespace nikfemm {
         for (uint32_t i = 0; i < nnz; i++) {
             val[i] = expr[i].evaluate(mu);
         }
-        // printf("same: %d / %d, changed: %d / %d\n", same, m + nnz, m + nnz - same, m + nnz);
     }
 
     MagnetostaticCV::MagnetostaticCV(uint32_t size) {

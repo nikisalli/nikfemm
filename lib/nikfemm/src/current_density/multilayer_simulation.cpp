@@ -92,14 +92,6 @@ namespace nikfemm {
             offset += system.b.val.size();
         }
 
-        printf("offsets: ");
-        for (auto& offset : offsets) {
-            printf("%d ", offset);
-        }
-        printf("\n");
-
-        fflush(stdout);
-
         // now we need to merge the systems together using the interconnections
         struct interconnection_indices {
             uint64_t mesh1_id;
@@ -146,8 +138,8 @@ namespace nikfemm {
         // preallocate the size of the merged system by summing the sizes of the systems
         uint64_t merged_system_nnz = 0;
         uint64_t merged_system_size = 0;
-        printf("merged_system_nnz is: %d\n", merged_system_nnz);
-        printf("merged_system_size is: %d\n", merged_system_size);
+        nloginfo("merged_system_nnz is: %d", merged_system_nnz);
+        nloginfo("merged_system_size is: %d", merged_system_size);
         for (auto& system : systems) {
             merged_system_nnz += system.A.elems.size();
             merged_system_size += system.b.val.size();
@@ -158,8 +150,8 @@ namespace nikfemm {
             CV(merged_system_size)
         };
 
-        printf("merged_system_nnz: %d\n", merged_system_nnz);
-        printf("merged_system_size: %d\n", merged_system_size);
+        nloginfo("merged_system_nnz: %d", merged_system_nnz);
+        nloginfo("merged_system_size: %d", merged_system_size);
         merged_system.A.elems.reserve(merged_system_nnz);
         merged_system.b.val.reserve(merged_system_size);
 
@@ -178,8 +170,6 @@ namespace nikfemm {
                 uint64_t m = elem.first >> 32;
                 uint64_t n = elem.first & 0xFFFFFFFF;
 
-                // printf("adding element (%d, %d) of layer %d of value %.17g to (%d, %d) of merged system\n", m, n, i, elem.second, m + offset, n + offset);
-
                 merged_system.A(m + offset, n + offset) = elem.second;
             }
 
@@ -191,7 +181,7 @@ namespace nikfemm {
             offset += system_size;
         }
 
-        printf("b.size(): %d\n", merged_system.b.val.size());
+        nloginfo("b.size(): %d", merged_system.b.val.size());
 
         // add the interconnections to the merged system        
         for (auto& interconnection : interconnection_indices_list) {
@@ -242,17 +232,6 @@ namespace nikfemm {
                 }
             }
 
-
-            // now subtract the corresponding element from the other system
-            if (m2 >= m1) {
-                merged_system.A(m1, m2) = +1;
-                // printf("adding separate element (%d, %d) of layer %d of value %.17g to (%d, %d) of merged system\n", m1, m2, interconnection.mesh1_id, -1, m1, m2);
-            } else {
-                merged_system.A(m2, m1) = +1;
-                // printf("adding separate element (%d, %d) of layer %d of value %.17g to (%d, %d) of merged system\n", m2, m1, interconnection.mesh2_id, -1, m2, m1);
-            }
-
-            /*
             // 2.
             for (auto& elem : merged_system.A.elems) {
                 uint64_t m = elem.first >> 32;
@@ -262,24 +241,19 @@ namespace nikfemm {
                     if (n == m1) {
                         // the system is symmetric so we only need to add one of the two elements
                         // since it is stored in upper triangular form
-                        if(m2 >= m) merged_system.A(m, m2) = -1;
-                        else merged_system.A(m2, m) = -1;
+                        if(m2 >= m) merged_system.A(m, m2) = +1;
+                        else merged_system.A(m2, m) = +1;
                     }
                 } else if (rows_with_m2.find(m) != rows_with_m2.end()) {
                     if (n == m2) {
                         // the system is symmetric so we only need to add one of the two elements
                         // since it is stored in upper triangular form
-                        if(m1 >= m) merged_system.A(m, m1) = -1;
-                        else merged_system.A(m1, m) = -1;
+                        if(m1 >= m) merged_system.A(m, m1) = +1;
+                        else merged_system.A(m1, m) = +1;
                     }
                 }
             }
-            */
-        }
-
-        for (auto& elem : merged_system.A.elems) {
-            printf("merged_system.A(%d, %d) = %.17g\n", elem.first >> 32, elem.first & 0xFFFFFFFF, elem.second);
-        }       
+        }    
 
         nloginfo("generated merged system with %d unknowns", merged_system.b.val.size());
 
@@ -327,7 +301,7 @@ namespace nikfemm {
         MatCSRSymmetric FemMat(system.A);
 
         auto start = std::chrono::high_resolution_clock::now();
-        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-16, 100000);
+        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-10, 100000);
         // preconditionedJacobiConjugateGradientSolver(FemMat, system.b, V, 1e-6, 100000);
         auto end = std::chrono::high_resolution_clock::now();
         nloginfo("solver took %f ms", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0);
@@ -339,21 +313,22 @@ namespace nikfemm {
             images.push_back(cv::Mat(height, width, CV_8UC3, cv::Scalar(255, 255, 255)));
         }
 
-        double max_V = -INFINITY;
-        double min_V = INFINITY;
+        // get 1st and 99th percentile of V
+        std::vector<double> _V = std::vector<double>(V.val.begin(), V.val.end());
+        std::sort(_V.begin(), _V.end());
+        double max_V = _V[_V.size() * 0.9];
+        double min_V = _V[_V.size() * 0.1];
 
-        for (auto v : V.val) {
-            if (v > max_V) {
-                max_V = v;
-            }
-            if (v < min_V) {
-                min_V = v;
-            }
-        }
+        max_V = 1;
+        min_V = -1;
 
-        printf("max_V: %f\n", max_V);
-        printf("min_V: %f\n", min_V);
-        
+        nloginfo("max_V: %f", max_V);
+        nloginfo("min_V: %f", min_V);
+
+        // print middle left and right
+        nloginfo("V at middle left: %f", _V[_V.size() * 0.3]);
+        nloginfo("V at middle right: %f", _V[_V.size() * 0.7]);
+
         for (uint64_t i = 0; i < meshes.size(); i++) {
             VplotRend(&images[i], width, height, i, max_V, min_V);
             cv::flip(images[i], images[i], 0); // flip image horizontally
@@ -436,10 +411,8 @@ namespace nikfemm {
                 center.x += points[j].x;
                 center.y += points[j].y;
             }
-            // printf("count: %d\n", points.size());
             center.x /= points.size();
             center.y /= points.size();
-            // printf("center: %d %d\n", center.x, center.y);
 
             // sort the points by angle
             std::sort(points.begin(), points.end(), [center](cv::Point a, cv::Point b) {

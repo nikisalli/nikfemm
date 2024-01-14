@@ -214,7 +214,6 @@ namespace nikfemm {
         
         for (auto s : segments) {
             if (s.p1 == p1_id && s.p2 == p2_id) {
-                // printf("Warning: segment already exists\n");
                 return;
             }
             if (Segment::segmentsIntersect(p1, p2, points[s.p1], points[s.p2]) && s.p1 != p1_id && s.p1 != p2_id && s.p2 != p1_id && s.p2 != p2_id) {
@@ -279,7 +278,6 @@ namespace nikfemm {
                         nexit("Error: segment not found");
                     }
                     if (angle < PI * (120.0 / 180.0)) {
-                        // printf("angle is %f, refining\n", angle);
                         goto refine;
                     }            
                 }
@@ -288,8 +286,6 @@ namespace nikfemm {
             continue;
 
             refine:
-
-            // printf("point %u has %lu segments\n", i, segments_containing_point.size());
 
             for (uint32_t j = 0; j < 18; j++) {
                 double angle = j * M_PI / 9;
