@@ -303,6 +303,7 @@ namespace nikfemm {
         nloginfo("the mesh has %u nodes and %u elements", mesh.data.numberofpoints, mesh.data.numberoftriangles);
 
         auto system = mesh.getFemSystem();
+        // auto system = mesh.getFemSystemCotangentWeights();
 
         return system;
     }

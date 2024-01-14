@@ -138,8 +138,6 @@ namespace nikfemm {
         // preallocate the size of the merged system by summing the sizes of the systems
         uint64_t merged_system_nnz = 0;
         uint64_t merged_system_size = 0;
-        nloginfo("merged_system_nnz is: %d", merged_system_nnz);
-        nloginfo("merged_system_size is: %d", merged_system_size);
         for (auto& system : systems) {
             merged_system_nnz += system.A.elems.size();
             merged_system_size += system.b.val.size();
@@ -153,7 +151,6 @@ namespace nikfemm {
         nloginfo("merged_system_nnz: %d", merged_system_nnz);
         nloginfo("merged_system_size: %d", merged_system_size);
         merged_system.A.elems.reserve(merged_system_nnz);
-        merged_system.b.val.reserve(merged_system_size);
 
         // merge the systems together like a block matrix
         offset = 0; // reusing offset variable
@@ -175,7 +172,7 @@ namespace nikfemm {
 
             // b
             for (uint64_t j = 0; j < system_size; j++) {
-                merged_system.b.val.push_back(system.b.val[j]);
+                merged_system.b.val[j + offset] = system.b.val[j];
             }
 
             offset += system_size;
@@ -253,7 +250,7 @@ namespace nikfemm {
                     }
                 }
             }
-        }    
+        }
 
         nloginfo("generated merged system with %d unknowns", merged_system.b.val.size());
 

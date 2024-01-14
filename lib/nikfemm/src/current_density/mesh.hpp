@@ -22,7 +22,8 @@ namespace nikfemm {
         CurrentDensityMesh();
         ~CurrentDensityMesh();
 
-        CurrentDensitySystem getFemSystem();
+        CurrentDensitySystem getFemSystem();  // tent function weights for energy minimization
+        CurrentDensitySystem getFemSystemCotangentWeights();  // cotangent laplacian approximation weights
     };
 }
 
