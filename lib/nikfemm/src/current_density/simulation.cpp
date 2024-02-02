@@ -27,12 +27,12 @@
 
 namespace nikfemm {
     CurrentDensitySimulation::CurrentDensitySimulation(double depth, double max_triangle_area) {
-        this->depth = depth;
+        mesh.depth = depth;
         mesh = CurrentDensityMesh(max_triangle_area);
     }
 
     CurrentDensitySimulation::CurrentDensitySimulation() {
-        depth = 1;
+        mesh.depth = 1;
         mesh = CurrentDensityMesh();
     }
 

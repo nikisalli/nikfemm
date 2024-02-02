@@ -63,6 +63,8 @@ namespace nikfemm {
                     std::swap(v2, v3);
                 }
 
+                // (A1*((y2-y3)*(y2-y3)+(x3-x2)*(x3-x2)) + A2*((y2-y3)*(y3-y1)+(x3-x2)*(x1-x3)) + A3*((y2-y3)*(y1-y2)+(x3-x2)*(x2-x1)))/(2*mu*(x2*y3-x2*y1-x1*y3+x1*y2+x3*y1-x3*y2))
+
                 double double_area = data.getDoubleOrientedArea(v1, v2, v3);
 
                 // elements are only added if they are in the upper triangle because the matrix is symmetric and this saves half the memory
@@ -73,9 +75,9 @@ namespace nikfemm {
                 double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / double_area;
                 double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / double_area;
 
-                if (v1 >= i) system.A(i, v1) += double_area * (b1 * b1 + c1 * c1) * 0.5 * (-adjelems_props[i][j]->sigma);
-                if (v2 >= i) system.A(i, v2) += double_area * (b2 * b1 + c2 * c1) * 0.5 * (-adjelems_props[i][j]->sigma);
-                if (v3 >= i) system.A(i, v3) += double_area * (b3 * b1 + c3 * c1) * 0.5 * (-adjelems_props[i][j]->sigma);
+                if (v1 >= i) system.A(i, v1) += double_area * (b1 * b1 + c1 * c1) * 0.5 * (adjelems_props[i][j]->sigma) * depth;
+                if (v2 >= i) system.A(i, v2) += double_area * (b2 * b1 + c2 * c1) * 0.5 * (adjelems_props[i][j]->sigma) * depth;
+                if (v3 >= i) system.A(i, v3) += double_area * (b3 * b1 + c3 * c1) * 0.5 * (adjelems_props[i][j]->sigma) * depth;
 
                 // set the b vector
             }

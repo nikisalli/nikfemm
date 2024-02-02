@@ -4,9 +4,7 @@
 #include <chrono>
 #include <opencv2/opencv.hpp>
 
-extern "C" {
-    #include "../../lib/triangle/triangle.h"
-}
+#include "../../lib/triangle/triangle.h"
 
 #include "../utils/utils.hpp"
 #include "../drawing/drawing.hpp"
@@ -18,6 +16,8 @@ extern "C" {
 
 namespace nikfemm {
     struct CurrentDensityMesh : Mesh<CurrentDensityProp> {
+        double depth = 1;
+
         CurrentDensityMesh(double max_triangle_area);
         CurrentDensityMesh();
         ~CurrentDensityMesh();

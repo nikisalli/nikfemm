@@ -165,8 +165,6 @@ namespace nikfemm {
             }
         }
         nexit("Error: region id not found");
-        // unreachable
-        exit(1);
     }
 
     template <typename Prop>
@@ -176,8 +174,6 @@ namespace nikfemm {
         }
         
         return &region_map.at(id);
-        // unreachable
-        exit(1);
     }
 
     template <typename Prop>

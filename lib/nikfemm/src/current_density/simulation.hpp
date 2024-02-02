@@ -1,9 +1,7 @@
 #ifndef NIK_CURRENT_DENSITY_SIMULATION_HPP
 #define NIK_CURRENT_DENSITY_SIMULATION_HPP
 
-extern "C" {
-    #include "../../lib/triangle/triangle.h"
-}
+#include "../../lib/triangle/triangle.h"
 #include "../../src/triangle/util.h"
 #include "../constants.hpp"
 #include "../geometry/segment.hpp"
