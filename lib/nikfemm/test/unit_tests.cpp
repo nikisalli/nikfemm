@@ -341,10 +341,7 @@ BOOST_AUTO_TEST_CASE( current_density_dirichlet_boundary_conditions )
     b[1] = 32;
     b[2] = 54;
 
-    CurrentDensitySystem system = {
-        mat,
-        b
-    };
+    CurrentDensitySystem system(mat, b);
 
     printf("A without Dirichlet boundary conditions:\n");
     MatCSRSymmetric csr_1(system.A);

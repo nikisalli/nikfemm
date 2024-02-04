@@ -1,6 +1,6 @@
 .vscode
 .vscode-ctags
-bin
-build
-scripts
+/bin
+/build
+/scripts
 .cache

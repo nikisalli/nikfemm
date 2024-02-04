@@ -67,7 +67,9 @@ int main(int argc, char** argv) {
     // simulation.Bplot(400, 400);
     // simulation.AplotToFile(100000, 100000, "Aplot.png");
     // simulation.BplotToFile(10000, 10000, "Bplot.png", false, false);
+#ifdef NIKFEMM_USE_OPENCV
     simulation.Bplot(1000, 1000, false, false);
+#endif
 
     // simulation.computeForceIntegrals({0.5, 0.5});
 }

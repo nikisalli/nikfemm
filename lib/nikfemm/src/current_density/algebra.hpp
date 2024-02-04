@@ -11,6 +11,11 @@ namespace nikfemm {
         BuildMatCOO<double> A;
         CV b;
 
+        // constructor
+        CurrentDensitySystem(uint32_t m) : A(m), b(m) {}
+        CurrentDensitySystem(BuildMatCOO<double> A, CV b) : A(A), b(b) {}
+        CurrentDensitySystem(CurrentDensitySystem const& other) : A(other.A), b(other.b) {}
+
         void addDirichletBoundaryCondition(uint32_t id, double value) {
             // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
             // this function lets you set a Dirichlet boundary condition on a node

@@ -4,8 +4,10 @@
 #include <string>   
 #include <iostream>
 
+#ifdef NIKFEMM_USE_OPENCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#endif
 
 #include "../geometry/vector.hpp"
 
@@ -16,7 +18,9 @@ namespace nikfemm {
     void nlogwarn(std::string format, ...);
     void nlogerror(std::string format, ...);
 
+#ifdef NIKFEMM_USE_OPENCV
     cv::Scalar val2jet(float v, float vmin, float vmax);
+#endif
 
     inline double map(double x, double in_min, double in_max, double out_min, double out_max) {
         return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;

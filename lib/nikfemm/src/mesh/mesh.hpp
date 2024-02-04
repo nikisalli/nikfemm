@@ -107,9 +107,11 @@ namespace nikfemm {
         Mesh();
         ~Mesh();
 
+#ifdef NIKFEMM_USE_OPENCV
         void plotRend(cv::Mat* image, double width, double height);
         void plotToFile(uint32_t width, uint32_t height, std::string filename);
         void plot(uint32_t width, uint32_t height);
+#endif
         void mesh();
         void addKelvinBoundaryConditions(uint32_t boundary_points);
         void kelvinTransformCentered();
@@ -143,6 +145,7 @@ namespace nikfemm {
         if (data.edgemarkerlist != nullptr) free(data.edgemarkerlist);
     }
 
+#ifdef NIKFEMM_USE_OPENCV
     template <typename Prop>
     void Mesh<Prop>::plotRend(cv::Mat* image, double width, double height) {
         // get mesh enclosing rectangle
@@ -243,6 +246,7 @@ namespace nikfemm {
         // save the image
         cv::imwrite(filename, image);
     }
+#endif
 
     template <typename Prop>
     void Mesh<Prop>::computeEpsilon() {

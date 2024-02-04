@@ -9,11 +9,11 @@
 #include <iterator>
 #include <set>
 
-#include <omp.h>
-
+#ifdef NIKFEMM_USE_OPENCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#endif
 
 #include "../constants.hpp"
 #include "simulation.hpp"
@@ -40,6 +40,7 @@ namespace nikfemm {
 
     }
 
+#ifdef NIKFEMM_USE_OPENCV
     void MagnetostaticSimulation::AplotRend(cv::Mat* image, double width, double height) {
         float min_x = -1.1 * mesh.radius;
         float min_y = -1.1 * mesh.radius;
@@ -579,6 +580,7 @@ namespace nikfemm {
         // save the image
         cv::imwrite(filename, image);
     }
+#endif
 
     void MagnetostaticSimulation::updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter) {
         assert(mu.size() == B.size());

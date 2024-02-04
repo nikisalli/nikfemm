@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <unordered_map>
 
-#include "../../lib/triangle/triangle.h"
+#include "../triangle/triangle.h"
 
 #include "../../src/triangle/util.h"
 #include "../constants.hpp"
@@ -59,13 +59,16 @@ namespace nikfemm {
             Vector computeForceIntegrals(SurroundingRegionBlockIntegralAssets assets, Vector p);
             double computeTorqueIntegral(SurroundingRegionBlockIntegralAssets assets, Vector p, Vector center);
             Polygon getInnermostPolygon(Vector p);
+#ifdef NIKFEMM_USE_OPENCV
             void AplotRend(cv::Mat* image, double width, double height);
             void BplotRend(cv::Mat* image, double width, double height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool plotCurves = false, uint32_t curve_number = 100);
             void ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
             void NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
+#endif
             static void updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter);
             auto getSurroundingRegionBlockIntegralAssets(Vector p);
         public:
+#ifdef NIKFEMM_USE_OPENCV
             void Aplot(uint32_t width, uint32_t height);
             void Bplot(uint32_t width, uint32_t height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool waitkey = true, bool plotCurves = false, uint32_t curve_number = 100);
             void ElemScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
@@ -74,6 +77,7 @@ namespace nikfemm {
             void BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool plotCurves = false, uint32_t curve_number = 100);
             void ElemScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh = false, bool plotRegions = false);
             void NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh = false, bool plotRegions = false);
+#endif
     };
 }
 

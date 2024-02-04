@@ -9,13 +9,13 @@
 #include <iterator>
 #include <set>
 
-#include <omp.h>
-
+#ifdef NIKFEMM_USE_OPENCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#endif
 
-#include "../../lib/triangle/triangle.h"
+#include "../triangle/triangle.h"
 
 #include "../constants.hpp"
 #include "multilayer_simulation.hpp"
@@ -475,10 +475,7 @@ namespace nikfemm {
             merged_system_size += system.b.val.size();
         }
 
-        CurrentDensitySystem merged_system = {
-            BuildMatCOO<double>(merged_system_size),
-            CV(merged_system_size)
-        };
+        CurrentDensitySystem merged_system(merged_system_size);
 
         nloginfo("merged_system_nnz: %d", merged_system_nnz);
         nloginfo("merged_system_size: %d", merged_system_size);
@@ -872,6 +869,7 @@ namespace nikfemm {
         nloginfo("solver took %f ms", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0);
     }
 
+#ifdef NIKFEMM_USE_OPENCV
     void MultiLayerCurrentDensitySimulation::Vplot(uint32_t width, uint32_t height) {
         std::vector<cv::Mat> images;
         for (uint64_t i = 0; i < meshes.size(); i++) {
@@ -988,4 +986,5 @@ namespace nikfemm {
             cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, points), c);
         }
     }
+#endif
 }

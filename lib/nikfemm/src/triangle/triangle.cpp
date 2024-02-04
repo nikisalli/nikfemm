@@ -210,6 +210,9 @@
 
 /* #define SINGLE */
 
+#define ANSI_DECLARATORS
+#define TRILIBRARY
+
 #ifdef SINGLE
 #define REAL float
 #else /* not SINGLE */

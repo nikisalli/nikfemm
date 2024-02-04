@@ -9,11 +9,11 @@
 #include <iterator>
 #include <set>
 
-#include <omp.h>
-
+#ifdef NIKFEMM_USE_OPENCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#endif
 
 #include "../constants.hpp"
 #include "simulation.hpp"
@@ -61,6 +61,7 @@ namespace nikfemm {
         system.addDirichletBoundaryCondition(closest_node, V);
     }
 
+#ifdef NIKFEMM_USE_OPENCV
     void CurrentDensitySimulation::VplotRend(cv::Mat* image, double width, double height) {
         float min_x = mesh.data.pointlist[0].x;
         float min_y = mesh.data.pointlist[0].y;
@@ -292,6 +293,7 @@ namespace nikfemm {
         // continue if image is closed
         cv::waitKey(0);
     }
+#endif
 
     CurrentDensitySystem CurrentDensitySimulation::generateSystem(bool refine) {
         if (refine) {

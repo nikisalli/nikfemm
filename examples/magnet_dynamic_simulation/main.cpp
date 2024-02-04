@@ -61,7 +61,9 @@ int main(int argc, char** argv) {
         auto system = sim.generateSystem();
         sim.solve(system);
 
+#ifdef NIKFEMM_USE_OPENCV
         sim.Bplot(1000, 1000, false, true, NAN, NAN, false);
+#endif
         // wait 100ms
         // while (time_ms() - last_time < 1000) {}
         // last_time = time_ms();

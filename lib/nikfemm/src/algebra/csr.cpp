@@ -5,9 +5,11 @@
 #include <assert.h>
 #include <math.h>
 
+#ifdef NIKFEMM_USE_OPENCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#endif
 
 #include <constants.hpp>
 
@@ -116,6 +118,7 @@ namespace nikfemm {
         }
     }
 
+#ifdef NIKFEMM_USE_OPENCV
     void BaseCSR::plot(std::string filename) {
         // create the image
         cv::Mat image = cv::Mat::zeros(m, m, CV_8UC3);
@@ -156,6 +159,7 @@ namespace nikfemm {
         // save the image
         cv::imwrite(filename, image);
     };
+#endif
 
     double BaseCSR::operator()(uint32_t i, uint32_t j) const {
         if (i == j) {

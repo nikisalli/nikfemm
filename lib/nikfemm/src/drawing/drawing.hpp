@@ -13,9 +13,11 @@
 #include <chrono>
 #include <array>
 
+#ifdef NIKFEMM_USE_OPENCV
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc.hpp>
+#endif
 
 #include "../constants.hpp"
 #include "../utils/utils.hpp"
@@ -58,9 +60,11 @@ namespace nikfemm {
             uint32_t getRegionId(Prop val);
             void addRefiningPoints();
 
+#ifdef NIKFEMM_USE_OPENCV
             void plotRend(cv::Mat* image, double width, double height);
             void plotToFile(uint32_t width, uint32_t height, std::string filename);
             void plot(uint32_t width, uint32_t height);
+#endif
             void translate(Vector v);
             Prop getPolygonProp(Polygon p);
         private:
@@ -382,6 +386,7 @@ namespace nikfemm {
         return Prop();
     }
 
+#ifdef NIKFEMM_USE_OPENCV
     template <typename Prop>
     void Drawing<Prop>::plotRend(cv::Mat* image, double width, double height) {
         // get mesh enclosing rectangle
@@ -469,6 +474,7 @@ namespace nikfemm {
         // save the image
         cv::imwrite(filename, image);
     }
+#endif
 }
 
 #endif

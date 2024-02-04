@@ -30,7 +30,9 @@ double cost_function(double winding_thickness, double height, double iron_thickn
     sim.solve(system);
 
     auto force = sim.computeForceIntegrals({0, -1.5});
+#ifdef NIKFEMM_USE_OPENCV
     if (plot) sim.Bplot(1000, 1000, false, true, NAN, NAN, false);
+#endif
     return force.y;
 }
 

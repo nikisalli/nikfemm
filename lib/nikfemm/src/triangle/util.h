@@ -1,10 +1,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "../../lib/triangle/triangle.h"
-
-void syntax();
-void info();
+#include "../triangle/triangle.h"
 
 void report(struct triangulateio * io, int markers, int reporttriangles, int reportneighbors, int reportsegments, int reportedges, int reportnorms);
 

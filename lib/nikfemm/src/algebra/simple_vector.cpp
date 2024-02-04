@@ -5,8 +5,6 @@
 #include <math.h>
 #include <numeric>
 
-#include <omp.h>
-
 #include "simple_vector.hpp"
 
 namespace nikfemm {

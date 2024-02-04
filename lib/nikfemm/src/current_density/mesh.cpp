@@ -18,10 +18,7 @@ namespace nikfemm {
     }
 
     CurrentDensitySystem CurrentDensityMesh::getFemSystem() {
-        CurrentDensitySystem system = {
-            BuildMatCOO<double>(data.numberofpoints),
-            CV(data.numberofpoints)
-        };
+        CurrentDensitySystem system(data.numberofpoints);
 
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -103,10 +100,7 @@ namespace nikfemm {
     }
 
     CurrentDensitySystem CurrentDensityMesh::getFemSystemCotangentWeights() {
-        CurrentDensitySystem system = {
-            BuildMatCOO<double>(data.numberofpoints),
-            CV(data.numberofpoints)
-        };
+        CurrentDensitySystem system(data.numberofpoints);
 
         auto start = std::chrono::high_resolution_clock::now();
 

@@ -249,6 +249,9 @@
 /*****************************************************************************/
 #pragma once
 
+#define ANSI_DECLARATORS
+#define TRILIBRARY
+
 #ifdef SINGLE
 #define TRI_REAL float
 #else /* not SINGLE */

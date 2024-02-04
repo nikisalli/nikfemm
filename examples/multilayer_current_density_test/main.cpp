@@ -27,5 +27,7 @@ int main(int argc, char** argv) {
 
     simulation.solve(system);
 
+#ifdef NIKFEMM_USE_OPENCV
     simulation.Vplot(1000, 1000);
+#endif
 }

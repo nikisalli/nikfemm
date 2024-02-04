@@ -9,9 +9,12 @@
 #include <chrono>
 #include <math.h>
 #include <set>
-#include <opencv2/opencv.hpp>
 
-#include "../../lib/triangle/triangle.h"
+#ifdef NIKFEMM_USE_OPENCV
+#include <opencv2/opencv.hpp>
+#endif
+
+#include "../triangle/triangle.h"
 
 #include "../utils/utils.hpp"
 #include "../drawing/drawing.hpp"

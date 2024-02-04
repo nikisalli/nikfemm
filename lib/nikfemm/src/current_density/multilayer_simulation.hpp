@@ -29,9 +29,11 @@ namespace nikfemm {
             void solve(CurrentDensitySystem& system);
             void setVoltage(CurrentDensitySystem& system, Vector p, double V, uint64_t layer_id);
         protected:
+#ifdef NIKFEMM_USE_OPENCV
             void VplotRend(cv::Mat* image, double width, double height, uint64_t layer_id, double maxV, double minV);
         public:
             void Vplot(uint32_t width, uint32_t height);
+#endif
     };
 }
 

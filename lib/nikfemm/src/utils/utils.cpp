@@ -46,6 +46,7 @@ namespace nikfemm {
 #endif
     }
 
+#ifdef NIKFEMM_USE_OPENCV
     cv::Scalar val2jet(float v, float vmin, float vmax) {
         cv::Scalar c = {255, 255, 255, 255}; // white
         float dv;
@@ -75,4 +76,5 @@ namespace nikfemm {
 
         return (c);
     }
+#endif
 }
