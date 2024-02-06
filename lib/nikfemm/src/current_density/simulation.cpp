@@ -26,9 +26,8 @@
 #include "../algebra/solvers.hpp"
 
 namespace nikfemm {
-    CurrentDensitySimulation::CurrentDensitySimulation(double depth, double max_triangle_area) {
+    CurrentDensitySimulation::CurrentDensitySimulation(double depth) {
         mesh.depth = depth;
-        mesh = CurrentDensityMesh(max_triangle_area);
     }
 
     CurrentDensitySimulation::CurrentDensitySimulation() {
@@ -295,12 +294,12 @@ namespace nikfemm {
     }
 #endif
 
-    CurrentDensitySystem CurrentDensitySimulation::generateSystem(bool refine) {
+    CurrentDensitySystem CurrentDensitySimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
         if (refine) {
             mesh.drawing.addRefiningPoints();
         }
 
-        mesh.mesh();
+        mesh.mesh(max_triangle_area, min_angle);
         mesh.computeEpsilon();
         nloginfo("the mesh has %u nodes and %u elements", mesh.data.numberofpoints, mesh.data.numberoftriangles);
 

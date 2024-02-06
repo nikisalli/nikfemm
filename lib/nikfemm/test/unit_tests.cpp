@@ -336,6 +336,10 @@ BOOST_AUTO_TEST_CASE( current_density_dirichlet_boundary_conditions )
     mat(1, 2) = 5;
     mat(2, 2) = 6;
 
+    // 1, 2, 3
+    // 2, 4, 5
+    // 3, 5, 6
+
     CV b(3);
     b[0] = 14;
     b[1] = 32;
@@ -364,15 +368,20 @@ BOOST_AUTO_TEST_CASE( current_density_dirichlet_boundary_conditions )
     x[1] = 0;
     x[2] = 0;
 
-    preconditionedSSORConjugateGradientSolver(csr, system.b, x, 1.5, 1e-6, 1000);
+    preconditionedSSORConjugateGradientSolver(csr, system.b, x, 1.5, 1e-10, 1000);
 
-    // wolfram alpha: solve {{1, 0, 0}, {0, 4, 5}, {0, 5, 6}} * {x, y, z} = {1, 30, 51}
+    // wolfram alpha: solve {{1, 0, 0}, {0, 1, 0}, {0, 0, 6}} * {x, y, z} = {1, 2, 41}
+
+    // 1, 0, 0
+    // 0, 4, 5
+    // 0, 5, 6
+
     // solution: {x, y, z} = {1, 75, -54}
 
     // check result inside tolerance
     BOOST_CHECK_SMALL(x[0] - 1, 1e-6);
-    BOOST_CHECK_SMALL(x[1] - 75, 1e-6);
-    BOOST_CHECK_SMALL(x[2] - -54, 1e-6);
+    BOOST_CHECK_SMALL(x[1] - 2, 1e-6);
+    BOOST_CHECK_SMALL(x[2] - 41.0/6.0, 1e-6);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

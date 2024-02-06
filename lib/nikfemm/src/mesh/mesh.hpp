@@ -98,13 +98,10 @@ namespace nikfemm {
         double radius = 0;
         Prop default_prop;
         double epsilon;
-        double max_triangle_area;
 
         MeshData data;
         Drawing<Prop> drawing;
 
-        Mesh(double max_triangle_area);
-        Mesh();
         ~Mesh();
 
 #ifdef NIKFEMM_USE_OPENCV
@@ -112,22 +109,11 @@ namespace nikfemm {
         void plotToFile(uint32_t width, uint32_t height, std::string filename);
         void plot(uint32_t width, uint32_t height);
 #endif
-        void mesh();
+        void mesh(double max_triangle_area = 1.0, int min_angle = 33);
         void addKelvinBoundaryConditions(uint32_t boundary_points);
         void kelvinTransformCentered();
         void computeEpsilon();
     };
-
-    template <typename Prop>
-    Mesh<Prop>::Mesh(double max_triangle_area) {
-        this->max_triangle_area = max_triangle_area;
-    }
-
-    // templated member functions must be defined in the header file
-    template <typename Prop>
-    Mesh<Prop>::Mesh() {
-        max_triangle_area = 1e-0;
-    }
 
     template <typename Prop>
     Mesh<Prop>::~Mesh() {
@@ -270,7 +256,7 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Mesh<Prop>::mesh() {
+    void Mesh<Prop>::mesh(double max_triangle_area, int min_angle) {
         triangulateio in;
 
         /* set up the input */
@@ -317,7 +303,7 @@ namespace nikfemm {
         }
         // printf("----------------------\n");
         char switches[30];
-        sprintf(switches, "pzq33AQa%.17g", max_triangle_area);
+        sprintf(switches, "pzq%dAQa%.17g", min_angle, max_triangle_area);
         
 
         /* Make necessary initializations so that Triangle can return a */

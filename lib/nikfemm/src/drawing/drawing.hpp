@@ -123,11 +123,12 @@ namespace nikfemm {
     void Drawing<Prop>::drawPolygon(Vector* points, uint32_t n_points) {
         // check if the polygon self-intersects
         for (uint32_t i = 0; i < n_points; i++) {
-            for (uint32_t j = i + 2; j < n_points; j++) {
-                if (i == 0 && j == n_points - 1) {
+            for (uint32_t j = 0; j < n_points; j++) {
+                if (i == j || i == (j + 1) % n_points || (i + 1) % n_points == j) {
                     continue;
                 }
                 if (Segment::segmentsIntersect(points[i], points[(i + 1) % n_points], points[j], points[(j + 1) % n_points])) {
+                    nloginfo("Error: polygon self-intersects at segments (%d, %d) and (%d, %d) with coordinates (%.17g, %.17g), (%.17g, %.17g) and (%.17g, %.17g), (%.17g, %.17g)", i, (i + 1) % n_points, j, (j + 1) % n_points, points[i].x, points[i].y, points[(i + 1) % n_points].x, points[(i + 1) % n_points].y, points[j].x, points[j].y, points[(j + 1) % n_points].x, points[(j + 1) % n_points].y);
                     nexit("Error: polygon self-intersects");
                 }
             }
@@ -217,6 +218,7 @@ namespace nikfemm {
                 return;
             }
             if (Segment::segmentsIntersect(p1, p2, points[s.p1], points[s.p2]) && s.p1 != p1_id && s.p1 != p2_id && s.p2 != p1_id && s.p2 != p2_id) {
+                printf("Error: segment intersects another segment with coordinates (%.17g, %.17g), (%.17g, %.17g) and (%.17g, %.17g), (%.17g, %.17g)\n", p1.x, p1.y, p2.x, p2.y, points[s.p1].x, points[s.p1].y, points[s.p2].x, points[s.p2].y);
                 nexit("Error: segment intersects another segment");
             }
         }

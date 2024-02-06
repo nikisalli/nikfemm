@@ -3,7 +3,8 @@
 #include <stdlib.h>
 
 int main(int argc, char** argv) {
-    nikfemm::MagnetostaticSimulation simulation(1, 0.1);
+    nikfemm::MagnetostaticSimulation simulation;
+    simulation.depth = 1.0;
    
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(0, -0.1), nikfemm::Vector(1, 0.9));
     simulation.mesh.drawing.drawRectangle(nikfemm::Vector(0, 2.1), nikfemm::Vector(1, 3.1));
@@ -34,7 +35,7 @@ int main(int argc, char** argv) {
     simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 1.5), {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
     simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 5), {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 
-    auto system = simulation.generateSystem();
+    auto system = simulation.generateSystem(true, 0.1);
     simulation.solve(system);
     // simulation.Aplot(400, 400);
 #ifdef NIKFEMM_USE_OPENCV

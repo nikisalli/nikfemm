@@ -28,17 +28,13 @@
 #include "../algebra/solvers.hpp"
 
 namespace nikfemm {
-    MultiLayerCurrentDensitySimulation::MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths, std::vector<double> max_triangle_areas) {
+    MultiLayerCurrentDensitySimulation::MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths) {
         if (depths.size() != num_layers) {
             throw std::invalid_argument("depths.size() != num_layers");
-        }
-        if (max_triangle_areas.size() != num_layers) {
-            throw std::invalid_argument("max_triangle_areas.size() != num_layers");
         }
 
         for (uint32_t i = 0; i < num_layers; i++) {
             meshes.push_back(CurrentDensityMesh());
-            meshes[i].max_triangle_area = max_triangle_areas[i];
             meshes[i].depth = depths[i];
         }
     }
@@ -46,13 +42,8 @@ namespace nikfemm {
     MultiLayerCurrentDensitySimulation::MultiLayerCurrentDensitySimulation(uint32_t num_layers) {
         for (uint32_t i = 0; i < num_layers; i++) {
             meshes.push_back(CurrentDensityMesh());
-            meshes[i].max_triangle_area = 1;
             meshes[i].depth = 1;
         }
-    }
-
-    MultiLayerCurrentDensitySimulation::~MultiLayerCurrentDensitySimulation() {
-
     }
 
     static inline double geomAngle(Vector a, Vector b, Vector c) {
@@ -67,7 +58,7 @@ namespace nikfemm {
         return angle;
     }
 
-    CurrentDensitySystem MultiLayerCurrentDensitySimulation::generateSystem(bool refine) {
+    CurrentDensitySystem MultiLayerCurrentDensitySimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
         /*
         if (refine) {
             for (auto& mesh : meshes) {
@@ -863,7 +854,7 @@ namespace nikfemm {
         MatCSRSymmetric FemMat(system.A);
 
         auto start = std::chrono::high_resolution_clock::now();
-        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-20, 100000);
+        preconditionedSSORConjugateGradientSolver(FemMat, system.b, V, 1.5, 1e-7, 100000);
         // preconditionedJacobiConjugateGradientSolver(FemMat, system.b, V, 1e-6, 100000);
         auto end = std::chrono::high_resolution_clock::now();
         nloginfo("solver took %f ms", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0);

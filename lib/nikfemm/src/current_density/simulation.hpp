@@ -16,13 +16,11 @@ namespace nikfemm {
             CurrentDensityMesh mesh;
             CV V;
 
-            double depth;
-
-            CurrentDensitySimulation(double depth, double max_triangle_area = 1);
+            CurrentDensitySimulation(double depth);
             CurrentDensitySimulation();
             ~CurrentDensitySimulation();
 
-            CurrentDensitySystem generateSystem(bool refine = true);
+            CurrentDensitySystem generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
             void solve(CurrentDensitySystem& system);
             void setVoltage(CurrentDensitySystem& system, Vector p, double V);
         protected:

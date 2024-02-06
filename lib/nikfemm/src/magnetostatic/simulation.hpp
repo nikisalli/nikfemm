@@ -40,13 +40,9 @@ namespace nikfemm {
             MagnetostaticMesh mesh;
             std::vector<Vector> B;
             CV A;
-            double depth;
+            double depth = 1.0;
 
-            MagnetostaticSimulation(double depth, double max_triangle_area = 1);
-            MagnetostaticSimulation();
-            ~MagnetostaticSimulation();
-
-            MagnetostaticSystem generateSystem(bool refine = true);
+            MagnetostaticSystem generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
             void solve(MagnetostaticSystem& system);
             Vector computeForceIntegrals(Vector p);
             double computeTorqueIntegral(Vector p, Vector center);

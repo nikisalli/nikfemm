@@ -143,21 +143,15 @@ static void nikfemm_MultiLayerCurrentDensitySimulation_dealloc(nikfemm_MultiLaye
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
     nikfemm_MultiLayerCurrentDensitySimulation* self;
 
-    // constructor must have 3 arguments
+    // constructor must have 2 arguments
 
     self = (nikfemm_MultiLayerCurrentDensitySimulation*)type->tp_alloc(type, 0);
     uint32_t num_layers;
     PyObject* depths;
-    PyObject* max_triangle_areas;
-    if (self != NULL) {
-        if (PyTuple_Size(args) == 3) {
-            if (!PyArg_ParseTuple(args, "IOO", &num_layers, &depths, &max_triangle_areas)) {
-                Py_XDECREF(self);
-                return NULL;
-            }
 
-            if (!PyList_Check(depths) || !PyList_Check(max_triangle_areas)) {
-                PyErr_SetString(PyExc_TypeError, "depths and max_triangle_areas must be lists");
+    if (self != NULL) {
+        if (PyTuple_Size(args) == 2) {
+            if (!PyArg_ParseTuple(args, "IO", &num_layers, &depths)) {
                 Py_XDECREF(self);
                 return NULL;
             }
@@ -167,14 +161,8 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_new(PyTypeObject* ty
                 Py_XDECREF(self);
                 return NULL;
             }
-
-            if (PyList_Size(max_triangle_areas) != num_layers) {
-                PyErr_SetString(PyExc_ValueError, "max_triangle_areas.size() != num_layers");
-                Py_XDECREF(self);
-                return NULL;
-            }
         } else {
-            PyErr_SetString(PyExc_TypeError, "constructor must have 3 arguments");
+            PyErr_SetString(PyExc_TypeError, "constructor must have 2 arguments");
             Py_XDECREF(self);
             return NULL;
         }
@@ -183,20 +171,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_new(PyTypeObject* ty
     self->simulation = new nikfemm::MultiLayerCurrentDensitySimulation(num_layers);
 
     for (uint32_t i = 0; i < num_layers; i++) {
-        PyObject* max_triangle_area_item = PyList_GetItem(max_triangle_areas, i);
         PyObject* depth_item = PyList_GetItem(depths, i);
-
-        // if floats use them
-        if (PyFloat_Check(max_triangle_area_item)) {
-            self->simulation->meshes[i].max_triangle_area = PyFloat_AsDouble(max_triangle_area_item);
-        } else if (PyLong_Check(max_triangle_area_item)) {
-            // convert to float
-            self->simulation->meshes[i].max_triangle_area = PyLong_AsDouble(max_triangle_area_item);
-        } else {
-            PyErr_SetString(PyExc_TypeError, "max_triangle_area must be a float");
-            Py_XDECREF(self);
-            return NULL;
-        }
 
         if (PyFloat_Check(depth_item)) {
             self->simulation->meshes[i].depth = PyFloat_AsDouble(depth_item);
@@ -211,7 +186,6 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_new(PyTypeObject* ty
     }
 
     for (uint32_t i = 0; i < num_layers; i++) {
-        printf("max_triangle_area[%d] = %f\n", i, self->simulation->meshes[i].max_triangle_area);
         printf("depth[%d] = %f\n", i, self->simulation->meshes[i].depth);
     }
 
@@ -221,25 +195,32 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_new(PyTypeObject* ty
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_generateSystem(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
-    // generateSystem may have 0 or 1 arguments
+    // generateSystem may have from 0 to 2 arguments which are: bool, float
     PyObject* refine = Py_True;
+    double max_triangle_area = 1;
 
-    if (PyTuple_Size(args) == 0) {
-        // do nothing, default value is already set
-    } else if (PyTuple_Size(args) == 1) {
-        // check type
-        if (!PyBool_Check(PyTuple_GetItem(args, 0))) {
-            PyErr_SetString(PyExc_TypeError, "refine must be a boolean");
-            return NULL;
-        }
-
-        refine = PyTuple_GetItem(args, 0);
-    } else if (PyTuple_Size(args) > 1) {
-        PyErr_SetString(PyExc_TypeError, "generateSystem may have 0 or 1 arguments");
+    if (PyTuple_Size(args) > 2) {
+        PyErr_SetString(PyExc_TypeError, "generateSystem must have 0 to 2 arguments: bool, float");
         return NULL;
     }
 
-    auto system = self->simulation->generateSystem(PyLong_AsLong(refine));
+    switch (PyTuple_Size(args)) {
+        case 2:
+            if (!PyFloat_Check(PyTuple_GetItem(args, 1)) && !PyLong_Check(PyTuple_GetItem(args, 1))) {
+                PyErr_SetString(PyExc_TypeError, "max_triangle_area must be a float");
+                return NULL;
+            }
+            max_triangle_area = PyFloat_AsDouble(PyTuple_GetItem(args, 1));
+        case 1:
+            if (!PyBool_Check(PyTuple_GetItem(args, 0))) {
+                PyErr_SetString(PyExc_TypeError, "refine must be a boolean");
+                return NULL;
+            }
+            refine = PyTuple_GetItem(args, 0);
+        default:
+            break;
+    }
+    auto system = self->simulation->generateSystem(PyLong_AsLong(refine), max_triangle_area);
     
     nikfemm_CurrentDensitySystem* py_system = (nikfemm_CurrentDensitySystem*)PyObject_CallObject((PyObject*)&nikfemm_CurrentDensitySystemType, NULL);
 
@@ -494,6 +475,91 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRegion(nikfemm_M
     Py_RETURN_NONE;
 }
 
+static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
+    // arguments should be list of (float, float), uint64_t
+    if (PyTuple_Size(args) != 2) {
+        PyErr_SetString(PyExc_TypeError, "drawPolygon must have 2 arguments: [[float, float], ...], uint64_t");
+        return NULL;
+    } else {
+        if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &PyList_Type)) {
+            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+            return NULL;
+        }
+        if (!PyLong_Check(PyTuple_GetItem(args, 1))) {
+            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the second argument of type uint64_t");
+            return NULL;
+        }
+    }
+
+    // extract arguments
+    // the first argument is a list of lists of two floats, convert it to vector of Vector
+    std::vector<nikfemm::Vector> points;
+    for (int i = 0; i < PyList_Size(PyTuple_GetItem(args, 0)); i++) {
+        PyObject* item = PyList_GetItem(PyTuple_GetItem(args, 0), i);
+        if (!PyObject_TypeCheck(item, &PyList_Type)) {
+            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+            return NULL;
+        }
+        if (PyList_Size(item) != 2) {
+            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+            return NULL;
+        }
+        double coords[2];
+        for (int j = 0; j < 2; j++) {
+            PyObject* subitem = PyList_GetItem(item, j);
+            if (PyFloat_Check(subitem)) {
+                coords[j] = PyFloat_AsDouble(subitem);
+            } else if (PyLong_Check(subitem)) {
+                coords[j] = PyLong_AsDouble(subitem);
+            } else {
+                PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+                return NULL;
+            }
+        }
+        points.push_back(nikfemm::Vector(coords[0], coords[1]));
+    }
+    uint64_t layer_id = PyLong_AsUnsignedLong(PyTuple_GetItem(args, 1));
+
+    // draw polygon
+    self->simulation->meshes[layer_id].drawing.drawPolygon(points);
+
+    printf("drawPolygon: layer_id = %lu\n", layer_id);
+
+    Py_RETURN_NONE;
+}
+
+static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_getLayerVoltages(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
+    // getLayerVoltages has 1 argument: uint64_t
+    if (PyTuple_Size(args) != 1) {
+        PyErr_SetString(PyExc_TypeError, "getLayerVoltages must have 1 argument: uint64_t");
+        return NULL;
+    } else {
+        if (!PyLong_Check(PyTuple_GetItem(args, 0))) {
+            PyErr_SetString(PyExc_TypeError, "getLayerVoltages must have the first argument of type uint64_t");
+            return NULL;
+        }
+    }
+
+    uint64_t layer_id = PyLong_AsUnsignedLong(PyTuple_GetItem(args, 0));
+
+    // get layer offset
+    uint64_t layer_offset = 0;
+    for (uint64_t i = 0; i < layer_id; i++) {
+        layer_offset += self->simulation->meshes[i].data.numberofpoints;
+    }
+
+    // get voltage vector size for the layer
+    uint64_t layer_size = self->simulation->meshes[layer_id].data.numberofpoints;
+
+    // get layer voltages and put them in a python list
+    PyObject* voltages = PyList_New(layer_size);
+    for (uint64_t i = 0; i < layer_size; i++) {
+        PyList_SetItem(voltages, i, PyFloat_FromDouble(self->simulation->V.val[layer_offset + i]));
+    }
+
+    return voltages;
+}
+
 static PyMethodDef nikfemm_MultiLayerCurrentDensitySimulation_methods[] = {
     {"generate_system", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_generateSystem, METH_VARARGS, "Generate system of linear equations for current density"},
     {"solve", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_solve, METH_VARARGS, "Solve system of linear equations for current density"},
@@ -501,6 +567,8 @@ static PyMethodDef nikfemm_MultiLayerCurrentDensitySimulation_methods[] = {
     {"add_interconnection", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_add_interconnection, METH_VARARGS, "Add interconnection between two points in two layers with a resistance"},
     {"draw_rectangle", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_drawRectangle, METH_VARARGS, "Draw a rectangle on a layer"},
     {"draw_region", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_drawRegion, METH_VARARGS, "Draw a region on a layer"},
+    {"draw_polygon", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon, METH_VARARGS, "Draw a polygon on a layer"},
+    {"get_layer_voltages", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_getLayerVoltages, METH_VARARGS, "Get layer voltages"},
     {NULL} /* Sentinel */
 };
 

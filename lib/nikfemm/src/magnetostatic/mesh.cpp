@@ -4,13 +4,11 @@ namespace nikfemm {
     MagnetostaticMesh::MagnetostaticMesh(double max_triangle_area) {
         // default material property
         default_prop = {0, {0, 0}, static_cast<float>(magnetostatic_materials::air), {}};
-        this->max_triangle_area = max_triangle_area;
     }
 
     MagnetostaticMesh::MagnetostaticMesh() {
         // default material property
         default_prop = {0, {0, 0}, static_cast<float>(magnetostatic_materials::air), {}};
-        max_triangle_area = 1e-0;
     }
 
     MagnetostaticMesh::~MagnetostaticMesh() {

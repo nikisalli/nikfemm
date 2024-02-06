@@ -8,7 +8,8 @@ uint64_t time_ms() {
 }
 
 double cost_function(double winding_thickness, double height, double iron_thickness, bool plot = false) {
-    auto sim = nikfemm::MagnetostaticSimulation(1, 0.001);
+    auto sim = nikfemm::MagnetostaticSimulation();
+    sim.depth = 1;
 
     double winding_radius = (iron_thickness + winding_thickness) / 2;
     double iron_radius = iron_thickness / 2;
@@ -26,7 +27,7 @@ double cost_function(double winding_thickness, double height, double iron_thickn
     sim.mesh.drawing.drawRegion({-iron_radius - winding_thickness / 4, height / 2}, {-current_density, {0, 0}, nikfemm::magnetostatic_materials::copper});
     sim.mesh.drawing.drawRegion({0, -1.5}, {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 
-    auto system = sim.generateSystem();
+    auto system = sim.generateSystem(0.001);
     sim.solve(system);
 
     auto force = sim.computeForceIntegrals({0, -1.5});

@@ -26,20 +26,6 @@
 #include "../algebra/solvers.hpp"
 
 namespace nikfemm {
-    MagnetostaticSimulation::MagnetostaticSimulation(double depth, double max_triangle_area) {
-        this->depth = depth;
-        this->mesh.max_triangle_area = max_triangle_area;
-    }
-
-    MagnetostaticSimulation::MagnetostaticSimulation() {
-        this->depth = 1.0;
-        this->mesh.max_triangle_area = 1.0;
-    }
-
-    MagnetostaticSimulation::~MagnetostaticSimulation() {
-
-    }
-
 #ifdef NIKFEMM_USE_OPENCV
     void MagnetostaticSimulation::AplotRend(cv::Mat* image, double width, double height) {
         float min_x = -1.1 * mesh.radius;
@@ -601,7 +587,7 @@ namespace nikfemm {
         }
     }
 
-    MagnetostaticSystem MagnetostaticSimulation::generateSystem(bool refine) {
+    MagnetostaticSystem MagnetostaticSimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
         // get time in milliseconds
 
         /* auto boundary */
@@ -620,7 +606,7 @@ namespace nikfemm {
         // make circle double the size of the smallest circle
         Circle boundary_circle = Circle(Vector(0, 0), smallest_circle.radius * coeff);
         double circumferential_length = boundary_circle.circumference();
-        uint32_t boundary_points = (uint32_t)((circumferential_length / sqrt((mesh.max_triangle_area * 4) / sqrt(3))) * 2);
+        uint32_t boundary_points = (uint32_t)((circumferential_length / sqrt((max_triangle_area * 4) / sqrt(3))) * 2);
         nloginfo("boundary points: %d", boundary_points);
         mesh.drawing.drawCircle(boundary_circle, boundary_points);
         // add region near the edge of the circle
@@ -635,7 +621,7 @@ namespace nikfemm {
             mesh.drawing.addRefiningPoints();
         }
 
-        mesh.mesh();
+        mesh.mesh(max_triangle_area, min_angle);
         // mesh.plot();
         mesh.addKelvinBoundaryConditions(boundary_points);
         mesh.computeEpsilon();

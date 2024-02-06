@@ -1,22 +1,6 @@
 #include "mesh.hpp"
 
 namespace nikfemm {
-    CurrentDensityMesh::CurrentDensityMesh(double max_triangle_area) {
-        // default material property
-        default_prop = {static_cast<float>(current_density_materials::copper)};
-        this->max_triangle_area = max_triangle_area;
-    }
-
-    CurrentDensityMesh::CurrentDensityMesh() {
-        // default material property
-        default_prop = {static_cast<float>(current_density_materials::copper)};
-        max_triangle_area = 1e-0;
-    }
-
-    CurrentDensityMesh::~CurrentDensityMesh() {
-        
-    }
-
     CurrentDensitySystem CurrentDensityMesh::getFemSystem() {
         CurrentDensitySystem system(data.numberofpoints);
 

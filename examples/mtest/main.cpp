@@ -318,7 +318,7 @@ int main(int argc, char** argv) {
     
     ThreadPool pool(12);
     for (double angle = 0; angle < (2 * PI) / 4; angle += ((2 * PI) / 4) / 1000) {
-        pool.Push([angle, num, max_B, min_B]() {
+        // pool.Push([angle, num, max_B, min_B]() {
             simulate(num, angle, max_B, min_B,
                 24, // stator_poles
                 20, // rotor_poles
@@ -339,7 +339,7 @@ int main(int argc, char** argv) {
                 0, // sin(angle + (4 * PI) / 3), // currentC
                 0.5 // magnet_magnetization
             );
-        });
+        // });
         break;  // remove this to run for all angles in parallel
         num++;
     }

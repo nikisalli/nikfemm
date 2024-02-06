@@ -6,8 +6,6 @@ int main(int argc, char** argv) {
     nikfemm::MultiLayerCurrentDensitySimulation simulation(2);
     simulation.meshes[0].depth = 70e-6;
     simulation.meshes[1].depth = 70e-6;
-    simulation.meshes[0].max_triangle_area = 1;
-    simulation.meshes[1].max_triangle_area = 1;
 
     // two long thin rectangles coupled together at the ends
     double length = 1;

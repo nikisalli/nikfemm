@@ -21,11 +21,10 @@ namespace nikfemm {
             CV V;
             std::vector<CurrentDensityInterconnection> interconnections;
 
-            MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths, std::vector<double> max_triangle_areas);
+            MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths);
             MultiLayerCurrentDensitySimulation(uint32_t num_layers);
-            ~MultiLayerCurrentDensitySimulation();
 
-            CurrentDensitySystem generateSystem(bool refine = true);
+            CurrentDensitySystem generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
             void solve(CurrentDensitySystem& system);
             void setVoltage(CurrentDensitySystem& system, Vector p, double V, uint64_t layer_id);
         protected:
