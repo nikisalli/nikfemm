@@ -6,3 +6,4 @@
 #include "../src/geometry/circle.hpp"
 #include "../src/algebra/solvers.hpp"
 #include "../src/algebra/system.hpp"
+#include "../src/algebra/math.hpp"

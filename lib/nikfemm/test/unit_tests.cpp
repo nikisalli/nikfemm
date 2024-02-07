@@ -41,12 +41,12 @@ BOOST_AUTO_TEST_CASE( csr_cv_mult )
 
     MatCSRSymmetric csr(mat);
 
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
 
     mult(y, csr, x);
 
@@ -70,12 +70,12 @@ BOOST_AUTO_TEST_CASE( csr_conjugate_gradient_solve )
 
     MatCSRSymmetric csr(mat);
 
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 0;
     x[1] = 0;
     x[2] = 0;
 
-    std::vector b(3);
+    std::vector<double> b(3);
     b[0] = 14;
     b[1] = 32;
     b[2] = 54;
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_SUITE( cv_tests )
 
 BOOST_AUTO_TEST_CASE( cv_index )
 {
-    std::vector cv(3);
+    std::vector<double> cv(3);
     cv[0] = 1;
     cv[1] = 2;
     cv[2] = 3;
@@ -109,17 +109,17 @@ BOOST_AUTO_TEST_CASE( cv_index )
 
 BOOST_AUTO_TEST_CASE( cv_mult )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     y[0] = 4;
     y[1] = 5;
     y[2] = 6;
 
-    std::vector z(3);
+    std::vector<double> z(3);
     
     mult(z, x, y);
 
@@ -130,12 +130,12 @@ BOOST_AUTO_TEST_CASE( cv_mult )
 
 BOOST_AUTO_TEST_CASE( cv_mult_scalar )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     
     mult(y, 2, x);
 
@@ -146,17 +146,17 @@ BOOST_AUTO_TEST_CASE( cv_mult_scalar )
 
 BOOST_AUTO_TEST_CASE( cv_add )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     y[0] = 4;
     y[1] = 5;
     y[2] = 6;
 
-    std::vector z(3);
+    std::vector<double> z(3);
     
     add(z, x, y);
 
@@ -167,17 +167,17 @@ BOOST_AUTO_TEST_CASE( cv_add )
 
 BOOST_AUTO_TEST_CASE( cv_sub )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     y[0] = 4;
     y[1] = 5;
     y[2] = 6;
 
-    std::vector z(3);
+    std::vector<double> z(3);
     
     sub(z, x, y);
 
@@ -188,17 +188,17 @@ BOOST_AUTO_TEST_CASE( cv_sub )
 
 BOOST_AUTO_TEST_CASE( cv_div )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     y[0] = 4;
     y[1] = 5;
     y[2] = 6;
 
-    std::vector z(3);
+    std::vector<double> z(3);
     
     div(z, x, y);
 
@@ -209,12 +209,12 @@ BOOST_AUTO_TEST_CASE( cv_div )
 
 BOOST_AUTO_TEST_CASE( cv_div_scalar )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     
     div(y, x, 2);
 
@@ -225,12 +225,12 @@ BOOST_AUTO_TEST_CASE( cv_div_scalar )
 
 BOOST_AUTO_TEST_CASE( cv_sub_scalar )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     
     sub(y, x, 2);
 
@@ -241,12 +241,12 @@ BOOST_AUTO_TEST_CASE( cv_sub_scalar )
 
 BOOST_AUTO_TEST_CASE( cv_add_scalar )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     
     add(y, x, 2);
 
@@ -257,12 +257,12 @@ BOOST_AUTO_TEST_CASE( cv_add_scalar )
 
 BOOST_AUTO_TEST_CASE( cv_dot )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     y[0] = 4;
     y[1] = 5;
     y[2] = 6;
@@ -274,17 +274,17 @@ BOOST_AUTO_TEST_CASE( cv_dot )
 
 BOOST_AUTO_TEST_CASE( cv_add_scaled )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     y[0] = 4;
     y[1] = 5;
     y[2] = 6;
 
-    std::vector z(3);
+    std::vector<double> z(3);
     
     addScaled(z, x, 2, y);
 
@@ -295,7 +295,7 @@ BOOST_AUTO_TEST_CASE( cv_add_scaled )
 
 BOOST_AUTO_TEST_CASE( cv_square_sum )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
@@ -307,12 +307,12 @@ BOOST_AUTO_TEST_CASE( cv_square_sum )
 
 BOOST_AUTO_TEST_CASE( cv_copy )
 {
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 1;
     x[1] = 2;
     x[2] = 3;
 
-    std::vector y(3);
+    std::vector<double> y(3);
     
     copy(y, x);
 
@@ -340,18 +340,20 @@ BOOST_AUTO_TEST_CASE( current_density_dirichlet_boundary_conditions )
     // 2, 4, 5
     // 3, 5, 6
 
-    std::vector b(3);
+    std::vector<double> b(3);
     b[0] = 14;
     b[1] = 32;
     b[2] = 54;
 
-    CurrentDensitySystem system(mat, b);
+    System<double> system(mat, b);
 
     printf("A without Dirichlet boundary conditions:\n");
     MatCSRSymmetric csr_1(system.A);
     csr_1.print();
     printf("b without Dirichlet boundary conditions:\n");
-    system.b.print();
+    for (auto const& elem : system.b) {
+        printf("%.17g\n", elem);
+    }
 
     system.addDirichletBoundaryCondition(0, 1.0);
     system.addDirichletBoundaryCondition(1, 2.0);
@@ -361,9 +363,11 @@ BOOST_AUTO_TEST_CASE( current_density_dirichlet_boundary_conditions )
     printf("A with Dirichlet boundary conditions:\n");
     csr.print();
     printf("b with Dirichlet boundary conditions:\n");
-    system.b.print();
+    for (auto const& elem : system.b) {
+        printf("%.17g\n", elem);
+    }
 
-    std::vector x(3);
+    std::vector<double> x(3);
     x[0] = 0;
     x[1] = 0;
     x[2] = 0;
