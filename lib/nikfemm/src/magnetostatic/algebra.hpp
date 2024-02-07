@@ -2,8 +2,7 @@
 #define NIK_MAGNETOSTATIC_ALGEBRA_HPP
 
 #include "../algebra/csr.hpp"
-#include "../algebra/simple_vector.hpp"
-#include "../algebra/build_coo.hpp"
+#include "../algebra/coo.hpp"
 #include "properties.hpp"
 
 namespace nikfemm {
@@ -66,24 +65,10 @@ namespace nikfemm {
         // MagnetostaticNonLinearExpression* diag_expr;  // these are used to update the stiffness matrix in an efficient way from the magnetic induction
         // MagnetostaticNonLinearExpression* expr;
 
-        MagnetostaticMatCSRSymmetric(BuildMatCOO<MagnetostaticNonLinearExpression>& coo);
+        MagnetostaticMatCSRSymmetric(MatCOOSymmetric<MagnetostaticNonLinearExpression>& coo);
         ~MagnetostaticMatCSRSymmetric();
 
         void updateFromMu(std::vector<float>& mu);
-    };
-
-    struct MagnetostaticCV : virtual CV {
-        std::vector<MagnetostaticNonLinearExpression> expr;
-
-        MagnetostaticCV(uint32_t size);
-        ~MagnetostaticCV();
-
-        void updateFromMu(std::vector<float>& mu);
-    };
-
-    struct MagnetostaticSystem {
-        BuildMatCOO<MagnetostaticNonLinearExpression> A;
-        MagnetostaticCV b;
     };
 }
 

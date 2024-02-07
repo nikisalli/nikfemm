@@ -1,22 +1,21 @@
-#ifndef NIK_CURRENT_DENSITY_ALGEBRA_HPP
-#define NIK_CURRENT_DENSITY_ALGEBRA_HPP
+#ifndef NIK_SYSTEM_HPP
+#define NIK_SYSTEM_HPP
 
 #include "../algebra/csr.hpp"
-#include "../algebra/simple_vector.hpp"
-#include "../algebra/build_coo.hpp"
-#include "properties.hpp"
+#include "../algebra/coo.hpp"
 
 namespace nikfemm {
-    struct CurrentDensitySystem {
-        BuildMatCOO<double> A;
-        CV b;
+    template <typename WeightType>
+    struct System {
+        MatCOOSymmetric<WeightType> A;
+        std::vector<WeightType> b;
 
         // constructor
-        CurrentDensitySystem(uint32_t m) : A(m), b(m) {}
-        CurrentDensitySystem(BuildMatCOO<double> A, CV b) : A(A), b(b) {}
-        CurrentDensitySystem(CurrentDensitySystem const& other) : A(other.A), b(other.b) {}
+        System(uint32_t m) : A(m), b(m) {}
+        System(MatCOOSymmetric<WeightType> A, std::vector<double> b) : A(A), b(b) {}
+        System(System<WeightType> const& other) : A(other.A), b(other.b) {}
 
-        void addDirichletBoundaryCondition(uint32_t id, double value) {
+        void addDirichletBoundaryCondition(uint32_t id, WeightType value) {
             // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
             // this function lets you set a Dirichlet boundary condition on a node
 
@@ -33,18 +32,18 @@ namespace nikfemm {
                 if (m == n) continue;
 
                 if (m == id) { // row index equal to id
-                    b.val[n] -= elem.second * value;
+                    b[n] -= elem.second * value;
                     elem.second = 0;
                 }
                 if (n == id) { // column index equal to id
-                    b.val[m] -= elem.second * value;
+                    b[m] -= elem.second * value;
                     elem.second = 0;
                 }
             }
 
-            // coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
+            // coo.elems[MatCOOSymmetric<int>::get_key(id, id)].setToConstant(1);
             A(id, id) = 1;
-            b.val[id] = value;
+            b[id] = value;
         }
     };
 }

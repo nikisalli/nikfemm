@@ -14,15 +14,15 @@ namespace nikfemm {
     class CurrentDensitySimulation {
         public:
             CurrentDensityMesh mesh;
-            CV V;
+            std::vector<double> V;
 
             CurrentDensitySimulation(double depth);
             CurrentDensitySimulation();
             ~CurrentDensitySimulation();
 
-            CurrentDensitySystem generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
-            void solve(CurrentDensitySystem& system);
-            void setVoltage(CurrentDensitySystem& system, Vector p, double V);
+            System<double> generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
+            void solve(System<double>& system);
+            void setVoltage(System<double>& system, Vector p, double V);
         protected:
 #ifdef NIKFEMM_USE_OPENCV
             void VplotRend(cv::Mat* image, double width, double height);

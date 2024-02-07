@@ -4,8 +4,7 @@
 #include <cstdint>
 #include <map>
 
-#include "../algebra/build_coo.hpp"
-#include "../algebra/simple_vector.hpp"
+#include "../algebra/coo.hpp"
 #include "../drawing/drawing.hpp"
 #include "../geometry/common.hpp"
 

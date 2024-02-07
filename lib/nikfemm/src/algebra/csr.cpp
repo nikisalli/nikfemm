@@ -52,7 +52,7 @@ namespace nikfemm {
         printf("\n");
     }
 
-    BaseCSR::BaseCSR(BuildMatCOO<double>& coo) {
+    BaseCSR::BaseCSR(MatCOOSymmetric<double>& coo) {
         m = coo.m;
 
         std::vector<std::pair<uint64_t, double>> elems;

@@ -1,7 +1,8 @@
 #include "solvers.hpp"
+#include "math.hpp"
 
 namespace nikfemm {
-    void multSSORPreconditioner(const MatCSRSymmetric& A, CV& result, const CV& cv, double omega) {
+    void multSSORPreconditioner(const MatCSRSymmetric& A, std::vector<double>& result, const std::vector<double>& cv, double omega) {
         double temp = omega * (2 - omega);
         for (uint32_t i = 0; i < A.m; i++) {
             result[i] = cv[i] * temp;
@@ -74,78 +75,32 @@ namespace nikfemm {
             }
         }
 
-        /*
-        for (uint32_t i = R.m; i-- > 0;) {
-            Rinvcoo.set_elem(i, i, 1 / R.diag[i]);
-            for (int64_t j = R.m - 1; j >= i + 1; j--) {
-                double sum = 0;
-                for (uint32_t k = R.row_ptr[i]; k < R.row_ptr[i + 1]; k++) {
-                    if (R.col_ind[k] <= j && R.col_ind[k] > i) {
-                        printf("R.val (%lu, %lu) R.col_ind[k] (%lu, %lu)\n", i, R.col_ind[k], R.col_ind[k], j);
-                        sum += R.val[k] * Rinvcoo(j, R.col_ind[k]);
-                    }
-                }
-                if (sum != 0) {
-                    printf("setting Rinvcoo(%lu, %lu) to %.4f\n", i, j, -sum / R(i, i));
-                    Rinvcoo.set_elem(i, j, -sum / R.diag[i]);
-                }
-            }
-        }
-
-        for (uint32_t i = 0; i < R.m; i++) {
-            Rinvcoo.set_elem(i, i, 1 / R.diag[i]);
-            for (uint32_t j = 0; j < i; j++) {
-                printf("i: %lu, j: %lu\n", i, j);
-                double sum = 0;
-                for (uint32_t k = j; k < i; k++) {
-                    printf("i: %lu, j: %lu, k: %lu, R(i, k): %.4f, Rinvcoo(j, k): %.4f\n", i, j, k, R(i, k), Rinvcoo(j, k));
-                    sum += R(i, k) * Rinvcoo(j, k);
-                }
-                printf("sum: %.4f\n", sum);
-                Rinvcoo.set_elem(i, j, -sum / R.diag[i]);
-            }
-        }
-
-        for (uint32_t i = 0; i < Rt.m; i++) {
-            RinvcooT.set_elem(i, i, 1 / Rt.diag[i]);
-            for (uint32_t j = 0; j < i; j++) {
-                double sum = 0;
-                for (uint32_t k = j; k < i; k++) {
-                    printf("i: %lu, j: %lu, k: %lu, R(i, k): %.1f, Rinvcoo(j, k): %.1f\n", i, j, k, Rt(i, k), RinvcooT(j, k));
-                    sum += Rt(k, i) * RinvcooT(k, j);
-                }
-                printf("sum: %.4f\n", sum);
-                RinvcooT.set_elem(j, i, -sum / Rt.diag[i]);
-            }
-        }
-        */
-
         // printf("R.inv:\n");
         // R.print();
 
         return R;
     }
 
-    void conjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.val.size());
-        CV p(b.val.size());
-        CV Ap(b.val.size());
-        CV::mult(r, A, x);
-        CV::sub(r, b, r);
-        CV::copy(p, r);
-        double rTr = CV::squareSum(r);
-        double squareError = CV::squareSum(r);
+    void conjugateGradientSolver(const MatCSRSymmetric& A, const std::vector<double>& b, std::vector<double>& x, double maxError, uint32_t maxIterations) {
+        std::vector<double> r(b.size());
+        std::vector<double> p(b.size());
+        std::vector<double> Ap(b.size());
+        mult(r, A, x);
+        sub(r, b, r);
+        copy(p, r);
+        double rTr = squareSum(r);
+        double squareError = squareSum(r);
         for (uint32_t i = 0; i < maxIterations; i++) {
-            CV::mult(Ap, A, p);
-            double pAp = CV::dot(p, Ap);
+            mult(Ap, A, p);
+            double pAp = dot(p, Ap);
             if (fabs(pAp) < std::numeric_limits<double>::epsilon()) {
                 pAp = std::numeric_limits<double>::epsilon();
                 nlogwarn("warning: pAp is zero. approximating with epsilon");
             }
             double alpha = rTr / pAp;
-            CV::addScaled(x, x, alpha, p);
-            CV::addScaled(r, r, -alpha, Ap);
-            double rTrNew = CV::squareSum(r);
+            addScaled(x, x, alpha, p);
+            addScaled(r, r, -alpha, Ap);
+            double rTrNew = squareSum(r);
             if (i % 100 == 0) {
                 nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
@@ -156,37 +111,37 @@ namespace nikfemm {
                 break;
             }
             double beta = rTrNew / rTr;
-            CV::addScaled(p, r, beta, p);
+            addScaled(p, r, beta, p);
             rTr = rTrNew;
         }
     }
 
-    void preconditionedJacobiConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.val.size());
-        CV::mult(r, A, x);
-        CV::sub(r, b, r);
-        CV P(b.val.size());
+    void preconditionedJacobiConjugateGradientSolver(const MatCSRSymmetric& A, const std::vector<double>& b, std::vector<double>& x, double maxError, uint32_t maxIterations) {
+        std::vector<double> r(b.size());
+        mult(r, A, x);
+        sub(r, b, r);
+        std::vector<double> P(b.size());
         for (uint32_t i = 0; i < A.m; i++) {
             P[i] = 1 / A.diag[i];
         }
-        CV z(b.val.size());
-        CV::mult(z, P, r);
-        CV p(b.val.size());
-        CV::copy(p, z);
-        CV Ap(b.val.size());
+        std::vector<double> z(b.size());
+        mult(z, P, r);
+        std::vector<double> p(b.size());
+        copy(p, z);
+        std::vector<double> Ap(b.size());
         double rTzold;
-        double squareError = CV::squareSum(r);
+        double squareError = squareSum(r);
         for (uint32_t i = 0; i < maxIterations; i++) {
-            CV::mult(Ap, A, p);
-            double alpha = CV::dot(r, z) / CV::dot(p, Ap);
+            mult(Ap, A, p);
+            double alpha = dot(r, z) / dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
                 alpha = std::numeric_limits<double>::epsilon();
                 nlogwarn("warning: alpha is zero. approximating with epsilon");
             }
-            rTzold = CV::dot(r, z);
-            CV::addScaled(x, x, alpha, p);
-            CV::addScaled(r, r, -alpha, Ap);
-            squareError = CV::squareSum(r);
+            rTzold = dot(r, z);
+            addScaled(x, x, alpha, p);
+            addScaled(r, r, -alpha, Ap);
+            squareError = squareSum(r);
             if (i % 100 == 0) {
                 nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
@@ -196,24 +151,24 @@ namespace nikfemm {
                 // x.print();
                 break;
             }
-            CV::mult(z, P, r);
-            double beta = CV::dot(r, z) / rTzold;
-            CV::addScaled(p, z, beta, p);
+            mult(z, P, r);
+            double beta = dot(r, z) / rTzold;
+            addScaled(p, z, beta, p);
         }
     }
 
-    void preconditionedSSORConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double omega, double maxError, uint32_t maxIterations) {
-        CV r(b.val.size());
-        CV::mult(r, A, x);
-        CV::sub(r, b, r);
-        CV z(b.val.size());
+    void preconditionedSSORConjugateGradientSolver(const MatCSRSymmetric& A, const std::vector<double>& b, std::vector<double>& x, double omega, double maxError, uint32_t maxIterations) {
+        std::vector<double> r(b.size());
+        mult(r, A, x);
+        sub(r, b, r);
+        std::vector<double> z(b.size());
         multSSORPreconditioner(A, z, r, omega);
-        CV p(b.val.size());
-        CV::copy(p, z);
-        CV Ap(b.val.size());
+        std::vector<double> p(b.size());
+        copy(p, z);
+        std::vector<double> Ap(b.size());
         double rTzold, rTz;
-        double squareError = CV::squareSum(r);
-        rTz = CV::dot(r, z);
+        double squareError = squareSum(r);
+        rTz = dot(r, z);
         if (squareError < maxError * maxError) {
             nloginfo("converged after 0 iterations");
             // nloginfo("x:");
@@ -221,15 +176,15 @@ namespace nikfemm {
             return;
         }
         for (uint32_t i = 0; i < maxIterations; i++) {
-            CV::mult(Ap, A, p);
-            double alpha = rTz / CV::dot(p, Ap);
+            mult(Ap, A, p);
+            double alpha = rTz / dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
                 alpha = std::numeric_limits<double>::epsilon();
                 nlogwarn("warning: alpha is zero. approximating with epsilon");
             }
-            CV::addScaled(x, x, alpha, p);
-            CV::addScaled(r, r, -alpha, Ap);
-            squareError = CV::squareSum(r);
+            addScaled(x, x, alpha, p);
+            addScaled(r, r, -alpha, Ap);
+            squareError = squareSum(r);
             if (i % 100 == 0) {
                 nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
@@ -241,29 +196,29 @@ namespace nikfemm {
             }
             multSSORPreconditioner(A, z, r, omega);
             rTzold = rTz;
-            rTz = CV::dot(r, z);
+            rTz = dot(r, z);
             double beta = rTz / rTzold;
-            CV::addScaled(p, z, beta, p);
+            addScaled(p, z, beta, p);
         }
         nloginfo("didn't converge, last error: %.17g", sqrt(squareError));
     }
 
-    void preconditionedIncompleteCholeskyConjugateGradientSolver(const MatCSRSymmetric& A, const CV& b, CV& x, double maxError, uint32_t maxIterations) {
-        CV r(b.val.size());
-        CV::mult(r, A, x);
-        CV::sub(r, b, r);
-        CV z(b.val.size());
-        CV tmp(b.val.size());
+    void preconditionedIncompleteCholeskyConjugateGradientSolver(const MatCSRSymmetric& A, const std::vector<double>& b, std::vector<double>& x, double maxError, uint32_t maxIterations) {
+        std::vector<double> r(b.size());
+        mult(r, A, x);
+        sub(r, b, r);
+        std::vector<double> z(b.size());
+        std::vector<double> tmp(b.size());
         nloginfo("computing incomplete cholesky preconditioner");
         MatCSRLowerTri L = incompleteCholeskyDecomposition(A);
         nloginfo("done computing incomplete cholesky preconditioner");
-        CV::mult(tmp, (MatCSRLowerTri)L, r);
-        CV::mult(z, (MatCSRUpperTri)L, tmp);
-        CV p(b.val.size());
-        CV::copy(p, z);
-        CV Ap(b.val.size());
+        mult(tmp, (MatCSRLowerTri)L, r);
+        mult(z, (MatCSRUpperTri)L, tmp);
+        std::vector<double> p(b.size());
+        copy(p, z);
+        std::vector<double> Ap(b.size());
         double rTzold;
-        double squareError = CV::squareSum(r);
+        double squareError = squareSum(r);
         if (squareError < maxError * maxError) {
             nloginfo("converged after 0 iterations");
             // nloginfo("x:");
@@ -271,16 +226,16 @@ namespace nikfemm {
             return;
         }
         for (uint32_t i = 0; i < maxIterations; i++) {
-            CV::mult(Ap, A, p);
-            double alpha = CV::dot(r, z) / CV::dot(p, Ap);
+            mult(Ap, A, p);
+            double alpha = dot(r, z) / dot(p, Ap);
             if (fabs(alpha) < std::numeric_limits<double>::epsilon()) {
                 alpha = std::numeric_limits<double>::epsilon();
                 nlogwarn("warning: alpha is zero. approximating with epsilon");
             }
-            rTzold = CV::dot(r, z);
-            CV::addScaled(x, x, alpha, p);
-            CV::addScaled(r, r, -alpha, Ap);
-            squareError = CV::squareSum(r);
+            rTzold = dot(r, z);
+            addScaled(x, x, alpha, p);
+            addScaled(r, r, -alpha, Ap);
+            squareError = squareSum(r);
             if (i % 100 == 0) {
                 nloginfo("iteration %u, error: %.17g", i, sqrt(squareError));
             }
@@ -290,10 +245,10 @@ namespace nikfemm {
                 // x.print();
                 break;
             }
-            CV::mult(tmp, (MatCSRLowerTri)L, r);
-            CV::mult(z, (MatCSRUpperTri)L, tmp);
-            double beta = CV::dot(r, z) / rTzold;
-            CV::addScaled(p, z, beta, p);
+            mult(tmp, (MatCSRLowerTri)L, r);
+            mult(z, (MatCSRUpperTri)L, tmp);
+            double beta = dot(r, z) / rTzold;
+            addScaled(p, z, beta, p);
         }
     }
 }

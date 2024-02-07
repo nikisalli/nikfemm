@@ -20,10 +20,10 @@
 #include "../drawing/drawing.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/vector.hpp"
-#include "../algebra/build_coo.hpp"
+#include "../algebra/coo.hpp"
 #include "../algebra/csr.hpp"
-#include "../algebra/simple_vector.hpp"
 #include "../algebra/solvers.hpp"
+#include "../algebra/math.hpp"
 
 namespace nikfemm {
 #ifdef NIKFEMM_USE_OPENCV
@@ -60,8 +60,8 @@ namespace nikfemm {
         }
         */
 
-        std::vector<float> A_sorted(A.val.size());
-        for (uint32_t i = 0; i < A.val.size(); i++) {
+        std::vector<float> A_sorted(A.size());
+        for (uint32_t i = 0; i < A.size(); i++) {
             A_sorted[i] = A[i];
         }
         std::sort(A_sorted.begin(), A_sorted.end());
@@ -587,7 +587,7 @@ namespace nikfemm {
         }
     }
 
-    MagnetostaticSystem MagnetostaticSimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
+    System<MagnetostaticNonLinearExpression> MagnetostaticSimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
         // get time in milliseconds
 
         /* auto boundary */
@@ -634,8 +634,8 @@ namespace nikfemm {
         return system;
     }
 
-    void MagnetostaticSimulation::solve(MagnetostaticSystem& system) {
-        A = CV(mesh.data.numberofpoints);
+    void MagnetostaticSimulation::solve(System<MagnetostaticNonLinearExpression>& system) {
+        A = std::vector<double>(mesh.data.numberofpoints);
         B = std::vector<Vector>(mesh.data.numberoftriangles, {0, 0});
         std::vector<float> mu(mesh.data.numberoftriangles, 0);
         std::vector<const MagnetostaticProp*> props(mesh.data.numberoftriangles);
@@ -646,13 +646,16 @@ namespace nikfemm {
         }
 
         MagnetostaticMatCSRSymmetric FemMat(system.A);
+        std::vector<double> b(system.b.size());
 
         // initialize mu
         for (uint32_t i = 0; i < B.size(); i++) {
             mu[i] = props[i]->getMu(0);
         }
         FemMat.updateFromMu(mu);
-        system.b.updateFromMu(mu);
+        for (uint32_t i = 0; i < system.b.size(); i++) {
+            b[i] = system.b[i].evaluate(mu);
+        }
 
         // check if magnetostatic_materials are all linear
         bool all_linear = true;
@@ -666,17 +669,17 @@ namespace nikfemm {
         auto tstart = std::chrono::high_resolution_clock::now();
         if (all_linear) {
             nloginfo("all magnetostatic_materials are linear");
-            preconditionedSSORConjugateGradientSolver(FemMat, system.b, A, 1.5, 1e-6, 100000);
+            preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-6, 100000);
             // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-6, 100000);
         } else {
             nloginfo("nonlinear magnetostatic_materials detected, starting non linear newton solver");
-            CV r(system.b.val.size());  // residual
+            std::vector<double> r(system.b.size());  // residual
 
             double residual = 1e10;
             for (uint32_t i = 0; i < 500; i++) {
                 // conjugateGradientSolver(FemMat, b, A, 1e-7, 10000);
                 // preconditionedJacobiConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
-                preconditionedSSORConjugateGradientSolver(FemMat, system.b, A, 1.5, 1e-7, 50);
+                preconditionedSSORConjugateGradientSolver(FemMat, b, A, 1.5, 1e-7, 50);
                 // preconditionedIncompleteCholeskyConjugateGradientSolver(FemMat, b, A, 1e-7, 1000);
                 // mesh.Aplot(A);
                 // mesh.Bplot(B);
@@ -687,10 +690,12 @@ namespace nikfemm {
                 // check if the solution is correct
                 MagnetostaticSimulation::updateMu(props, mu, B, residual, i);
                 FemMat.updateFromMu(mu);
-                system.b.updateFromMu(mu);
-                CV::mult(r, FemMat, A);
-                CV::sub(r, system.b, r);
-                residual = CV::norm(r);
+                for (uint32_t i = 0; i < system.b.size(); i++) {
+                    b[i] = system.b[i].evaluate(mu);
+                }
+                mult(r, FemMat, A);
+                sub(r, b, r);
+                residual = norm(r);
                 if (residual < 1e-7) {
                     nloginfo("Converged in %d iterations", i);
                     break;
@@ -917,8 +922,8 @@ namespace nikfemm {
             vertex_inside_boundary_region_hole
         ] = assets;
 
-        auto coo = BuildMatCOO<double>(mesh.data.numberofpoints);
-        auto b = CV(mesh.data.numberofpoints);
+        auto coo = MatCOOSymmetric<double>(mesh.data.numberofpoints);
+        auto b = std::vector<double>(mesh.data.numberofpoints);
         auto b_dirichlet_mask = std::vector<bool>(mesh.data.numberofpoints, false);
         // since the stiffness matrix is symmetric, this function only computes the upper triangular part
 
@@ -1015,7 +1020,7 @@ namespace nikfemm {
 
         MatCSRSymmetric Ai(coo);
         // Ai.write_to_file("Ad.txt");
-        auto g = CV(mesh.data.numberofpoints);
+        auto g = std::vector<double>(mesh.data.numberofpoints);
 
         // the error for this function varies a lot, so I just set the gradient to do at least 100 iterations and eventually stop at 1e-100
         preconditionedSSORConjugateGradientSolver(Ai, b, g, 1.5, 1e-100, 100);
@@ -1090,8 +1095,8 @@ namespace nikfemm {
             vertex_inside_boundary_region_hole
         ] = assets;
 
-        auto coo = BuildMatCOO<double>(mesh.data.numberofpoints);
-        auto b = CV(mesh.data.numberofpoints);
+        auto coo = MatCOOSymmetric<double>(mesh.data.numberofpoints);
+        auto b = std::vector<double>(mesh.data.numberofpoints);
         auto b_dirichlet_mask = std::vector<bool>(mesh.data.numberofpoints, false);
         // since the stiffness matrix is symmetric, this function only computes the upper triangular part
 
@@ -1188,7 +1193,7 @@ namespace nikfemm {
 
         MatCSRSymmetric Ai(coo);
         // Ai.write_to_file("Ad.txt");
-        auto g = CV(mesh.data.numberofpoints);
+        auto g = std::vector<double>(mesh.data.numberofpoints);
 
         // the error for this function varies a lot, so I just set the gradient to do at least 100 iterations and eventually stop at 1e-100
         preconditionedSSORConjugateGradientSolver(Ai, b, g, 1.5, 1e-100, 100);

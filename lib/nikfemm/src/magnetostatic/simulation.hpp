@@ -39,11 +39,11 @@ namespace nikfemm {
         public:
             MagnetostaticMesh mesh;
             std::vector<Vector> B;
-            CV A;
+            std::vector<double> A;
             double depth = 1.0;
 
-            MagnetostaticSystem generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
-            void solve(MagnetostaticSystem& system);
+            System<MagnetostaticNonLinearExpression> generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
+            void solve(System<MagnetostaticNonLinearExpression>& system);
             Vector computeForceIntegrals(Vector p);
             double computeTorqueIntegral(Vector p, Vector center);
             StressTensor computeStressIntegral(Vector p, Vector center);

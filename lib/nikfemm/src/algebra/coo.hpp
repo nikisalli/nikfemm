@@ -1,59 +1,51 @@
-#ifndef NIK_COO_HPP
-#define NIK_COO_HPP
+#ifndef NIK_BUILD_COO_HPP
+#define NIK_BUILD_COO_HPP
 
+#include <set>
 #include <cstdint>
-#include <vector>
+#include <unordered_map>
+#include <math.h>
+#include <algorithm>
 
-#include "simple_vector.hpp"
+#include "assert.h"
 
+#include "coo.hpp"
+#include "../utils/utils.hpp"
 namespace nikfemm {
-    struct ElemCOO {
-        uint32_t row;
-        uint32_t col;
-        double val;
+    template <typename T>
+    struct MatCOOSymmetric {
+        // store only non-zero elements of symmetric matrices in upper triangular part
+        std::unordered_map<uint64_t, T> elems;
+        
+        uint32_t m = 0;  // rows, columns
+
+        MatCOOSymmetric(uint32_t m);
+        ~MatCOOSymmetric();
+
+        T& operator()(uint32_t _m, uint32_t _n);
     };
 
-    struct BaseCOO {
-        std::vector<ElemCOO> elems;
+    template <typename T>
+    MatCOOSymmetric<T>::MatCOOSymmetric(uint32_t m) {
+        this->m = m;
+    }
 
-        uint32_t m;  // square matrix size
+    template <typename T>
+    MatCOOSymmetric<T>::~MatCOOSymmetric() {
+    }
 
-        BaseCOO();
-        BaseCOO(BuildMatCOO<double>& coo);
-        BaseCOO(const BaseCOO& coo);
-        ~BaseCOO();
-
-        void printCOO();
-        void print();
-        void write_to_file(const char *filename);
-
-        double operator()(uint32_t i, uint32_t j) const;
-    };
-
-    struct MatCOOSymmetric;
-    struct MatCOOLowerTri;
-    struct MatCOOUpperTri;
-
-    struct MatCOOSymmetric : virtual BaseCOO {
-        MatCOOSymmetric() : BaseCOO() {}
-        MatCOOSymmetric(BuildMatCOO<double>& coo) : BaseCOO(coo) {}
-        MatCOOSymmetric(const BaseCOO& coo) : BaseCOO(coo) {}
-        ~MatCOOSymmetric() {}
-    };
-
-    struct MatCOOLowerTri : virtual BaseCOO {
-        MatCOOLowerTri() : BaseCOO() {}
-        MatCOOLowerTri(BuildMatCOO<double>& coo) : BaseCOO(coo) {}
-        MatCOOLowerTri(const BaseCOO& coo) : BaseCOO(coo) {}
-        ~MatCOOLowerTri() {}
-    };
-
-    struct MatCOOUpperTri : virtual BaseCOO {
-        MatCOOUpperTri() : BaseCOO() {}
-        MatCOOUpperTri(BuildMatCOO<double>& coo) : BaseCOO(coo) {}
-        MatCOOUpperTri(const BaseCOO& coo) : BaseCOO(coo) {}
-        ~MatCOOUpperTri() {}
-    };
+    template <typename T>
+    T& MatCOOSymmetric<T>::operator()(uint32_t _m, uint32_t _n) {
+        if (_m > _n) {
+            nexit("MatCOOSymmetric: m > n not allowed");
+        }
+        uint64_t key = (uint64_t)_m << 32 | (uint64_t)_n;
+        // check if key exists
+        if (elems.find(key) == elems.end()) {
+            elems.insert(std::make_pair(key, T()));
+        }
+        return elems[key];
+    }
 }
 
-#endif  // NIK_COO_HPP
+#endif

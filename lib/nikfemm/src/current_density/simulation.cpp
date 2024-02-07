@@ -20,9 +20,8 @@
 #include "../drawing/drawing.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/vector.hpp"
-#include "../algebra/build_coo.hpp"
+#include "../algebra/coo.hpp"
 #include "../algebra/csr.hpp"
-#include "../algebra/simple_vector.hpp"
 #include "../algebra/solvers.hpp"
 
 namespace nikfemm {
@@ -39,7 +38,7 @@ namespace nikfemm {
         
     }
 
-    void CurrentDensitySimulation::setVoltage(CurrentDensitySystem& system, Vector p, double V) {
+    void CurrentDensitySimulation::setVoltage(System<double>& system, Vector p, double V) {
         // find the closest node
         int32_t closest_node = -1;
         double closest_distance = INFINITY;
@@ -93,7 +92,7 @@ namespace nikfemm {
         // y offset to center mesh in window
         float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
 
-        std::vector<float> V_sorted(V.val.size());
+        std::vector<float> V_sorted(V.size());
         std::copy(V.val.begin(), V.val.end(), V_sorted.begin());
         std::sort(V_sorted.begin(), V_sorted.end());
         float max_V = V_sorted[0.9 * V_sorted.size()];
@@ -294,7 +293,7 @@ namespace nikfemm {
     }
 #endif
 
-    CurrentDensitySystem CurrentDensitySimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
+    System<double> CurrentDensitySimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
         if (refine) {
             mesh.drawing.addRefiningPoints();
         }
@@ -309,8 +308,8 @@ namespace nikfemm {
         return system;
     }
 
-    void CurrentDensitySimulation::solve(CurrentDensitySystem& system) {
-        V = CV(mesh.data.numberofpoints);
+    void CurrentDensitySimulation::solve(System<double>& system) {
+        V = std::vector<double>(mesh.data.numberofpoints);
 
         MatCSRSymmetric FemMat(system.A);
 

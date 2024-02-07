@@ -25,7 +25,7 @@ namespace nikfemm {
         terms.push_back(MagnetostaticNonLinearTerm{linear_coefficient, nonlinear_coefficient_element_index});
     }
 
-    MagnetostaticMatCSRSymmetric::MagnetostaticMatCSRSymmetric(BuildMatCOO<MagnetostaticNonLinearExpression>& coo) {
+    MagnetostaticMatCSRSymmetric::MagnetostaticMatCSRSymmetric(MatCOOSymmetric<MagnetostaticNonLinearExpression>& coo) {
         m = coo.m;
 
         std::vector<std::pair<uint64_t, MagnetostaticNonLinearExpression>> elems;
@@ -82,21 +82,6 @@ namespace nikfemm {
         }
         // off-diagonal
         for (uint32_t i = 0; i < nnz; i++) {
-            val[i] = expr[i].evaluate(mu);
-        }
-    }
-
-    MagnetostaticCV::MagnetostaticCV(uint32_t size) {
-        val = std::vector<double>(size);
-        expr = std::vector<MagnetostaticNonLinearExpression>(size);
-    }
-
-    MagnetostaticCV::~MagnetostaticCV() {
-
-    }
-
-    void MagnetostaticCV::updateFromMu(std::vector<float>& mu) {
-        for (uint32_t i = 0; i < val.size(); i++) {
             val[i] = expr[i].evaluate(mu);
         }
     }

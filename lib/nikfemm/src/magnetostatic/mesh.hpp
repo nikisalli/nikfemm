@@ -19,8 +19,8 @@
 #include "../utils/utils.hpp"
 #include "../drawing/drawing.hpp"
 #include "../mesh/mesh.hpp"
-#include "../algebra/simple_vector.hpp"
-#include "../algebra/build_coo.hpp"
+#include "../algebra/coo.hpp"
+#include "../algebra/system.hpp"
 #include "algebra.hpp"
 #include "properties.hpp"
 
@@ -30,11 +30,11 @@ namespace nikfemm {
         MagnetostaticMesh();
         ~MagnetostaticMesh();
 
-        MagnetostaticSystem getFemSystem();
-        void addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system);
-        void addDirichletZeroBoundaryConditions(MagnetostaticSystem& system, uint32_t id);
-        void computeCurl(std::vector<Vector>& B, CV& A) const;
-        void computeGrad(std::vector<Vector>& B, CV& A) const;
+        System<MagnetostaticNonLinearExpression> getFemSystem();
+        void addDirichletInfiniteBoundaryConditions(System<MagnetostaticNonLinearExpression>& system);
+        void addDirichletZeroBoundaryConditions(System<MagnetostaticNonLinearExpression>& system, uint32_t id);
+        void computeCurl(std::vector<Vector>& B, std::vector<double>& A) const;
+        void computeGrad(std::vector<Vector>& B, std::vector<double>& A) const;
         void refineMeshAroundMagnets();
     };
 }

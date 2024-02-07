@@ -15,11 +15,8 @@ namespace nikfemm {
         
     }
 
-    MagnetostaticSystem MagnetostaticMesh::getFemSystem() {
-        MagnetostaticSystem system = {
-            BuildMatCOO<MagnetostaticNonLinearExpression>(data.numberofpoints),
-            MagnetostaticCV(data.numberofpoints)
-        };
+    System<MagnetostaticNonLinearExpression> MagnetostaticMesh::getFemSystem() {
+        System<MagnetostaticNonLinearExpression> system(data.numberofpoints);
         // since the stiffness matrix is symmetric, this function only computes the upper triangular part
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -400,7 +397,7 @@ namespace nikfemm {
                 if (v3 >= i) system.A(i, v3).addTerm(double_area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]);
 
                 // set the b vector
-                system.b.expr[i].addToConstant((double_area * adjelems_props[i][j]->J) / 6);
+                system.b[i].addToConstant((double_area * adjelems_props[i][j]->J) / 6);
             }
         }
 
@@ -521,183 +518,12 @@ namespace nikfemm {
                     if (dist1 < epsilon * 0.1 && dist2 < epsilon * 0.1) {
                         // this edge is subject to a surface current
                         double length = Vector::distance(p1, p2);
-                        // b.add_elem(edge.v1, length * segment.Jm);
-                        // b.add_elem(edge.v2, length * segment.Jm);
-                        system.b.expr[edge.v1].addToConstant(length * segment.Jm);
-                        system.b.expr[edge.v2].addToConstant(length * segment.Jm);
+                        system.b[edge.v1].addToConstant(length * segment.Jm);
+                        system.b[edge.v2].addToConstant(length * segment.Jm);
                     }
                 }
             }
         }
-
-        /*
-        // line integral
-        // in this section we find all the edges where there is a surface current (i.e. the edges where the M vector changes from element to element)
-        // to do this first of all we find all the segments in the drawing that are subject to a surface current and their outward normal
-        struct SurfaceCurrentSegment {
-            Vector p1, p2; // the two points that define the segment
-            double Jm; // surface current density on the segment (M x n) (pointing normal to the simulation plane)
-        };
-
-        std::vector<SurfaceCurrentSegment> surface_current_segments;
-        // first we have to find the polygons that are magnets
-        // if the polygon contains a region that is a magnet and it does not contain any other polygon that contains the same region then it is a magnet
-        std::map<uint32_t, std::vector<Polygon>> polygons_that_contain_magnet_region;
-        for (auto region :drawing.regions) {
-            if (drawing.region_map[region.second].M != Vector(0, 0)) {
-                for (auto polygon : drawing.polygons) {
-                    if (polygon.contains(region.first)) {
-                        polygons_that_contain_magnet_region[region.second].push_back(polygon);
-                    }
-                }
-            }
-        }
-
-        struct Magnet {
-            Polygon polygon;
-            Vector M;
-        };
-
-        std::vector<Magnet> magnets;
-        for (auto region_poly_array : polygons_that_contain_magnet_region) {
-            if (region_poly_array.second.size() == 1) {
-                // this is a magnet
-                for (auto point : region_poly_array.second[0].points) {
-                    magnets.push_back({region_poly_array.second[0], drawing.region_map[region_poly_array.first].M});
-                }
-            } else {
-                // this array contains a magnet and other polygons that contain the polygon that is a magnet
-                // we need to find the polygon that does not contain any other polygon that contains the same region
-                for (auto polygon : region_poly_array.second) {
-                    bool is_magnet = true;
-                    for (auto other_polygon : region_poly_array.second) {
-                        if (polygon != other_polygon && polygon.contains(other_polygon)) {
-                            is_magnet = false;
-                            break;
-                        }
-                    }
-                    if (is_magnet) {
-                        magnets.push_back({polygon, drawing.region_map[region_poly_array.first].M});
-                    }
-                }
-            }
-        }
-
-        // now we have to find the segments that are subject to a surface current and their outward normal
-        for (auto magnet : magnets) {
-            for (uint32_t i = 0; i < magnet.polygon.points.size(); i++) {
-                uint32_t j = (i + 1) % magnet.polygon.points.size();
-                Vector p1 = magnet.polygon.points[i];
-                Vector p2 = magnet.polygon.points[j];
-                Vector n = (p2 - p1).normal().normalize();
-                // we need the outward normal
-                Vector test = Vector::midPoint(p1, p2) + (n * epsilon * 0.1);  // 0.1 just to make sure that we get no false negatives
-                if (magnet.polygon.contains(test)) {
-                    n = n * -1;
-                }
-                // draw arrow from the middle of p1 and p2 in the direction of n
-                Vector mid = Vector::midPoint(p1, p2);
-                double Jm = magnet.M ^ n;
-                surface_current_segments.push_back({p1, p2, Jm});
-            }
-        }
-
-        // now we have to find the edges that are subject to a surface current
-        // i.e. the edges that lie on a segment that is subject to a surface current
-        // edges should be unique
-
-        struct SurfaceCurrentEdge {
-            uint32_t v1, v2;
-            double Jm;
-        };
-
-        // hash function for SurfaceCurrentEdge
-        struct SurfaceCurrentEdgeHash {
-            std::size_t operator()(const SurfaceCurrentEdge &edge) const {
-                if (edge.v1 < edge.v2) {
-                    return (uint64_t) edge.v1 << 32 | (uint64_t) edge.v2;
-                } else {
-                    return (uint64_t) edge.v2 << 32 | (uint64_t) edge.v1;
-                }
-            }
-        };
-        // equality function for SurfaceCurrentEdge
-        struct SurfaceCurrentEdgeEqual {
-            bool operator()(const SurfaceCurrentEdge &edge1, const SurfaceCurrentEdge &edge2) const {
-                return edge1.v1 == edge2.v1 && edge1.v2 == edge2.v2 || edge1.v1 == edge2.v2 && edge1.v2 == edge2.v1;
-            }
-        };
-
-        std::unordered_map<SurfaceCurrentEdge, SurfaceCurrentEdge, SurfaceCurrentEdgeHash, SurfaceCurrentEdgeEqual> surface_current_edges;
-
-        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
-            for (uint32_t j = 0; j < 3; j++) {
-                uint32_t v1 = data.trianglelist[i].verts[j];
-                uint32_t v2 = data.trianglelist[i].verts[(j + 1) % 3];
-                Vector p1 = data.pointlist[v1];
-                Vector p2 = data.pointlist[v2];
-                for (auto segment : surface_current_segments) {
-                    double dist1 = Segment::pointSegmentDistance(p1, segment.p1, segment.p2);
-                    double dist2 = Segment::pointSegmentDistance(p2, segment.p1, segment.p2);
-                    if (dist1 < epsilon * 0.1 && dist2 < epsilon * 0.1) {
-                        // this edge is subject to a surface current
-                        // if the edge is already in the map, we add the Jm values
-                        // else we add the edge to the map
-                        SurfaceCurrentEdge edge = {v1, v2, segment.Jm};
-                        if (surface_current_edges.find(edge) == surface_current_edges.end()) {
-                            surface_current_edges[edge] = edge;
-                        } else {
-                            surface_current_edges[edge].Jm += segment.Jm;
-                        }
-                    }
-                }
-            }
-        }
-
-        // magnet to edge mapping
-        std::map<uint32_t, std::vector<SurfaceCurrentEdge>> magnet_to_edge_map;
-        for (auto e : surface_current_edges) {
-            SurfaceCurrentEdge edge = e.second;
-            Vector mid = Vector::midPoint(data.pointlist[edge.v1], data.pointlist[edge.v2]);
-            uint32_t magnet_id = 0;
-            for (auto magnet : magnets) {
-                Vector p1 = data.pointlist[edge.v1];
-                Vector p2 = data.pointlist[edge.v2];
-
-                for (uint32_t i = 0; i < magnet.polygon.points.size(); i++) {
-                    uint32_t j = (i + 1) % magnet.polygon.points.size();
-                    Vector p3 = magnet.polygon.points[i];
-                    Vector p4 = magnet.polygon.points[j];
-
-                    double dist1 = Segment::pointSegmentDistance(p1, p3, p4);
-                    double dist2 = Segment::pointSegmentDistance(p2, p3, p4);
-                    if (dist1 < epsilon * 0.1 && dist2 < epsilon * 0.1) {
-                        magnet_to_edge_map[magnet_id].push_back(edge);
-                    }
-                }
-                magnet_id++;
-            }
-        }
-
-        for (auto magnet : magnet_to_edge_map) {
-            std::map<uint32_t, uint32_t> node_edge_count_map;
-            auto &edges = magnet.second;
-            for (auto edge : edges) {
-                uint32_t v1 = edge.v1;
-                uint32_t v2 = edge.v2;
-                node_edge_count_map[v1]++;
-                node_edge_count_map[v2]++;
-                if (node_edge_count_map[v1] > 2 || node_edge_count_map[v2] > 2) {
-                    nexit("more than two edges per node per magnet");
-                }
-                Vector p1 = data.pointlist[v1];
-                Vector p2 = data.pointlist[v2];
-                double length = Vector::distance(p1, p2);
-                b.add_elem(v1, edge.Jm * length);
-                b.add_elem(v2, edge.Jm * length);
-            }
-        }
-        */
 
         auto end = std::chrono::high_resolution_clock::now();
         nloginfo("FEM matrix construction took %d ms", std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count());
@@ -706,7 +532,7 @@ namespace nikfemm {
         return system;
     }
 
-    void MagnetostaticMesh::addDirichletZeroBoundaryConditions(MagnetostaticSystem& system, uint32_t id) {
+    void MagnetostaticMesh::addDirichletZeroBoundaryConditions(System<MagnetostaticNonLinearExpression>& system, uint32_t id) {
         // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
 
         // this function lets you set a Dirichlet boundary condition on a node
@@ -717,12 +543,12 @@ namespace nikfemm {
                 elem.second.setToConstant(0);
             }
         }
-        // system.coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
+        // system.coo.elems[MatCOOSymmetric<int>::get_key(id, id)].setToConstant(1);
         system.A(id, id).setToConstant(1);
-        system.b.expr[id].setToConstant(0);
+        system.b[id].setToConstant(0);
     }
 
-    void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(MagnetostaticSystem& system) {
+    void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(System<MagnetostaticNonLinearExpression>& system) {
         // find three furthest points from the center
         uint32_t p1 = 0;
         uint32_t p2 = 0;
@@ -756,7 +582,7 @@ namespace nikfemm {
         addDirichletZeroBoundaryConditions(system, p3);
     }
 
-    void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, CV &A) const {
+    void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, std::vector<double>& A) const {
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             Elem myelem = data.trianglelist[i];
             double x1 = data.pointlist[myelem[0]].x;
@@ -790,7 +616,7 @@ namespace nikfemm {
         }
     }
 
-    void MagnetostaticMesh::computeGrad(std::vector<Vector>& B, CV &A) const {
+    void MagnetostaticMesh::computeGrad(std::vector<Vector>& B, std::vector<double>& A) const {
         for (uint32_t i = 0; i < data.numberoftriangles; i++) {
             Elem myelem = data.trianglelist[i];
             double x1 = data.pointlist[myelem[0]].x;

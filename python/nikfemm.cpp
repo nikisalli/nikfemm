@@ -10,8 +10,8 @@
 /*
 namespace nikfemm {
     struct CurrentDensitySystem {
-        BuildMatCOO<double> A;
-        CV b;
+        MatCOOSymmetric<double> A;
+        std::vector b;
 
         void addDirichletBoundaryCondition(uint32_t id, double value) {
             // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
@@ -39,7 +39,7 @@ namespace nikfemm {
                 }
             }
 
-            // coo.elems[BuildMatCOO<int>::get_key(id, id)].setToConstant(1);
+            // coo.elems[MatCOOSymmetric<int>::get_key(id, id)].setToConstant(1);
             A(id, id) = 1;
             b.val[id] = value;
         }
@@ -81,7 +81,7 @@ namespace nikfemm {
     class MultiLayerCurrentDensitySimulation {
         public:
             std::vector<CurrentDensityMesh> meshes;
-            CV V;
+            std::vector V;
             std::vector<CurrentDensityInterconnection> interconnections;
 
             MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths, std::vector<double> max_triangle_areas);

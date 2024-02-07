@@ -3,12 +3,9 @@
 
 #include <cstdint>
 
-#include "simple_vector.hpp"
-#include "build_coo.hpp"
+#include "coo.hpp"
 
 namespace nikfemm {
-    struct CV;
-
     struct BaseCSR {
         std::vector<uint32_t> row_ptr;
         std::vector<uint32_t> col_ind;
@@ -19,7 +16,7 @@ namespace nikfemm {
         uint32_t m;  // i, j  // rows,  columns
 
         BaseCSR();
-        BaseCSR(BuildMatCOO<double>& coo);
+        BaseCSR(MatCOOSymmetric<double>& coo);
         BaseCSR(const BaseCSR& csr);
         ~BaseCSR();
 
@@ -39,21 +36,21 @@ namespace nikfemm {
 
     struct MatCSRSymmetric : virtual BaseCSR {
         MatCSRSymmetric() : BaseCSR() {}
-        MatCSRSymmetric(BuildMatCOO<double>& coo) : BaseCSR(coo) {}
+        MatCSRSymmetric(MatCOOSymmetric<double>& coo) : BaseCSR(coo) {}
         MatCSRSymmetric(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRSymmetric() {}
     };
 
     struct MatCSRLowerTri : virtual BaseCSR {
         MatCSRLowerTri() : BaseCSR() {}
-        MatCSRLowerTri(BuildMatCOO<double>& coo) : BaseCSR(coo) {}
+        MatCSRLowerTri(MatCOOSymmetric<double>& coo) : BaseCSR(coo) {}
         MatCSRLowerTri(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRLowerTri() {}
     };
 
     struct MatCSRUpperTri : virtual BaseCSR {
         MatCSRUpperTri() : BaseCSR() {}
-        MatCSRUpperTri(BuildMatCOO<double>& coo) : BaseCSR(coo) {}
+        MatCSRUpperTri(MatCOOSymmetric<double>& coo) : BaseCSR(coo) {}
         MatCSRUpperTri(const BaseCSR& csr) : BaseCSR(csr) {}
         ~MatCSRUpperTri() {}
     };

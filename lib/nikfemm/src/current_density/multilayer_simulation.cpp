@@ -22,9 +22,8 @@
 #include "../drawing/drawing.hpp"
 #include "../geometry/segment.hpp"
 #include "../geometry/vector.hpp"
-#include "../algebra/build_coo.hpp"
+#include "../algebra/coo.hpp"
 #include "../algebra/csr.hpp"
-#include "../algebra/simple_vector.hpp"
 #include "../algebra/solvers.hpp"
 
 namespace nikfemm {
@@ -58,7 +57,7 @@ namespace nikfemm {
         return angle;
     }
 
-    CurrentDensitySystem MultiLayerCurrentDensitySimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
+    System<double> MultiLayerCurrentDensitySimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
         /*
         if (refine) {
             for (auto& mesh : meshes) {
@@ -399,7 +398,7 @@ namespace nikfemm {
             nloginfo("Meshed layer %d with %d nodes and %d elements", i, meshes[i].data.numberofpoints, meshes[i].data.numberoftriangles);
         }
 
-        std::vector<CurrentDensitySystem> systems;
+        std::vector<System<double>> systems;
 
         for (uint64_t i = 0; i < meshes.size(); i++) {
             systems.push_back(meshes[i].getFemSystem());
@@ -412,7 +411,7 @@ namespace nikfemm {
         // system.b == mesh.data.numberofpoints == A.n == A.m
         for (auto& system : systems) {
             offsets.push_back(offset);
-            offset += system.b.val.size();
+            offset += system.b.size();
         }
 
         // now we need to merge the systems together using the interconnections
@@ -463,10 +462,10 @@ namespace nikfemm {
         uint64_t merged_system_size = 0;
         for (auto& system : systems) {
             merged_system_nnz += system.A.elems.size();
-            merged_system_size += system.b.val.size();
+            merged_system_size += system.b.size();
         }
 
-        CurrentDensitySystem merged_system(merged_system_size);
+        System<double> merged_system(merged_system_size);
 
         nloginfo("merged_system_nnz: %d", merged_system_nnz);
         nloginfo("merged_system_size: %d", merged_system_size);
@@ -476,7 +475,7 @@ namespace nikfemm {
         offset = 0; // reusing offset variable
 
         for (uint64_t i = 0; i < meshes.size(); i++) {
-            CurrentDensitySystem& system = systems[i];
+            System<double>& system = systems[i];
             CurrentDensityMesh& mesh = meshes[i];
 
             uint64_t system_size = mesh.data.numberofpoints;
@@ -492,13 +491,13 @@ namespace nikfemm {
 
             // b
             for (uint64_t j = 0; j < system_size; j++) {
-                merged_system.b.val[j + offset] = system.b.val[j];
+                merged_system.b[j + offset] = system.b[j];
             }
 
             offset += system_size;
         }
 
-        nloginfo("b.size(): %d", merged_system.b.val.size());
+        nloginfo("b.size(): %d", merged_system.b.size());
 
         // add the interconnections to the merged system
         // method 1 (couldn't bother to get the math right)
@@ -808,12 +807,12 @@ namespace nikfemm {
         }
         */
 
-        // nloginfo("generated merged system with %d unknowns", merged_system.b.val.size());
+        // nloginfo("generated merged system with %d unknowns", merged_system.b.size());
 
         return merged_system;
     }
 
-    void MultiLayerCurrentDensitySimulation::setVoltage(CurrentDensitySystem& system, Vector p, double V, uint64_t layer_id) {
+    void MultiLayerCurrentDensitySimulation::setVoltage(System<double>& system, Vector p, double V, uint64_t layer_id) {
         // find the closest node
         int32_t closest_node = -1;
         double closest_distance = INFINITY;
@@ -848,8 +847,8 @@ namespace nikfemm {
         system.addDirichletBoundaryCondition(closest_node, V);
     }
 
-    void MultiLayerCurrentDensitySimulation::solve(CurrentDensitySystem& system) {
-        V = CV(system.b.val.size());
+    void MultiLayerCurrentDensitySimulation::solve(System<double>& system) {
+        V = std::vector<double>(system.b.size());
 
         MatCSRSymmetric FemMat(system.A);
 

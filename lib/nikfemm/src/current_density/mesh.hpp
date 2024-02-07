@@ -12,9 +12,8 @@
 #include "../utils/utils.hpp"
 #include "../drawing/drawing.hpp"
 #include "../mesh/mesh.hpp"
-#include "../algebra/simple_vector.hpp"
-#include "../algebra/build_coo.hpp"
-#include "algebra.hpp"
+#include "../algebra/coo.hpp"
+#include "../algebra/system.hpp"
 #include "properties.hpp"
 
 namespace nikfemm {
@@ -22,8 +21,8 @@ namespace nikfemm {
         double depth = 1;
         CurrentDensityProp default_prop = {static_cast<float>(current_density_materials::copper)};
 
-        CurrentDensitySystem getFemSystem();  // tent function weights for energy minimization
-        CurrentDensitySystem getFemSystemCotangentWeights();  // cotangent laplacian approximation weights
+        System<double> getFemSystem();  // tent function weights for energy minimization
+        System<double> getFemSystemCotangentWeights();  // cotangent laplacian approximation weights
     };
 }
 

@@ -1,8 +1,8 @@
 #include "mesh.hpp"
 
 namespace nikfemm {
-    CurrentDensitySystem CurrentDensityMesh::getFemSystem() {
-        CurrentDensitySystem system(data.numberofpoints);
+    System<double> CurrentDensityMesh::getFemSystem() {
+        System<double> system(data.numberofpoints);
 
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -62,7 +62,7 @@ namespace nikfemm {
 
                 // set the b vector
             }
-            system.b.val[i] = 0;
+            system.b[i] = 0;
         }
 
         auto end = std::chrono::high_resolution_clock::now();
@@ -83,8 +83,8 @@ namespace nikfemm {
         return angle;
     }
 
-    CurrentDensitySystem CurrentDensityMesh::getFemSystemCotangentWeights() {
-        CurrentDensitySystem system(data.numberofpoints);
+    System<double> CurrentDensityMesh::getFemSystemCotangentWeights() {
+        System<double> system(data.numberofpoints);
 
         auto start = std::chrono::high_resolution_clock::now();
 
@@ -179,7 +179,7 @@ namespace nikfemm {
             }
 
             system.A(i, i) = -sum;
-            system.b.val[i] = 0;
+            system.b[i] = 0;
         }
 
         auto end = std::chrono::high_resolution_clock::now();
