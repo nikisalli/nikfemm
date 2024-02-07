@@ -39,7 +39,6 @@ namespace nikfemm {
                 }
             }
 
-            // coo.elems[MatCOOSymmetric<int>::get_key(id, id)].setToConstant(1);
             A(id, id) = 1;
             b.val[id] = value;
         }

@@ -392,12 +392,12 @@ namespace nikfemm {
                 double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / double_area;
                 double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / double_area;
                 double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / double_area;
-                if (v1 >= i) system.A(i, v1).addTerm(double_area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]);
-                if (v2 >= i) system.A(i, v2).addTerm(double_area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]);
-                if (v3 >= i) system.A(i, v3).addTerm(double_area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]);
+                if (v1 >= i) system.A(i, v1) += MagnetostaticNonLinearTerm({double_area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]});
+                if (v2 >= i) system.A(i, v2) += MagnetostaticNonLinearTerm({double_area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]});
+                if (v3 >= i) system.A(i, v3) += MagnetostaticNonLinearTerm({double_area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]});
 
                 // set the b vector
-                system.b[i].addToConstant((double_area * adjelems_props[i][j]->J) / 6);
+                system.b[i] += (double_area * adjelems_props[i][j]->J) / 6;
             }
         }
 
@@ -518,8 +518,8 @@ namespace nikfemm {
                     if (dist1 < epsilon * 0.1 && dist2 < epsilon * 0.1) {
                         // this edge is subject to a surface current
                         double length = Vector::distance(p1, p2);
-                        system.b[edge.v1].addToConstant(length * segment.Jm);
-                        system.b[edge.v2].addToConstant(length * segment.Jm);
+                        system.b[edge.v1] += length * segment.Jm;
+                        system.b[edge.v2] += length * segment.Jm;
                     }
                 }
             }
@@ -530,22 +530,6 @@ namespace nikfemm {
         
 
         return system;
-    }
-
-    void MagnetostaticMesh::addDirichletZeroBoundaryConditions(System<MagnetostaticNonLinearExpression>& system, uint32_t id) {
-        // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
-
-        // this function lets you set a Dirichlet boundary condition on a node
-        for (auto& elem : system.A.elems) {
-            uint32_t m = elem.first >> 32;
-            uint32_t n = elem.first & 0xFFFFFFFF;
-            if (m == id || n == id) {
-                elem.second.setToConstant(0);
-            }
-        }
-        // system.coo.elems[MatCOOSymmetric<int>::get_key(id, id)].setToConstant(1);
-        system.A(id, id).setToConstant(1);
-        system.b[id].setToConstant(0);
     }
 
     void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(System<MagnetostaticNonLinearExpression>& system) {
@@ -577,9 +561,9 @@ namespace nikfemm {
         }
 
         // make the magnetic vector potential zero on the three points
-        addDirichletZeroBoundaryConditions(system, p1);
-        addDirichletZeroBoundaryConditions(system, p2);
-        addDirichletZeroBoundaryConditions(system, p3);
+        system.addDirichletBoundaryCondition(p1, 0);
+        system.addDirichletBoundaryCondition(p2, 0);
+        system.addDirichletBoundaryCondition(p3, 0);
     }
 
     void MagnetostaticMesh::computeCurl(std::vector<Vector>& B, std::vector<double>& A) const {

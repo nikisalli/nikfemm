@@ -97,6 +97,7 @@ namespace nikfemm {
         double radius = 0;
         Prop default_prop;
         double epsilon;
+        double depth = 1;
 
         MeshData data;
         Drawing<Prop> drawing;

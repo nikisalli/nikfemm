@@ -11,20 +11,6 @@ namespace nikfemm {
         return result;
     }
 
-    void MagnetostaticNonLinearExpression::setToConstant(double constant) {
-        this->constant = constant;
-        terms.clear();
-    }
-
-    void MagnetostaticNonLinearExpression::addToConstant(double constant) {
-        nassert(isLinear(), "Cannot add to constant of non-linear expression");
-        this->constant += constant;
-    }
-
-    void MagnetostaticNonLinearExpression::addTerm(double linear_coefficient, uint32_t nonlinear_coefficient_element_index) {
-        terms.push_back(MagnetostaticNonLinearTerm{linear_coefficient, nonlinear_coefficient_element_index});
-    }
-
     MagnetostaticMatCSRSymmetric::MagnetostaticMatCSRSymmetric(MatCOOSymmetric<MagnetostaticNonLinearExpression>& coo) {
         m = coo.m;
 

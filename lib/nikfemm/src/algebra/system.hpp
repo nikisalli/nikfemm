@@ -15,7 +15,7 @@ namespace nikfemm {
         System(MatCOOSymmetric<WeightType> A, std::vector<double> b) : A(A), b(b) {}
         System(System<WeightType> const& other) : A(other.A), b(other.b) {}
 
-        void addDirichletBoundaryCondition(uint32_t id, WeightType value) {
+        void addDirichletBoundaryCondition(uint32_t id, double value) {
             // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
             // this function lets you set a Dirichlet boundary condition on a node
 
@@ -41,7 +41,6 @@ namespace nikfemm {
                 }
             }
 
-            // coo.elems[MatCOOSymmetric<int>::get_key(id, id)].setToConstant(1);
             A(id, id) = 1;
             b[id] = value;
         }

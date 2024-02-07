@@ -21,15 +21,26 @@ namespace nikfemm {
             return terms.size() == 0;
         }
         double evaluate(std::vector<float>& mu);
-        void setToConstant(double constant);
-        void setDirichlet();
-        void unsetDirichlet();
-        void addToConstant(double constant);
-        void addTerm(double linear_coefficient, uint32_t nonlinear_coefficient_element_index);
+
+        MagnetostaticNonLinearExpression& operator=(const double& other) {
+            constant = other;
+            terms.clear();
+            return *this;
+        }
 
         MagnetostaticNonLinearExpression& operator=(const MagnetostaticNonLinearExpression& other) {
             constant = other.constant;
             terms = other.terms;
+            return *this;
+        }
+
+        MagnetostaticNonLinearExpression& operator+=(const double& other) {
+            constant += other;
+            return *this;
+        }
+
+        MagnetostaticNonLinearExpression& operator+=(const MagnetostaticNonLinearTerm& other) {
+            terms.push_back(other);
             return *this;
         }
 
@@ -38,6 +49,16 @@ namespace nikfemm {
             for (auto const& term : other.terms) {
                 terms.push_back(term);
             }
+            return *this;
+        }
+
+        MagnetostaticNonLinearExpression& operator-=(const double& other) {
+            constant -= other;
+            return *this;
+        }
+
+        MagnetostaticNonLinearExpression& operator-=(const MagnetostaticNonLinearTerm& other) {
+            terms.push_back(MagnetostaticNonLinearTerm{-other.linear_coefficient, other.nonlinear_coefficient_element_index});
             return *this;
         }
 
