@@ -5,6 +5,7 @@
 #include <map>
 
 #include "../algebra/coo.hpp"
+#include "../algebra/math.hpp"
 #include "../drawing/drawing.hpp"
 #include "../geometry/common.hpp"
 
@@ -104,15 +105,31 @@ namespace nikfemm {
 
         ~Mesh();
 
-#ifdef NIKFEMM_USE_OPENCV
-        void plotRend(cv::Mat* image, double width, double height);
-        void plotToFile(uint32_t width, uint32_t height, std::string filename);
-        void plot(uint32_t width, uint32_t height);
-#endif
         void mesh(double max_triangle_area = 1.0, int min_angle = 33);
         void addKelvinBoundaryConditions(uint32_t boundary_points);
         void kelvinTransformCentered();
         void computeEpsilon();
+        std::vector<Vector> computeCurl(std::vector<double>& in) const;
+        std::vector<Vector> computeGrad(std::vector<double>& in) const;
+        Polygon getInnermostPolygon(Vector p);
+        double computeAreaIntegral(Vector p);
+        double computeMass(Vector p, double density);
+        Vector computeBarycenter(Vector p);
+        double computeInertiaMoment(Vector p, Vector center, double density);
+        void getMeshBoundingBox(float& min_x, float& max_x, float& min_y, float& max_y, bool clip_to_radius);
+        void getMeshScaleOffset(float width, float height, float& x_scale, float& y_scale, float& x_offset, float& y_offset, bool clip_to_radius);
+#ifdef NIKFEMM_USE_OPENCV
+        void ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void ElemScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void NodeScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void ElemScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void ElemScalarPlot(uint32_t width, uint32_t height, std::vector<Vector>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void NodeScalarPlot(uint32_t width, uint32_t height, std::vector<Vector>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void ElemScalarPlotToFile(uint32_t width, uint32_t height, std::vector<Vector>& scalar, std::string filename, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+        void NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<Vector>& scalar, std::string filename, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
+#endif
     };
 
     template <typename Prop>
@@ -130,109 +147,6 @@ namespace nikfemm {
         if (data.edgelist != nullptr) free(data.edgelist);
         if (data.edgemarkerlist != nullptr) free(data.edgemarkerlist);
     }
-
-#ifdef NIKFEMM_USE_OPENCV
-    template <typename Prop>
-    void Mesh<Prop>::plotRend(cv::Mat* image, double width, double height) {
-        // get mesh enclosing rectangle
-        float min_x = -1.1 * radius;
-        float min_y = -1.1 * radius;
-        float max_x = 1.1 * radius;
-        float max_y = 1.1 * radius;
-
-        // object to window ratio
-        float ratio = 0.9;
-
-        // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
-        // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
-        // x offset to center mesh in window
-        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
-        // y offset to center mesh in window
-        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
-
-        // render
-        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
-            // get the triangle
-            Elem e = data.trianglelist[i];
-            // get the vertices
-            Vector v1 = data.pointlist[e[0]];
-            Vector v2 = data.pointlist[e[1]];
-            Vector v3 = data.pointlist[e[2]];
-
-            if (Vector::distance(v1, Vector(0, 0)) > radius + epsilon ||
-                Vector::distance(v2, Vector(0, 0)) > radius + epsilon || 
-                Vector::distance(v3, Vector(0, 0)) > radius + epsilon) {
-                continue;
-            }
-
-            // draw mesh edges
-            // draw lines from v1 to v2
-            cv::line(*image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
-                            cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
-                            cv::Scalar(255, 255, 255), 1);
-            cv::line(*image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
-                            cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
-                            cv::Scalar(255, 255, 255), 1);
-            cv::line(*image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
-                            cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
-                            cv::Scalar(255, 255, 255), 1);
-        }
-
-        // draw the geometry
-        // draw the segments
-        for (DrawingSegment s : drawing.segments) {
-            cv::line(*image, cv::Point(x_scale * drawing.points[s.p1].x + x_offset,
-                                       y_scale * drawing.points[s.p1].y + y_offset), 
-                             cv::Point(x_scale * drawing.points[s.p2].x + x_offset, 
-                                       y_scale * drawing.points[s.p2].y + y_offset),
-                             cv::Scalar(255, 255, 255), 1);
-        }
-
-        for (Vector p : drawing.points) {
-            cv::circle(*image, cv::Point(x_scale * p.x + x_offset, y_scale * p.y + y_offset), 2, cv::Scalar(255, 255, 255), -1);
-        }
-
-        // draw the regions
-        for (DrawingRegion r : drawing.regions) {
-            Vector pos = r.first;
-            // draw white cross
-            cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
-                                cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
-                                cv::Scalar(0, 0, 255), 1);
-            cv::line(*image, cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset - 5),
-                                cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset + 5),
-                                cv::Scalar(0, 0, 255), 1);
-        }
-    }
-
-    template <typename Prop>
-    void Mesh<Prop>::plot(uint32_t width, uint32_t height) {
-        // create the image
-        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
-
-        // render the mesh
-        plotRend(&image, width, height);
-
-        // show the image
-        cv::imshow("drawing", image);
-        // continue if image is closed
-        cv::waitKey(0);
-    }
-
-    template <typename Prop>
-    void Mesh<Prop>::plotToFile(uint32_t width, uint32_t height, std::string filename) {
-        // create the image
-        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
-
-        // render the mesh
-        plotRend(&image, width, height);
-
-        // save the image
-        cv::imwrite(filename, image);
-    }
-#endif
 
     template <typename Prop>
     void Mesh<Prop>::computeEpsilon() {
@@ -458,6 +372,479 @@ namespace nikfemm {
 
         data.numberoftriangles = new_triangle_number;
     }
+
+    template <typename Prop>
+    std::vector<Vector> Mesh<Prop>::computeCurl(std::vector<double>& in) const {
+        std::vector<Vector> out(data.numberoftriangles);
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Elem myelem = data.trianglelist[i];
+            double x1 = data.pointlist[myelem[0]].x;
+            double y1 = data.pointlist[myelem[0]].y;
+            double z1 = in[myelem[0]];
+            double x2 = data.pointlist[myelem[1]].x;
+            double y2 = data.pointlist[myelem[1]].y;
+            double z2 = in[myelem[1]];
+            double x3 = data.pointlist[myelem[2]].x;
+            double y3 = data.pointlist[myelem[2]].y;
+            double z3 = in[myelem[2]];
+
+            // fit z = a + bx + cy to the three points
+            double a1 = x2 - x1;
+            double b1 = y2 - y1;
+            double c1 = z2 - z1;
+            double a2 = x3 - x1;
+            double b2 = y3 - y1;
+            double c2 = z3 - z1;
+
+            double a = b1 * c2 - b2 * c1;
+            double b = a2 * c1 - a1 * c2;
+            double c = a1 * b2 - b1 * a2;
+
+            double dx = -a / c;
+            double dy = -b / c;
+            
+            // printf("dx = %.17g dy = %.17g for elem (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g)\n", dx, dy, x1, y1, z1, x2, y2, z2, x3, y3, z3);
+
+            out[i] = Vector(-dy, dx);
+        }
+
+        return out;
+    }
+
+    template <typename Prop>
+    std::vector<Vector> Mesh<Prop>::computeGrad(std::vector<double>& in) const {
+        std::vector<Vector> out(data.numberoftriangles);
+
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Elem myelem = data.trianglelist[i];
+            double x1 = data.pointlist[myelem[0]].x;
+            double y1 = data.pointlist[myelem[0]].y;
+            double z1 = in[myelem[0]];
+            double x2 = data.pointlist[myelem[1]].x;
+            double y2 = data.pointlist[myelem[1]].y;
+            double z2 = in[myelem[1]];
+            double x3 = data.pointlist[myelem[2]].x;
+            double y3 = data.pointlist[myelem[2]].y;
+            double z3 = in[myelem[2]];
+
+            // fit z = a + bx + cy to the three points
+            double a1 = x2 - x1;
+            double b1 = y2 - y1;
+            double c1 = z2 - z1;
+            double a2 = x3 - x1;
+            double b2 = y3 - y1;
+            double c2 = z3 - z1;
+
+            double a = b1 * c2 - b2 * c1;
+            double b = a2 * c1 - a1 * c2;
+            double c = a1 * b2 - b1 * a2;
+
+            double dx = -a / c;
+            double dy = -b / c;
+            
+            // printf("dx = %.17g dy = %.17g for elem (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g), (%.1f, %.1f, %.17g)\n", dx, dy, x1, y1, z1, x2, y2, z2, x3, y3, z3);
+
+            out[i] = Vector(dx, dy);
+        }
+
+        return out;
+    }
+
+    template <typename Prop>
+    Polygon Mesh<Prop>::getInnermostPolygon(Vector p) {
+        // find the polygon that contains p
+        Polygon integration_region;
+        Vector translated_p = p - center;
+        std::vector<Polygon> polygons_that_contain_p;
+        for (auto polygon : drawing.polygons) {
+            if (polygon.contains(translated_p)) {
+                polygons_that_contain_p.push_back(polygon);
+            }
+        }
+
+        // if there is more than one polygon that contains p then we have to find the polygon that isn't contained by any other polygon that contains p
+        if (polygons_that_contain_p.size() == 0) {
+            nexit("ERROR: no polygon contains p");
+        } else if (polygons_that_contain_p.size() == 1) {
+            integration_region = polygons_that_contain_p[0];
+        } else {
+            for (auto polygon : polygons_that_contain_p) {
+                bool is_integration_region = true;
+                for (auto other_polygon : polygons_that_contain_p) {
+                    if (polygon != other_polygon && polygon.contains(other_polygon)) {
+                        is_integration_region = false;
+                        break;
+                    }
+                }
+                if (is_integration_region) {
+                    integration_region = polygon;
+                    break;
+                }
+            }
+        }
+
+        return integration_region;
+    }
+
+    template <typename Prop>
+    double Mesh<Prop>::computeAreaIntegral(Vector p) {
+        Polygon integration_region = getInnermostPolygon(p);
+
+        double area = 0;
+        
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Vector p1 = data.pointlist[data.trianglelist[i][0]];
+            Vector p2 = data.pointlist[data.trianglelist[i][1]];
+            Vector p3 = data.pointlist[data.trianglelist[i][2]];
+
+            if (integration_region.contains(p1) && integration_region.contains(p2) && integration_region.contains(p3)) {
+                area += Vector::area(p1, p2, p3);
+            }
+        }
+
+        return area;
+    }
+
+    template <typename Prop>
+    double Mesh<Prop>::computeMass(Vector p, double density) {
+        double area = computeAreaIntegral(p);
+        return area * depth * density;
+    }
+
+    template <typename Prop>
+    Vector Mesh<Prop>::computeBarycenter(Vector p) {
+        Polygon integration_region = getInnermostPolygon(p);
+
+        double area = 0;
+        Vector barycenter = {0, 0};
+
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Vector p1 = data.pointlist[data.trianglelist[i][0]];
+            Vector p2 = data.pointlist[data.trianglelist[i][1]];
+            Vector p3 = data.pointlist[data.trianglelist[i][2]];
+
+            if (integration_region.contains(p1) && integration_region.contains(p2) && integration_region.contains(p3)) {
+                double triangle_area = Vector::area(p1, p2, p3);
+                area += triangle_area;
+                barycenter += ((p1 + p2 + p3) / 3) * triangle_area;
+            }
+        }
+
+        return barycenter / area;
+    }
+
+    template <typename Prop>
+    double Mesh<Prop>::computeInertiaMoment(Vector p, Vector center, double density) {
+        Polygon integration_region = getInnermostPolygon(p);
+
+        double moment = 0;
+
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            Vector p1 = data.pointlist[data.trianglelist[i][0]];
+            Vector p2 = data.pointlist[data.trianglelist[i][1]];
+            Vector p3 = data.pointlist[data.trianglelist[i][2]];
+
+            if (integration_region.contains(p1) && integration_region.contains(p2) && integration_region.contains(p3)) {
+                double triangle_area = Vector::area(p1, p2, p3);
+                Vector triangle_barycenter = (p1 + p2 + p3) / 3;
+                Vector r = triangle_barycenter - center;
+                moment += triangle_area * r.normSquared();
+            }
+        }
+
+        return moment * depth * density;
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::getMeshBoundingBox(float& min_x, float& max_x, float& min_y, float& max_y, bool clip_to_radius) {
+        if (!clip_to_radius) {
+            nloginfo("clip to bounding box for plotting");
+            // find baricenter of all the points
+            Vector baricenter = {0, 0};
+            for (int64_t i = 0; i < data.numberofpoints; i++) {
+                baricenter += data.pointlist[i];
+            }
+            baricenter /= data.numberofpoints;
+
+            // find the furthest point from the baricenter
+            float max_distance = 0;
+            for (int64_t i = 0; i < data.numberofpoints; i++) {
+                max_distance = std::max(max_distance, (float)(Vector::distance(data.pointlist[i], baricenter)));
+            }
+
+            min_x = baricenter.x - max_distance * 1.1;
+            max_x = baricenter.x + max_distance * 1.1;
+            min_y = baricenter.y - max_distance * 1.1;
+            max_y = baricenter.y + max_distance * 1.1;
+        } else {
+            nloginfo("clip to radius for plotting");
+            min_x = -1.1 * radius;
+            min_y = -1.1 * radius;
+            max_x = 1.1 * radius;
+            max_y = 1.1 * radius;
+        }
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::getMeshScaleOffset(float width, float height, float& x_scale, float& y_scale, float& x_offset, float& y_offset, bool clip_to_radius) {
+        float min_x, max_x, min_y, max_y;
+
+        getMeshBoundingBox(min_x, max_x, min_y, max_y, clip_to_radius);
+
+        // object to window ratio
+        float ratio = 0.9;
+
+        // x scale factor to loosely fit mesh in window (equal in x and y)
+        x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
+        // y scale factor to loosely fit mesh in window
+        y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
+        // x offset to center mesh in window
+        x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
+        // y offset to center mesh in window
+        y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
+    }
+
+    #ifdef NIKFEMM_USE_OPENCV
+    template <typename Prop>
+    void Mesh<Prop>::NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        float x_scale, y_scale, x_offset, y_offset;
+
+        getMeshScaleOffset(width, height, x_scale, y_scale, x_offset, y_offset, clip_to_radius);
+
+        std::vector<float> A_sorted(scalar.size());
+        for (uint32_t i = 0; i < scalar.size(); i++) {
+            A_sorted[i] = scalar[i];
+        }
+        std::sort(A_sorted.begin(), A_sorted.end());
+        float max_A = A_sorted[0.9 * A_sorted.size()];
+        float min_A = A_sorted[0.1 * A_sorted.size()];
+
+        nloginfo("max_A: %f, min_A: %f", max_A, min_A);
+
+        // draw the points
+        for (int64_t i = 0; i < data.numberofpoints; i++) {    
+            Vector p = data.pointlist[i];
+
+            if (Vector::distance(p, Vector(0, 0)) > radius * 1.5 + epsilon && clip_to_radius) {
+                continue;
+            }
+
+            // verts
+            auto points = std::vector<cv::Point>();
+
+            // fill the Vertex<MagnetostaticProp> cell with jet color of the Vertex<MagnetostaticProp>
+            cv::Scalar c = val2jet(scalar[i], min_A, max_A);
+            // printf("A: %f, c: %d, %d, %d\n", A.val[i], c.r, c.g, c.b);
+                            
+            // find the triangles that contain the Vertex<MagnetostaticProp> and then
+            // for every triangle find the barycenter and add it to the points vector
+            for (int32_t j = 0; j < data.numberoftriangles; j++) {
+                if (data.trianglelist[j][0] == i || data.trianglelist[j][1] == i || data.trianglelist[j][2] == i) {
+                    Vector barycenter = {
+                        (data.pointlist[data.trianglelist[j][0]].x + data.pointlist[data.trianglelist[j][1]].x + data.pointlist[data.trianglelist[j][2]].x) / 3,
+                        (data.pointlist[data.trianglelist[j][0]].y + data.pointlist[data.trianglelist[j][1]].y + data.pointlist[data.trianglelist[j][2]].y) / 3
+                    };
+                    points.push_back(cv::Point(x_offset + barycenter.x * x_scale, y_offset + barycenter.y * y_scale));
+                }
+            }
+            
+            // find the center of the points
+            cv::Point center = {0, 0};
+            for (uint8_t j = 0; j < points.size(); j++) {
+                center.x += points[j].x;
+                center.y += points[j].y;
+            }
+            // printf("count: %d\n", points.size());
+            center.x /= points.size();
+            center.y /= points.size();
+            // printf("center: %d %d\n", center.x, center.y);
+
+            // sort the points by angle
+            std::sort(points.begin(), points.end(), [center](cv::Point a, cv::Point b) {
+                return atan2(a.y - center.y, a.x - center.x) < atan2(b.y - center.y, b.x - center.x);
+            });
+
+            // draw the polygon
+            cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, points), c);
+        }
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::NodeScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+
+        if (!image.data) {
+            nexit("Could not create image");
+        }
+
+        NodeScalarPlotRend(&image, width, height, scalar, plot_mesh, plot_regions, clip_to_radius);
+
+        // flip image horizontally
+        // cv::flip(image, image, 0);
+
+        cv::imshow("scalar plot", image);
+        nloginfo("showing image");
+        cv::waitKey(0);
+        nloginfo("done");
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        cv::Mat image(height, width, CV_8UC3, cv::Scalar(255, 255, 255));
+
+        if (!image.data) {
+            nexit("Could not create image");
+        }
+
+        NodeScalarPlotRend(&image, width, height, scalar, plot_mesh, plot_regions, clip_to_radius);
+
+        // flip image horizontally
+        cv::flip(image, image, 0);
+
+        cv::imwrite(filename, image);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        float x_scale, y_scale, x_offset, y_offset;
+
+        getMeshScaleOffset(width, height, x_scale, y_scale, x_offset, y_offset, clip_to_radius);
+
+        // std::sort(scalar.begin(), scalar.end());
+        // double max_Scalar = scalar[scalar.size() - 1];
+        // double min_Scalar = scalar[0];
+        std::vector<double> sortedScalar = scalar;
+        std::sort(sortedScalar.begin(), sortedScalar.end());
+
+        printf("sortedScalar.size(): %lu, 0.95 * sortedScalar.size(): %f, 0.05 * sortedScalar.size(): %f\n", sortedScalar.size(), sortedScalar.size() * 0.95, sortedScalar.size() * 0.05);
+        // 95th percentile
+        double max_Scalar = sortedScalar[sortedScalar.size() * 0.95];
+        double min_Scalar = sortedScalar[sortedScalar.size() * 0.05];
+
+        nloginfo("max_Scalar: %.17g, min_Scalar: %.17g", max_Scalar, min_Scalar);
+
+        // render
+        for (uint32_t i = 0; i < data.numberoftriangles; i++) {
+            // get the triangle
+            Elem e = data.trianglelist[i];
+            // get the vertices
+            Vector v1 = data.pointlist[e[0]];
+            Vector v2 = data.pointlist[e[1]];
+            Vector v3 = data.pointlist[e[2]];
+
+            if (Vector::distance(v1, Vector(0, 0)) > radius * 1.5 + epsilon ||
+                Vector::distance(v2, Vector(0, 0)) > radius * 1.5 + epsilon || 
+                Vector::distance(v3, Vector(0, 0)) > radius * 1.5 + epsilon && clip_to_radius) {
+                continue;
+            }
+
+            // get the B vectors
+            cv::Scalar c = val2jet(scalar[i], min_Scalar, max_Scalar);
+            // get the vertices in window coordinates
+            cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, std::vector<cv::Point>({
+                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset)
+            })), c);
+
+            // draw mesh edges
+            // draw lines from v1 to v2
+            if (plot_mesh) {
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+            }
+        }
+
+        // draw the geometry
+        // draw the segments
+        for (DrawingSegment s : drawing.segments) {
+            cv::line(*image, cv::Point(x_scale * drawing.points[s.p1].x + x_offset,
+                                       y_scale * drawing.points[s.p1].y + y_offset), 
+                             cv::Point(x_scale * drawing.points[s.p2].x + x_offset, 
+                                       y_scale * drawing.points[s.p2].y + y_offset),
+                             cv::Scalar(255, 255, 255), 1);
+        }
+
+        if (plot_regions) {
+            // draw the regions
+            for (DrawingRegion r : drawing.regions) {
+                std::vector<cv::Point> points;
+                
+                Vector pos = r.first;
+                // draw white cross
+                cv::line(*image, cv::Point(x_scale * pos.x + x_offset - 5, y_scale * pos.y + y_offset),
+                                 cv::Point(x_scale * pos.x + x_offset + 5, y_scale * pos.y + y_offset),
+                                 cv::Scalar(255, 255, 255), 1);
+                cv::line(*image, cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset - 5),
+                                 cv::Point(x_scale * pos.x + x_offset, y_scale * pos.y + y_offset + 5),
+                                 cv::Scalar(255, 255, 255), 1);
+            }
+        }
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::ElemScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        ElemScalarPlotRend(&image, width, height, scalar, plot_mesh, plot_regions, clip_to_radius);
+
+        // flip image horizontally
+        cv::flip(image, image, 0);
+
+        // show the image
+        cv::imshow("B", image);
+        // continue if image is closed
+        cv::waitKey(0);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::ElemScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        // create the image
+        cv::Mat image = cv::Mat::zeros(height, width, CV_8UC3);
+
+        // render the mesh
+        ElemScalarPlotRend(&image, width, height, scalar, plot_mesh, plot_regions, clip_to_radius);
+
+        // flip image horizontally
+        cv::flip(image, image, 0);
+
+        // save the image
+        cv::imwrite(filename, image);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::ElemScalarPlot(uint32_t width, uint32_t height, std::vector<Vector>& scalar, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        auto scalar_magnitude = element_wise_norm(scalar);
+        ElemScalarPlot(width, height, scalar_magnitude, plot_mesh, plot_regions, clip_to_radius);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::ElemScalarPlotToFile(uint32_t width, uint32_t height, std::vector<Vector>& scalar, std::string filename, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        auto scalar_magnitude = element_wise_norm(scalar);
+        ElemScalarPlotToFile(width, height, scalar_magnitude, filename, plot_mesh, plot_regions, clip_to_radius);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::NodeScalarPlot(uint32_t width, uint32_t height, std::vector<Vector>& vector, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        auto scalar_magnitude = element_wise_norm(vector);
+        NodeScalarPlot(width, height, scalar_magnitude, plot_mesh, plot_regions, clip_to_radius);
+    }
+
+    template <typename Prop>
+    void Mesh<Prop>::NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<Vector>& vector, std::string filename, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
+        auto scalar_magnitude = element_wise_norm(vector);
+        NodeScalarPlotToFile(width, height, scalar_magnitude, filename, plot_mesh, plot_regions, clip_to_radius);
+    }
+#endif
 }
 
 #endif

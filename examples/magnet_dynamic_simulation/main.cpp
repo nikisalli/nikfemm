@@ -8,7 +8,8 @@ uint64_t time_ms() {
 }
 
 int main(int argc, char** argv) {
-    nikfemm::MagnetostaticSimulation simulation(1, 0.1);
+    nikfemm::MagnetostaticSimulation simulation;
+    simulation.depth = 1.0;
 
     nikfemm::Vector center1 = {0, 0};
     nikfemm::Vector center2 = {3, 3};
@@ -33,15 +34,15 @@ int main(int argc, char** argv) {
     simulation.mesh.drawing.drawRegion(center1, {0, magnetization1.rotate(angle1), nikfemm::magnetostatic_materials::neodymium});
     simulation.mesh.drawing.drawRegion(center2, {0, magnetization2.rotate(angle2), nikfemm::magnetostatic_materials::neodymium});
 
-    auto system = simulation.generateSystem();
+    auto system = simulation.generateSystem(1, 0.1);
     simulation.solve(system);
 
     // simulation.Bplot(1000, 1000, false, true);
 
-    double moment_of_inertia1 = simulation.computeInertiaMoment(center1, center1, ndfeb_density);
-    double moment_of_inertia2 = simulation.computeInertiaMoment(center2, center2, ndfeb_density);
-    double mass1 = simulation.computeMass(center1, ndfeb_density);
-    double mass2 = simulation.computeMass(center2, ndfeb_density);
+    double moment_of_inertia1 = simulation.mesh.computeInertiaMoment(center1, center1, ndfeb_density);
+    double moment_of_inertia2 = simulation.mesh.computeInertiaMoment(center2, center2, ndfeb_density);
+    double mass1 = simulation.mesh.computeMass(center1, ndfeb_density);
+    double mass2 = simulation.mesh.computeMass(center2, ndfeb_density);
     printf("Moment of inertia 1: %.17g, Moment of inertia 2: %.17g, Mass 1: %.17g, Mass 2: %.17g\n", moment_of_inertia1, moment_of_inertia2, mass1, mass2);
 
     double dt = 10;
@@ -52,24 +53,24 @@ int main(int argc, char** argv) {
     double angular_velocity2 = 0;
     uint64_t last_time = time_ms();
     for (int i = 0; i < 10000; i++) {
-        nikfemm::MagnetostaticSimulation sim(1, 1);
+        nikfemm::MagnetostaticSimulation sim;
+        sim.depth = 1.0;
         sim.mesh.drawing.drawPolygon(square.copy().translate(center1).rotate(angle1, center1));
         sim.mesh.drawing.drawPolygon(square.copy().translate(center2).rotate(angle2, center2));
         sim.mesh.drawing.drawRegion(center1, {0, magnetization1.rotate(angle1), nikfemm::magnetostatic_materials::neodymium});
         sim.mesh.drawing.drawRegion(center2, {0, magnetization2.rotate(angle2), nikfemm::magnetostatic_materials::neodymium});
 
-        auto system = sim.generateSystem();
-        sim.solve(system);
+        auto system = sim.generateSystem(1, 0.1);
+        auto A = sim.solve(system);
+        auto B = sim.mesh.computeCurl(A);
 
 #ifdef NIKFEMM_USE_OPENCV
-        sim.Bplot(1000, 1000, false, true, NAN, NAN, false);
+        printf("B: %d\n", B.size());
+        sim.mesh.ElemScalarPlot(1000, 1000, B, false, true);
 #endif
-        // wait 100ms
-        // while (time_ms() - last_time < 1000) {}
-        // last_time = time_ms();
 
-        auto stress1 = sim.computeStressIntegral(center1, center1);
-        auto stress2 = sim.computeStressIntegral(center2, center2);
+        auto stress1 = sim.computeStressIntegral(B, center1, center1);
+        auto stress2 = sim.computeStressIntegral(B, center2, center2);
 
         // F = ma
         // T = Ia

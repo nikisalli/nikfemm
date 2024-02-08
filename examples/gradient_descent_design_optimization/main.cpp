@@ -28,11 +28,12 @@ double cost_function(double winding_thickness, double height, double iron_thickn
     sim.mesh.drawing.drawRegion({0, -1.5}, {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 
     auto system = sim.generateSystem(0.001);
-    sim.solve(system);
+    auto A = sim.solve(system);
+    auto B = sim.mesh.computeCurl(A);
 
-    auto force = sim.computeForceIntegrals({0, -1.5});
+    auto force = sim.computeForceIntegrals(B, {0, -1.5});
 #ifdef NIKFEMM_USE_OPENCV
-    if (plot) sim.Bplot(1000, 1000, false, true, NAN, NAN, false);
+    if (plot) sim.mesh.ElemScalarPlot(1000, 1000, B, false, false, true);
 #endif
     return force.y;
 }

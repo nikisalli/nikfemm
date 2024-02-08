@@ -36,14 +36,15 @@ int main(int argc, char** argv) {
     simulation.mesh.drawing.drawRegion(nikfemm::Vector(0, 5), {0, {0, 0}, nikfemm::magnetostatic_materials::iron_linear});
 
     auto system = simulation.generateSystem(true, 0.1);
-    simulation.solve(system);
+    auto A = simulation.solve(system);
+    auto B = simulation.mesh.computeCurl(A);
     // simulation.Aplot(400, 400);
 #ifdef NIKFEMM_USE_OPENCV
-    simulation.Bplot(1000, 1000, false, false, 0.000005, 0);
+    simulation.mesh.ElemScalarPlot(1000, 1000, B, false, false, true);
     // simulation.AplotToFile(100000, 100000, "Aplot.png");
-    simulation.BplotToFile(10000, 10000, "Bplot.png", false, false);
+    simulation.mesh.ElemScalarPlotToFile(1000, 1000, B, "Bplot.png", false, false);
 #endif
 
-    auto stress = simulation.computeStressIntegral({0, 1.5}, {0, 1.5});
+    auto stress = simulation.computeStressIntegral(B, {0, 1.5}, {0, 1.5});
     printf("Force: %.17g, %.17g, Torque: %.17g\n", stress.Force.x, stress.Force.y, stress.Torque);
 }

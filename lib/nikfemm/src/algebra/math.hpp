@@ -23,6 +23,8 @@ namespace nikfemm {
     double squareSum(const std::vector<double>& cv);
     double dot(const std::vector<double>& cv1, const std::vector<double>& cv2);
     double norm(const std::vector<double>& cv);
+
+    std::vector<double> element_wise_norm(std::vector<Vector>& cv);
 }
 
 #endif // NIKFEMM_ALGEBRA_MATH_HPP

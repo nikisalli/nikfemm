@@ -32,9 +32,6 @@ namespace nikfemm {
 
         System<MagnetostaticNonLinearExpression> getFemSystem();
         void addDirichletInfiniteBoundaryConditions(System<MagnetostaticNonLinearExpression>& system);
-        void addDirichletZeroBoundaryConditions(System<MagnetostaticNonLinearExpression>& system, uint32_t id);
-        void computeCurl(std::vector<Vector>& B, std::vector<double>& A) const;
-        void computeGrad(std::vector<Vector>& B, std::vector<double>& A) const;
         void refineMeshAroundMagnets();
     };
 }

@@ -19,13 +19,13 @@ include_directories("${NIKFEMM_INCLUDE_DIR}")
 
 add_library(nikfemm SHARED ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 
-# add opencv if OPENCV option is set
-option(OPENCV "Use OpenCV" OFF)
-if (OPENCV)
-    add_definitions(-DNIKFEMM_USE_OPENCV)
+set(NIKFEMM_USE_OPENCV ON)
+
+# add opencv if NIKFEMM_USE_OPENCV option is set
+if (NIKFEMM_USE_OPENCV)
     find_package(OpenCV REQUIRED)
-    include_directories(${OpenCV_INCLUDE_DIRS})
     target_link_libraries(nikfemm ${OpenCV_LIBS})
+    target_compile_definitions(nikfemm PUBLIC NIKFEMM_USE_OPENCV)
 endif()
 
 target_include_directories (nikfemm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

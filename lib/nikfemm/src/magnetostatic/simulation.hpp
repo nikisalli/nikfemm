@@ -38,42 +38,18 @@ namespace nikfemm {
     class MagnetostaticSimulation {
         public:
             MagnetostaticMesh mesh;
-            std::vector<Vector> B;
-            std::vector<double> A;
             double depth = 1.0;
 
             System<MagnetostaticNonLinearExpression> generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
-            void solve(System<MagnetostaticNonLinearExpression>& system);
-            Vector computeForceIntegrals(Vector p);
-            double computeTorqueIntegral(Vector p, Vector center);
-            StressTensor computeStressIntegral(Vector p, Vector center);
-            Vector computeBarycenter(Vector p);
-            double computeInertiaMoment(Vector p, Vector center, double density);
-            double computeMass(Vector p, double density);
+            std::vector<double> solve(System<MagnetostaticNonLinearExpression>& system);
+            Vector computeForceIntegrals(std::vector<Vector> B, Vector p);
+            double computeTorqueIntegral(std::vector<Vector> B, Vector p, Vector center);
+            StressTensor computeStressIntegral(std::vector<Vector> B, Vector p, Vector center);
+            Vector computeForceIntegrals(std::vector<Vector> B, SurroundingRegionBlockIntegralAssets assets, Vector p);
+            double computeTorqueIntegral(std::vector<Vector> B, SurroundingRegionBlockIntegralAssets assets, Vector p, Vector center);
         protected:
-            double computeAreaIntegral(Vector p);
-            Vector computeForceIntegrals(SurroundingRegionBlockIntegralAssets assets, Vector p);
-            double computeTorqueIntegral(SurroundingRegionBlockIntegralAssets assets, Vector p, Vector center);
-            Polygon getInnermostPolygon(Vector p);
-#ifdef NIKFEMM_USE_OPENCV
-            void AplotRend(cv::Mat* image, double width, double height);
-            void BplotRend(cv::Mat* image, double width, double height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool plotCurves = false, uint32_t curve_number = 100);
-            void ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
-            void NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
-#endif
-            static void updateMu(std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, std::vector<Vector>& B, double residual, uint32_t iter);
-            auto getSurroundingRegionBlockIntegralAssets(Vector p);
-        public:
-#ifdef NIKFEMM_USE_OPENCV
-            void Aplot(uint32_t width, uint32_t height);
-            void Bplot(uint32_t width, uint32_t height, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool waitkey = true, bool plotCurves = false, uint32_t curve_number = 100);
-            void ElemScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
-            void NodeScalarPlot(uint32_t width, uint32_t height, std::vector<double>& scalar, bool plotMesh = false, bool plotRegions = false);
-            void AplotToFile(uint32_t width, uint32_t height, std::string filename);
-            void BplotToFile(uint32_t width, uint32_t height, std::string filename, bool plotMesh = false, bool plotRegions = false, double maxB = NAN, double minB = NAN, bool plotCurves = false, uint32_t curve_number = 100);
-            void ElemScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh = false, bool plotRegions = false);
-            void NodeScalarPlotToFile(uint32_t width, uint32_t height, std::vector<double>& scalar, std::string filename, bool plotMesh = false, bool plotRegions = false);
-#endif
+            static void updateMu(std::vector<Vector> B, std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, double residual, uint32_t iter);
+            auto getSurroundingRegionBlockIntegralAssets(std::vector<Vector> B, Vector p);
     };
 }
 

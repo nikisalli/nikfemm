@@ -234,4 +234,12 @@ namespace nikfemm {
     double norm(const std::vector<double>& cv) {
         return sqrt(squareSum(cv));
     }
+
+    std::vector<double> element_wise_norm(std::vector<Vector>& cv) {
+        std::vector<double> result(cv.size());
+        for (uint32_t i = 0; i < cv.size(); i++) {
+            result[i] = cv[i].norm();
+        }
+        return result;
+    }
 }

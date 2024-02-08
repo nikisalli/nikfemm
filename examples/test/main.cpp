@@ -51,13 +51,14 @@ int main(int argc, char** argv) {
     */
 
     auto system = simulation.generateSystem();
-    simulation.solve(system);
+    auto A = simulation.solve(system);
+    auto B = simulation.mesh.computeCurl(A);
     // simulation.Aplot(400, 400);
     // simulation.Bplot(400, 400);
     // simulation.AplotToFile(100000, 100000, "Aplot.png");
     // simulation.BplotToFile(10000, 10000, "Bplot.png", false, false);
 #ifdef NIKFEMM_USE_OPENCV
-    simulation.Bplot(1000, 1000, false, false);
+    simulation.mesh.ElemScalarPlot(1000, 1000, B, false, false, true);
 #endif
 
     // simulation.computeForceIntegrals({0.5, 0.5});

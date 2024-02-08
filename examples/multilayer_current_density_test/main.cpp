@@ -26,6 +26,6 @@ int main(int argc, char** argv) {
     simulation.solve(system);
 
 #ifdef NIKFEMM_USE_OPENCV
-    simulation.Vplot(1000, 1000);
+    simulation.meshes[0].NodeScalarPlot(1000, 1000, simulation.V, true, true, false);
 #endif
 }
