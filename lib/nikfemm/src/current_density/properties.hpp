@@ -24,11 +24,4 @@ struct std::hash<nikfemm::CurrentDensityProp> {
     }
 };
 
-template <>
-struct std::equal_to<nikfemm::CurrentDensityProp> {
-    inline bool operator()(const nikfemm::CurrentDensityProp& p1, const nikfemm::CurrentDensityProp& p2) const {
-        return p1.sigma == p2.sigma;
-    }
-};
-
 #endif

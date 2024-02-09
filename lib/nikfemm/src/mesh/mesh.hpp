@@ -216,7 +216,7 @@ namespace nikfemm {
             i++;
         }
         // printf("----------------------\n");
-        char switches[30];
+        char switches[42];
         sprintf(switches, "pzq%dAQa%.17g", min_angle, max_triangle_area);
         
 

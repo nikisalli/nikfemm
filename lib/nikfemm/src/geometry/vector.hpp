@@ -169,13 +169,6 @@ namespace std {
             return hash<double>()(p.x) ^ hash<double>()(p.y);
         }
     };
-
-    template <>
-    struct equal_to<nikfemm::Vector> {
-        inline bool operator()(const nikfemm::Vector& p1, const nikfemm::Vector& p2) const {
-            return (p1.x - p2.x) < EPSILON && (p1.y - p2.y) < EPSILON;
-        }
-    };
 }
 
 #endif

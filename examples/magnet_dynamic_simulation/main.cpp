@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
         auto B = sim.mesh.computeCurl(A);
 
 #ifdef NIKFEMM_USE_OPENCV
-        printf("B: %d\n", B.size());
+        printf("B: %lu\n", B.size());
         sim.mesh.ElemScalarPlot(1000, 1000, B, false, true);
 #endif
 
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
         angle2 += angular_velocity2 * dt;
 
         printf("------------------------------------------------------------\n");
-        printf("Time: %d\n", i*dt);
+        printf("Time: %.17g\n", i*dt);
         printf("Force 1: %.17g, %.17g\n", stress1.Force.x, stress1.Force.y);
         printf("Force 2: %.17g, %.17g\n", stress2.Force.x, stress2.Force.y);
         printf("Torque 1: %.17g\n", stress1.Torque);
