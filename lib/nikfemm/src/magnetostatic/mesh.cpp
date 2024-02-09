@@ -1,22 +1,12 @@
 #include "mesh.hpp"
 
 namespace nikfemm {
-    MagnetostaticMesh::MagnetostaticMesh(double max_triangle_area) {
-        // default material property
-        default_prop = {0, {0, 0}, static_cast<float>(magnetostatic_materials::air), {}};
-    }
-
     MagnetostaticMesh::MagnetostaticMesh() {
-        // default material property
         default_prop = {0, {0, 0}, static_cast<float>(magnetostatic_materials::air), {}};
     }
 
-    MagnetostaticMesh::~MagnetostaticMesh() {
-        
-    }
-
-    System<MagnetostaticNonLinearExpression> MagnetostaticMesh::getFemSystem() {
-        System<MagnetostaticNonLinearExpression> system(data.numberofpoints);
+    System<NonLinearExpression> MagnetostaticMesh::getFemSystem() {
+        System<NonLinearExpression> system(data.numberofpoints);
         // since the stiffness matrix is symmetric, this function only computes the upper triangular part
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -392,9 +382,9 @@ namespace nikfemm {
                 double c2 = (data.pointlist[v1].x - data.pointlist[v3].x) / double_area;
                 double b3 = (data.pointlist[v1].y - data.pointlist[v2].y) / double_area;
                 double c3 = (data.pointlist[v2].x - data.pointlist[v1].x) / double_area;
-                if (v1 >= i) system.A(i, v1) += MagnetostaticNonLinearTerm({double_area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]});
-                if (v2 >= i) system.A(i, v2) += MagnetostaticNonLinearTerm({double_area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]});
-                if (v3 >= i) system.A(i, v3) += MagnetostaticNonLinearTerm({double_area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]});
+                if (v1 >= i) system.A(i, v1) += NonLinearTerm({double_area * (b1 * b1 + c1 * c1) * 0.5, adjelems_ids[i][j]});
+                if (v2 >= i) system.A(i, v2) += NonLinearTerm({double_area * (b2 * b1 + c2 * c1) * 0.5, adjelems_ids[i][j]});
+                if (v3 >= i) system.A(i, v3) += NonLinearTerm({double_area * (b3 * b1 + c3 * c1) * 0.5, adjelems_ids[i][j]});
 
                 // set the b vector
                 system.b[i] += (double_area * adjelems_props[i][j]->J) / 6;
@@ -532,7 +522,7 @@ namespace nikfemm {
         return system;
     }
 
-    void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(System<MagnetostaticNonLinearExpression>& system) {
+    void MagnetostaticMesh::addDirichletInfiniteBoundaryConditions(System<NonLinearExpression>& system) {
         // find three furthest points from the center
         uint32_t p1 = 0;
         uint32_t p2 = 0;

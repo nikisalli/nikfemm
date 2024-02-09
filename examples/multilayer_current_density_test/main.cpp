@@ -23,9 +23,9 @@ int main(int argc, char** argv) {
     simulation.setVoltage(system, nikfemm::Vector(0, 0.5 * width), -1, 0);
     simulation.setVoltage(system, nikfemm::Vector(length, 0.5 * width), 1, 1);
 
-    simulation.solve(system);
+    auto V = simulation.solve(system);
 
 #ifdef NIKFEMM_USE_OPENCV
-    simulation.meshes[0].NodeScalarPlot(1000, 1000, simulation.V, true, true, false);
+    simulation.meshes[0].NodeScalarPlot(1000, 1000, V, true, true, false);
 #endif
 }

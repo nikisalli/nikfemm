@@ -3,10 +3,6 @@
 
 #include <chrono>
 
-#ifdef NIKFEMM_USE_OPENCV
-#include <opencv2/opencv.hpp>
-#endif
-
 #include "../triangle/triangle.h"
 
 #include "../utils/utils.hpp"

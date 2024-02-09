@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
 
     simulation.mesh.drawing.drawRegion(nikfemm::Vector(0.5, 0.5), {nikfemm::current_density_materials::copper});
 
-    auto system = simulation.generateSystem(false, 1e-2);
+    auto system = simulation.generateSystem(false, 1e-3);
 
     simulation.setVoltage(system, nikfemm::Vector(0.5, 0.5), 1);
     simulation.setVoltage(system, nikfemm::Vector(3.5, 3.5), 0);
@@ -38,6 +38,6 @@ int main(int argc, char** argv) {
     auto V = simulation.solve(system);
 
 #ifdef NIKFEMM_USE_OPENCV
-    simulation.mesh.NodeScalarPlot(1000, 1000, V, false, false, true);
+    simulation.mesh.NodeScalarPlot(1000, 1000, V, false, false, false);
 #endif
 }

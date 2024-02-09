@@ -10,10 +10,6 @@
 #include <math.h>
 #include <set>
 
-#ifdef NIKFEMM_USE_OPENCV
-#include <opencv2/opencv.hpp>
-#endif
-
 #include "../triangle/triangle.h"
 
 #include "../utils/utils.hpp"
@@ -21,17 +17,15 @@
 #include "../mesh/mesh.hpp"
 #include "../algebra/coo.hpp"
 #include "../algebra/system.hpp"
-#include "algebra.hpp"
+#include "../algebra/non_linear.hpp"
 #include "properties.hpp"
 
 namespace nikfemm {
     struct MagnetostaticMesh : Mesh<MagnetostaticProp> {
-        MagnetostaticMesh(double max_triangle_area);
         MagnetostaticMesh();
-        ~MagnetostaticMesh();
 
-        System<MagnetostaticNonLinearExpression> getFemSystem();
-        void addDirichletInfiniteBoundaryConditions(System<MagnetostaticNonLinearExpression>& system);
+        System<NonLinearExpression> getFemSystem();
+        void addDirichletInfiniteBoundaryConditions(System<NonLinearExpression>& system);
         void refineMeshAroundMagnets();
     };
 }

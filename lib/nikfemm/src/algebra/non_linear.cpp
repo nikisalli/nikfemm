@@ -1,9 +1,9 @@
 #include <algorithm>
 
-#include "algebra.hpp"
+#include "non_linear.hpp"
 
 namespace nikfemm {
-    double MagnetostaticNonLinearExpression::evaluate(std::vector<float>& mu) {
+    double NonLinearExpression::evaluate(std::vector<float>& mu) {
         double result = constant;
         for (auto const& term : terms) {
             result += term.linear_coefficient / mu[term.nonlinear_coefficient_element_index];
@@ -11,10 +11,10 @@ namespace nikfemm {
         return result;
     }
 
-    MagnetostaticMatCSRSymmetric::MagnetostaticMatCSRSymmetric(MatCOOSymmetric<MagnetostaticNonLinearExpression>& coo) {
+    NonLinearMatCSRSymmetric::NonLinearMatCSRSymmetric(MatCOOSymmetric<NonLinearExpression>& coo) {
         m = coo.m;
 
-        std::vector<std::pair<uint64_t, MagnetostaticNonLinearExpression>> elems;
+        std::vector<std::pair<uint64_t, NonLinearExpression>> elems;
         elems.reserve(coo.elems.size());
 
         for (auto const& [key, value] : coo.elems) {
@@ -32,8 +32,8 @@ namespace nikfemm {
         col_ind = std::vector<uint32_t>(nnz);
         val = std::vector<double>(nnz);
         diag = std::vector<double>(m);
-        expr = std::vector<MagnetostaticNonLinearExpression>(nnz);
-        diag_expr = std::vector<MagnetostaticNonLinearExpression>(m);
+        expr = std::vector<NonLinearExpression>(nnz);
+        diag_expr = std::vector<NonLinearExpression>(m);
 
         uint32_t i = 0;
         for (auto const& [key, value] : elems) {
@@ -56,11 +56,11 @@ namespace nikfemm {
         }
     }
 
-    MagnetostaticMatCSRSymmetric::~MagnetostaticMatCSRSymmetric() {
+    NonLinearMatCSRSymmetric::~NonLinearMatCSRSymmetric() {
 
     }
 
-    void MagnetostaticMatCSRSymmetric::updateFromMu(std::vector<float>& mu) {
+    void NonLinearMatCSRSymmetric::evaluate(std::vector<float>& mu) {
         // diagonal
         for (uint32_t i = 0; i < m; i++) {
             double old_val = diag[i];

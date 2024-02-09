@@ -9,12 +9,6 @@
 #include <iterator>
 #include <set>
 
-#ifdef NIKFEMM_USE_OPENCV
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#endif
-
 #include "../constants.hpp"
 #include "simulation.hpp"
 #include "../drawing/drawing.hpp"
@@ -45,7 +39,7 @@ namespace nikfemm {
         }
     }
 
-    System<MagnetostaticNonLinearExpression> MagnetostaticSimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
+    System<NonLinearExpression> MagnetostaticSimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
         // get time in milliseconds
 
         /* auto boundary */
@@ -92,7 +86,7 @@ namespace nikfemm {
         return system;
     }
 
-    std::vector<double> MagnetostaticSimulation::solve(System<MagnetostaticNonLinearExpression>& system) {
+    std::vector<double> MagnetostaticSimulation::solve(System<NonLinearExpression>& system) {
         auto A = std::vector<double>(mesh.data.numberofpoints);
         auto B = std::vector<Vector>(mesh.data.numberoftriangles, {0, 0});
         std::vector<float> mu(mesh.data.numberoftriangles, 0);
@@ -103,14 +97,14 @@ namespace nikfemm {
             props[i] = mesh.drawing.getRegionPtrFromId(mesh.data.triangleattributelist[i]);
         }
 
-        MagnetostaticMatCSRSymmetric FemMat(system.A);
+        NonLinearMatCSRSymmetric FemMat(system.A);
         std::vector<double> b(system.b.size());
 
         // initialize mu
         for (uint32_t i = 0; i < B.size(); i++) {
             mu[i] = props[i]->getMu(0);
         }
-        FemMat.updateFromMu(mu);
+        FemMat.evaluate(mu);
         for (uint32_t i = 0; i < system.b.size(); i++) {
             b[i] = system.b[i].evaluate(mu);
         }
@@ -147,7 +141,7 @@ namespace nikfemm {
 
                 // check if the solution is correct
                 MagnetostaticSimulation::updateMu(B, props, mu, residual, i);
-                FemMat.updateFromMu(mu);
+                FemMat.evaluate(mu);
                 for (uint32_t i = 0; i < system.b.size(); i++) {
                     b[i] = system.b[i].evaluate(mu);
                 }

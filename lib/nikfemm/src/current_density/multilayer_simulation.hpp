@@ -18,21 +18,14 @@ namespace nikfemm {
     class MultiLayerCurrentDensitySimulation {
         public:
             std::vector<CurrentDensityMesh> meshes;
-            std::vector<double> V;
             std::vector<CurrentDensityInterconnection> interconnections;
 
             MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths);
             MultiLayerCurrentDensitySimulation(uint32_t num_layers);
 
             System<double> generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
-            void solve(System<double>& system);
+            std::vector<double> solve(System<double>& system);
             void setVoltage(System<double>& system, Vector p, double V, uint64_t layer_id);
-        protected:
-#ifdef NIKFEMM_USE_OPENCV
-            void VplotRend(cv::Mat* image, double width, double height, uint64_t layer_id, double maxV, double minV);
-        public:
-            void Vplot(uint32_t width, uint32_t height);
-#endif
     };
 }
 

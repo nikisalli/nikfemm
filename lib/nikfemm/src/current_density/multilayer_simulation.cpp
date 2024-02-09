@@ -9,12 +9,6 @@
 #include <iterator>
 #include <set>
 
-#ifdef NIKFEMM_USE_OPENCV
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#endif
-
 #include "../triangle/triangle.h"
 
 #include "../constants.hpp"
@@ -847,8 +841,8 @@ namespace nikfemm {
         system.addDirichletBoundaryCondition(closest_node, V);
     }
 
-    void MultiLayerCurrentDensitySimulation::solve(System<double>& system) {
-        V = std::vector<double>(system.b.size());
+    std::vector<double> MultiLayerCurrentDensitySimulation::solve(System<double>& system) {
+        auto V = std::vector<double>(system.b.size());
 
         MatCSRSymmetric FemMat(system.A);
 
@@ -857,5 +851,7 @@ namespace nikfemm {
         // preconditionedJacobiConjugateGradientSolver(FemMat, system.b, V, 1e-6, 100000);
         auto end = std::chrono::high_resolution_clock::now();
         nloginfo("solver took %f ms", std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0);
+
+        return V;
     }
 }

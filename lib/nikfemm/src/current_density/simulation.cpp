@@ -9,12 +9,6 @@
 #include <iterator>
 #include <set>
 
-#ifdef NIKFEMM_USE_OPENCV
-#include <opencv2/core/core.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc.hpp>
-#endif
-
 #include "../constants.hpp"
 #include "simulation.hpp"
 #include "../drawing/drawing.hpp"

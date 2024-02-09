@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
 #ifdef NIKFEMM_USE_OPENCV
         printf("B: %d\n", B.size());
-        sim.mesh.ElemScalarPlot(1000, 1000, B, false, true);
+        sim.mesh.ElemScalarPlot(1000, 1000, B, false, true, true);
 #endif
 
         auto stress1 = sim.computeStressIntegral(B, center1, center1);

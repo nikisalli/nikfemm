@@ -97,7 +97,7 @@ namespace nikfemm {
         Vector center = Vector(0, 0);
         double radius = 0;
         Prop default_prop;
-        double epsilon;
+        double epsilon = 0;
         double depth = 1;
 
         MeshData data;
