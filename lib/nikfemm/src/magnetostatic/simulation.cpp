@@ -32,7 +32,7 @@ namespace nikfemm {
             if (props[i]->isLinear()) {
                 mu[i] = props[i]->getMu(Bmag);
             } else {
-                mu[i] = (props[i]->getMu(Bmag) * kalman_scemo) + ((mu[i] + magnetostatic_materials::vacuum * residual * residual) * (1 - kalman_scemo)); 
+                mu[i] = (props[i]->getMu(Bmag) * (1 - kalman_scemo)) + ((mu[i] + magnetostatic_materials::vacuum * residual * residual) * kalman_scemo); 
                 // mu[i] += (props[i]->getMu(Bmag) - mu[i]) * 0.1;  // mu += (mu_new - mu) * 0.1
                 // mu[i] += props[i]->getMu(Bmag);  // pure newton-raphson
             }

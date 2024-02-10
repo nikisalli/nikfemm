@@ -69,7 +69,7 @@ namespace nikfemm {
         }
 
         for (uint64_t i = 0; i < meshes.size(); i++) {
-            meshes[i].mesh();
+            meshes[i].mesh(max_triangle_area, min_angle);
             meshes[i].computeEpsilon();
             nloginfo("Meshed layer %d with %d nodes and %d elements", i, meshes[i].data.numberofpoints, meshes[i].data.numberoftriangles);
         }

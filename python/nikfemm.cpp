@@ -7,127 +7,34 @@
 
 #include <Python.h>
 
-/*
-namespace nikfemm {
-    struct CurrentDensitySystem {
-        MatCOOSymmetric<double> A;
-        std::vector b;
-
-        void addDirichletBoundaryCondition(uint32_t id, double value) {
-            // https://community.freefem.org/t/implementation-of-dirichlet-boundary-condition-when-tgv-1/113
-            // this function lets you set a Dirichlet boundary condition on a node
-
-            // every element that has a row or column index equal to id is set to zero
-            // for every element that has a column index equal to id, its value multiplied 
-            // by the value of the boundary condition is subtracted from the corresponding element in the b vector
-            // care must be taken because the matrix is symmetric but it is stored as upper triangular to save memory
-
-            for (auto& elem : A.elems) {
-                uint32_t m = elem.first >> 32;
-                uint32_t n = elem.first & 0xFFFFFFFF;
-
-                // skip diagonal elements
-                if (m == n) continue;
-
-                if (m == id) { // row index equal to id
-                    b.val[n] -= elem.second * value;
-                    elem.second = 0;
-                }
-                if (n == id) { // column index equal to id
-                    b.val[m] -= elem.second * value;
-                    elem.second = 0;
-                }
-            }
-
-            A(id, id) = 1;
-            b.val[id] = value;
-        }
-    };
-}
-*/
-
 typedef struct {
     PyObject_HEAD
-    nikfemm::CurrentDensitySystem* system;
-} nikfemm_CurrentDensitySystem;
+    nikfemm::System<double>* system;
+} nikfemm_System;
 
-static void nikfemm_CurrentDensitySystem_dealloc(nikfemm_CurrentDensitySystem* self) {
+static void nikfemm_System_dealloc(nikfemm_System* self) {
     delete self->system;
     Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
-static PyObject* nikfemm_CurrentDensitySystem_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
-    nikfemm_CurrentDensitySystem* self;
+static PyObject* nikfemm_System_new(PyTypeObject* type, PyObject* args, PyObject* kwds) {
+    nikfemm_System* self;
 
-    self = (nikfemm_CurrentDensitySystem*)type->tp_alloc(type, 0);
+    self = (nikfemm_System*)type->tp_alloc(type, 0);
 
     return (PyObject*)self;
 }
 
-static PyTypeObject nikfemm_CurrentDensitySystemType = {
+static PyTypeObject nikfemm_SystemType = {
     .ob_base = PyVarObject_HEAD_INIT(NULL, 0)
-    .tp_name = "nikfemm.CurrentDensitySystem",
-    .tp_basicsize = sizeof(nikfemm_CurrentDensitySystem),
+    .tp_name = "nikfemm.System",
+    .tp_basicsize = sizeof(nikfemm_System),
     .tp_itemsize = 0,
-    .tp_dealloc = (destructor)nikfemm_CurrentDensitySystem_dealloc,
+    .tp_dealloc = (destructor)nikfemm_System_dealloc,
     .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_doc = PyDoc_STR("System of linear equations for current density"),
-    .tp_new = nikfemm_CurrentDensitySystem_new,
+    .tp_new = nikfemm_System_new,
 };
-
-/*
-namespace nikfemm {
-    class MultiLayerCurrentDensitySimulation {
-        public:
-            std::vector<CurrentDensityMesh> meshes;
-            std::vector V;
-            std::vector<CurrentDensityInterconnection> interconnections;
-
-            MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths, std::vector<double> max_triangle_areas);
-            MultiLayerCurrentDensitySimulation(uint32_t num_layers);
-            ~MultiLayerCurrentDensitySimulation();
-
-            CurrentDensitySystem generateSystem(bool refine = true);
-            void solve(CurrentDensitySystem& system);
-            void setVoltage(CurrentDensitySystem& system, Vector p, double V, uint64_t layer_id);
-        protected:
-#ifdef NIKFEMM_USE_OPENCV
-            void VplotRend(cv::Mat* image, double width, double height, uint64_t layer_id, double maxV, double minV);
-        public:
-            void Vplot(uint32_t width, uint32_t height);
-#endif
-    };
-}
-
-namespace nikfemm {
-    MultiLayerCurrentDensitySimulation::MultiLayerCurrentDensitySimulation(uint32_t num_layers, std::vector<double> depths, std::vector<double> max_triangle_areas) {
-        if (depths.size() != num_layers) {
-            throw std::invalid_argument("depths.size() != num_layers");
-        }
-        if (max_triangle_areas.size() != num_layers) {
-            throw std::invalid_argument("max_triangle_areas.size() != num_layers");
-        }
-
-        for (uint32_t i = 0; i < num_layers; i++) {
-            meshes.push_back(CurrentDensityMesh());
-            meshes[i].max_triangle_area = max_triangle_areas[i];
-            meshes[i].depth = depths[i];
-        }
-    }
-
-    MultiLayerCurrentDensitySimulation::MultiLayerCurrentDensitySimulation(uint32_t num_layers) {
-        for (uint32_t i = 0; i < num_layers; i++) {
-            meshes.push_back(CurrentDensityMesh());
-            meshes[i].max_triangle_area = 1;
-            meshes[i].depth = 1;
-        }
-    }
-
-    MultiLayerCurrentDensitySimulation::~MultiLayerCurrentDensitySimulation() {
-
-    }
-}
-*/
 
 typedef struct {
     PyObject_HEAD
@@ -197,13 +104,20 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_generateSystem(nikfe
     // generateSystem may have from 0 to 2 arguments which are: bool, float
     PyObject* refine = Py_True;
     double max_triangle_area = 1;
+    double min_angle = 33;
 
-    if (PyTuple_Size(args) > 2) {
-        PyErr_SetString(PyExc_TypeError, "generateSystem must have 0 to 2 arguments: bool, float");
+    if (PyTuple_Size(args) > 3) {
+        PyErr_SetString(PyExc_TypeError, "generateSystem must have 0 to 3 arguments: bool, float, float");
         return NULL;
     }
 
     switch (PyTuple_Size(args)) {
+        case 3:
+            if (!PyFloat_Check(PyTuple_GetItem(args, 2)) && !PyLong_Check(PyTuple_GetItem(args, 2))) {
+                PyErr_SetString(PyExc_TypeError, "min_angle must be a float");
+                return NULL;
+            }
+            min_angle = PyFloat_AsDouble(PyTuple_GetItem(args, 2));
         case 2:
             if (!PyFloat_Check(PyTuple_GetItem(args, 1)) && !PyLong_Check(PyTuple_GetItem(args, 1))) {
                 PyErr_SetString(PyExc_TypeError, "max_triangle_area must be a float");
@@ -219,17 +133,17 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_generateSystem(nikfe
         default:
             break;
     }
-    auto system = self->simulation->generateSystem(PyLong_AsLong(refine), max_triangle_area);
+    auto system = self->simulation->generateSystem(PyLong_AsLong(refine), max_triangle_area, min_angle);
     
-    nikfemm_CurrentDensitySystem* py_system = (nikfemm_CurrentDensitySystem*)PyObject_CallObject((PyObject*)&nikfemm_CurrentDensitySystemType, NULL);
+    nikfemm_System* py_system = (nikfemm_System*)PyObject_CallObject((PyObject*)&nikfemm_SystemType, NULL);
 
     if (py_system == NULL) {
-        PyErr_SetString(PyExc_RuntimeError, "Failed to create nikfemm_CurrentDensitySystem object");
+        PyErr_SetString(PyExc_RuntimeError, "Failed to create nikfemm_System object");
         return NULL;
     }
 
     try {
-        py_system->system = new nikfemm::CurrentDensitySystem(system);
+        py_system->system = new nikfemm::System(system);
     } catch (std::exception& e) {
         PyErr_SetString(PyExc_RuntimeError, e.what());
         return NULL;
@@ -240,28 +154,75 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_generateSystem(nikfe
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_solve(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
     if (PyTuple_Size(args) != 1) {
-        PyErr_SetString(PyExc_TypeError, "solve must have 1 argument of type CurrentDensitySystem");
+        PyErr_SetString(PyExc_TypeError, "solve must have 1 argument of type System");
         return NULL;
     } else {
-        if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &nikfemm_CurrentDensitySystemType)) {
-            PyErr_SetString(PyExc_TypeError, "solve must have 1 argument of type CurrentDensitySystem");
+        if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &nikfemm_SystemType)) {
+            PyErr_SetString(PyExc_TypeError, "solve must have 1 argument of type System");
             return NULL;
         }
     }
 
-    nikfemm::CurrentDensitySystem* system = ((nikfemm_CurrentDensitySystem*)PyTuple_GetItem(args, 0))->system;
-    self->simulation->solve(*system);
+    nikfemm::System<double>* system = ((nikfemm_System*)PyTuple_GetItem(args, 0))->system;
+    std::vector<double> V = self->simulation->solve(*system);
 
-    Py_RETURN_NONE;
+    // create list of tuples like this: [(int, float, float, float), ...]
+    // where the first element is the layer id, and the next three are the x, y, and voltage
+
+    PyObject* voltages = PyList_New(V.size());
+
+    std::vector<uint64_t> layer_offsets;
+    uint64_t layer_offset = 0;
+    for (auto& mesh : self->simulation->meshes) {
+        layer_offsets.push_back(layer_offset);
+        layer_offset += mesh.data.numberofpoints;
+    }
+
+    for (uint64_t i = 0; i < self->simulation->meshes.size(); i++) {
+        for (uint64_t j = 0; j < self->simulation->meshes[i].data.numberofpoints; j++) {
+            PyObject* voltage = PyTuple_Pack(4, PyLong_FromUnsignedLong(i), 
+                                                PyFloat_FromDouble(self->simulation->meshes[i].data.pointlist[j].x),
+                                                PyFloat_FromDouble(self->simulation->meshes[i].data.pointlist[j].y), 
+                                                PyFloat_FromDouble(V[j + layer_offsets[i]]));
+            PyList_SetItem(voltages, j + layer_offsets[i], voltage);
+        }
+    }
+
+    // create list of tuples like this with the triangles: [(int, int, int, int), ...]
+    // where the first element is the layer id, and the next three are the indices of the vertices
+
+    uint64_t total_number_of_triangles = 0;
+    std::vector<uint64_t> triangle_offsets;
+    for (auto& mesh : self->simulation->meshes) {
+        triangle_offsets.push_back(total_number_of_triangles);
+        total_number_of_triangles += mesh.data.numberoftriangles;
+    }
+
+    PyObject* triangles = PyList_New(total_number_of_triangles);
+
+    for (uint64_t i = 0; i < self->simulation->meshes.size(); i++) {
+        for (uint64_t j = 0; j < self->simulation->meshes[i].data.numberoftriangles; j++) {
+            PyObject* triangle = PyTuple_Pack(4, PyLong_FromUnsignedLong(i), 
+                                                 PyLong_FromUnsignedLong(self->simulation->meshes[i].data.trianglelist[j][0] + layer_offsets[i]),
+                                                 PyLong_FromUnsignedLong(self->simulation->meshes[i].data.trianglelist[j][1] + layer_offsets[i]),
+                                                 PyLong_FromUnsignedLong(self->simulation->meshes[i].data.trianglelist[j][2] + layer_offsets[i])
+            );
+            PyList_SetItem(triangles, j + triangle_offsets[i], triangle);
+        }
+    }
+
+    PyObject* result = PyTuple_Pack(2, voltages, triangles);
+
+    return result;
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
     if (PyTuple_Size(args) != 4) {
-        PyErr_SetString(PyExc_TypeError, "setVoltage must have 4 arguments: CurrentDensitySystem, [float, float], float, uint64_t");
+        PyErr_SetString(PyExc_TypeError, "setVoltage must have 4 arguments: System, [float, float], float, uint64_t");
         return NULL;
     } else {
-        if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &nikfemm_CurrentDensitySystemType)) {
-            PyErr_SetString(PyExc_TypeError, "setVoltage must have the first argument of type CurrentDensitySystem");
+        if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &nikfemm_SystemType)) {
+            PyErr_SetString(PyExc_TypeError, "setVoltage must have the first argument of type System");
             return NULL;
         }
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 1), &PyList_Type)) {
@@ -278,7 +239,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_M
         }
     }
 
-    nikfemm::CurrentDensitySystem* system = ((nikfemm_CurrentDensitySystem*)PyTuple_GetItem(args, 0))->system;
+    nikfemm::System<double>* system = ((nikfemm_System*)PyTuple_GetItem(args, 0))->system;
     double coords[2];
     for (int i = 0; i < 2; i++) {
         PyObject* item = PyList_GetItem(PyTuple_GetItem(args, 1), i);
@@ -527,38 +488,6 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon(nikfemm_
     Py_RETURN_NONE;
 }
 
-static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_getLayerVoltages(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
-    // getLayerVoltages has 1 argument: uint64_t
-    if (PyTuple_Size(args) != 1) {
-        PyErr_SetString(PyExc_TypeError, "getLayerVoltages must have 1 argument: uint64_t");
-        return NULL;
-    } else {
-        if (!PyLong_Check(PyTuple_GetItem(args, 0))) {
-            PyErr_SetString(PyExc_TypeError, "getLayerVoltages must have the first argument of type uint64_t");
-            return NULL;
-        }
-    }
-
-    uint64_t layer_id = PyLong_AsUnsignedLong(PyTuple_GetItem(args, 0));
-
-    // get layer offset
-    uint64_t layer_offset = 0;
-    for (uint64_t i = 0; i < layer_id; i++) {
-        layer_offset += self->simulation->meshes[i].data.numberofpoints;
-    }
-
-    // get voltage vector size for the layer
-    uint64_t layer_size = self->simulation->meshes[layer_id].data.numberofpoints;
-
-    // get layer voltages and put them in a python list
-    PyObject* voltages = PyList_New(layer_size);
-    for (uint64_t i = 0; i < layer_size; i++) {
-        PyList_SetItem(voltages, i, PyFloat_FromDouble(self->simulation->V.val[layer_offset + i]));
-    }
-
-    return voltages;
-}
-
 static PyMethodDef nikfemm_MultiLayerCurrentDensitySimulation_methods[] = {
     {"generate_system", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_generateSystem, METH_VARARGS, "Generate system of linear equations for current density"},
     {"solve", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_solve, METH_VARARGS, "Solve system of linear equations for current density"},
@@ -567,7 +496,6 @@ static PyMethodDef nikfemm_MultiLayerCurrentDensitySimulation_methods[] = {
     {"draw_rectangle", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_drawRectangle, METH_VARARGS, "Draw a rectangle on a layer"},
     {"draw_region", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_drawRegion, METH_VARARGS, "Draw a region on a layer"},
     {"draw_polygon", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon, METH_VARARGS, "Draw a polygon on a layer"},
-    {"get_layer_voltages", (PyCFunction)nikfemm_MultiLayerCurrentDensitySimulation_getLayerVoltages, METH_VARARGS, "Get layer voltages"},
     {NULL} /* Sentinel */
 };
 
@@ -593,7 +521,7 @@ static PyModuleDef nikfemm_module = {
 PyMODINIT_FUNC PyInit_nikfemm(void) {
     PyObject* m;
 
-    if (PyType_Ready(&nikfemm_CurrentDensitySystemType) < 0) {
+    if (PyType_Ready(&nikfemm_SystemType) < 0) {
         return NULL;
     }
 
@@ -606,9 +534,9 @@ PyMODINIT_FUNC PyInit_nikfemm(void) {
         return NULL;
     }
 
-    Py_INCREF(&nikfemm_CurrentDensitySystemType);
-    if (PyModule_AddObject(m, "CurrentDensitySystem", (PyObject*)&nikfemm_CurrentDensitySystemType) < 0) {
-        Py_DECREF(&nikfemm_CurrentDensitySystemType);
+    Py_INCREF(&nikfemm_SystemType);
+    if (PyModule_AddObject(m, "System", (PyObject*)&nikfemm_SystemType) < 0) {
+        Py_DECREF(&nikfemm_SystemType);
         Py_DECREF(m);
         return NULL;
     }

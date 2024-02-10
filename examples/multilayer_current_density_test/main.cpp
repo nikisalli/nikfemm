@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
 
     simulation.interconnections.push_back({nikfemm::Vector(length - 0.5 * width, 0.5 * width), nikfemm::Vector(0.5 * width, 0.5 * width), 0, 1, 1});
     
-    nikfemm::System<double> system = simulation.generateSystem();
+    nikfemm::System<double> system = simulation.generateSystem(false, 1, 20);
 
     simulation.setVoltage(system, nikfemm::Vector(0, 0.5 * width), -1, 0);
     simulation.setVoltage(system, nikfemm::Vector(length, 0.5 * width), 1, 1);

@@ -2,6 +2,7 @@
 
 #include "segment.hpp"
 #include "vector.hpp"
+#include "../utils/utils.hpp"
 
 namespace nikfemm {
     Segment::Segment(Vector p1, Vector p2) {
@@ -90,32 +91,53 @@ namespace nikfemm {
         }
     }
 
+    double area(Vector p1, Vector p2, Vector p3) {
+        return (p2.x-p1.x)*(p3.y-p1.y)-(p3.x-p1.x)*(p2.y-p1.y);
+    }
+
     bool Segment::segmentsIntersect(Vector s1p1, Vector s1p2, Vector s2p1, Vector s2p2) {
-        // Find the four orientations needed for general and
-        // special cases
-        Orientation o1 = geomOrientation(s1p1, s1p2, s2p1);
-        Orientation o2 = geomOrientation(s1p1, s1p2, s2p2);
-        Orientation o3 = geomOrientation(s2p1, s2p2, s1p1);
-        Orientation o4 = geomOrientation(s2p1, s2p2, s1p2);
-    
-        // General case
-        if (o1 != o2 && o3 != o4)
-            return true;
-    
-        // Special Cases
-        // s1p1, s1p2 and s2p1 are collinear and s2p1 lies on segment s1p1-s1p2
-        if (o1 == COLLINEAR && pointInSegmentBB(s2p1, Segment(s1p1, s1p2))) return true;
-    
-        // s1p1, s1p2 and s2p2 are collinear and s2p2 lies on segment s1p1-s1p2
-        if (o2 == COLLINEAR && pointInSegmentBB(s2p2, Segment(s1p1, s1p2))) return true;
-    
-        // s2p1, s2p2 and s1p1 are collinear and s1p1 lies on segment s2p1-s2p2
-        if (o3 == COLLINEAR && pointInSegmentBB(s1p1, Segment(s2p1, s2p2))) return true;
-    
-        // s2p1, s2p2 and s1p2 are collinear and s1p2 lies on segment s2p1-s2p2
-        if (o4 == COLLINEAR && pointInSegmentBB(s1p2, Segment(s2p1, s2p2))) return true;
-    
-        return false; // Doesn't fall in any of the above cases
+        double epsilon = 1e-100;
+        double c_area = area(s1p1, s1p2, s2p1);
+        double d_area = area(s1p1, s1p2, s2p2);
+        if (std::abs(c_area) < epsilon) {
+            if (std::abs(s2p1.x-s1p1.x) < epsilon) {
+                if (std::min(s1p1.y,s1p2.y)-epsilon < s2p1.y && s2p1.y < std::max(s1p1.y,s1p2.y)+epsilon) {
+                    return true;
+                }
+            } else {
+                if (std::min(s1p1.x,s1p2.x)-epsilon < s2p1.x && s2p1.x < std::max(s1p1.x,s1p2.x)+epsilon) {
+                    return true;
+                }
+            }
+            if (std::abs(d_area) > epsilon) {
+                return false;
+            }
+        }
+        if (std::abs(d_area) < epsilon) {
+            if (std::abs(s2p2.x-s1p1.x) < epsilon) {
+                if (std::min(s1p1.y,s1p2.y)-epsilon < s2p2.y && s2p2.y < std::max(s1p1.y,s1p2.y)+epsilon) {
+                    return true;
+                }
+            } else {
+                if (std::min(s1p1.x,s1p2.x)-epsilon < s2p2.x && s2p2.x < std::max(s1p1.x,s1p2.x)+epsilon) {
+                    return true;
+                }
+            }
+            if (std::abs(c_area) > epsilon) {
+                return false;
+            }
+            if (std::abs(s2p1.x-s1p1.x) < epsilon) {
+                return (s1p1.y < s2p1.y) != (s1p1.y < s2p2.y);
+            } else {
+                return (s1p1.x < s2p1.x) != (s1p1.x < s2p2.x);
+            }
+        }
+        if ((c_area > 0) == (d_area > 0)) {
+            return false;
+        }
+        double a_area = area(s2p1, s2p2, s1p1);
+        double b_area = area(s2p1, s2p2, s1p2);
+        return (a_area > 0) != (b_area > 0);
     }
 
     bool Segment::operator==(const Segment& s) const {

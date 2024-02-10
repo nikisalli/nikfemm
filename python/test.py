@@ -19,8 +19,18 @@ system = simulation.generate_system(False, 1)
 simulation.set_voltage(system, [0, 0.5 * width], -1, 0)
 simulation.set_voltage(system, [length, 0.5 * width], 1, 1)
 
-print(system)
+verts, triangles = simulation.solve(system)
 
-simulation.solve(system)
+for vert in verts:
+    print(vert)
 
-print(simulation.get_layer_voltages(0))
+for triangle in triangles:
+    print(triangle)
+
+# triangles = (layer_id, vertex_id, vertex_id, vertex_id)
+# verts = (layer_id, x, y, voltage)
+
+import plotly.graph_objects as go
+import numpy as np
+
+fig = go.Figure()
