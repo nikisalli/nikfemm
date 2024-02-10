@@ -40,7 +40,7 @@ namespace nikfemm {
             MagnetostaticMesh mesh;
             double depth = 1.0;
 
-            System<NonLinearExpression> generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
+            System<NonLinearExpression> generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33, bool refine_magnets = false);
             std::vector<double> solve(System<NonLinearExpression>& system);
             Vector computeForceIntegrals(std::vector<Vector> B, Vector p);
             double computeTorqueIntegral(std::vector<Vector> B, Vector p, Vector center);

@@ -39,7 +39,7 @@ namespace nikfemm {
         }
     }
 
-    System<NonLinearExpression> MagnetostaticSimulation::generateSystem(bool refine, double max_triangle_area, int min_angle) {
+    System<NonLinearExpression> MagnetostaticSimulation::generateSystem(bool refine, double max_triangle_area, int min_angle, bool refine_magnets) {
         // get time in milliseconds
 
         /* auto boundary */
@@ -65,9 +65,9 @@ namespace nikfemm {
         mesh.drawing.drawRegion(Vector(boundary_circle.radius * 0.9, 0), {0, {0, 0}, magnetostatic_materials::air});
         // add the boundary 
         // mesh.drawing.plot();
-        #ifdef NIK_REFINE_MAGNETS
+        if (refine_magnets) {
             mesh.refineMeshAroundMagnets();
-        #endif
+        }
 
         if (refine) {
             mesh.drawing.addRefiningPoints();
