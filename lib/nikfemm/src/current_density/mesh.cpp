@@ -1,6 +1,10 @@
 #include "mesh.hpp"
 
 namespace nikfemm {
+    CurrentDensityMesh::CurrentDensityMesh() {
+        default_prop = {current_density_materials::copper};
+    }
+
     System<double> CurrentDensityMesh::getFemSystem() {
         System<double> system(data.numberofpoints);
 
