@@ -19,7 +19,7 @@ namespace nikfemm {
         inline bool isLinear() {
             return terms.size() == 0;
         }
-        double evaluate(std::vector<float>& mu);
+        double evaluate(std::vector<double>& mu);
 
         NonLinearExpression& operator=(const double& other) {
             constant = other;
@@ -88,7 +88,7 @@ namespace nikfemm {
         NonLinearMatCSRSymmetric(MatCOOSymmetric<NonLinearExpression>& coo);
         ~NonLinearMatCSRSymmetric();
 
-        void evaluate(std::vector<float>& mu);
+        void evaluate(std::vector<double>& mu);
     };
 }
 

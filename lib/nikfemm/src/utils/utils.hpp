@@ -19,7 +19,7 @@ namespace nikfemm {
     void nlogerror(std::string format, ...);
 
 #ifdef NIKFEMM_USE_OPENCV
-    cv::Scalar val2jet(float v, float vmin, float vmax);
+    cv::Scalar val2jet(double v, double vmin, double vmax);
 #endif
 
     inline double map(double x, double in_min, double in_max, double out_min, double out_max) {

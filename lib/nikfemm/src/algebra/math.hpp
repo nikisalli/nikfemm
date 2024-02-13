@@ -24,6 +24,10 @@ namespace nikfemm {
     double dot(const std::vector<double>& cv1, const std::vector<double>& cv2);
     double norm(const std::vector<double>& cv);
 
+    bool isnan(const std::vector<double>& cv);
+    bool isnan(const MatCSRSymmetric& mat);
+    bool isnan(const double val);
+
     std::vector<double> element_wise_norm(std::vector<Vector>& cv);
 }
 

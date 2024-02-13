@@ -20,7 +20,7 @@
 #include "../algebra/math.hpp"
 
 namespace nikfemm {
-    void MagnetostaticSimulation::updateMu(std::vector<Vector> B, std::vector<const MagnetostaticProp*>& props, std::vector<float>& mu, double residual, uint32_t iter) {
+    void MagnetostaticSimulation::updateMu(std::vector<Vector> B, std::vector<const MagnetostaticProp*>& props, std::vector<double>& mu, double residual, uint32_t iter) {
         assert(mu.size() == B.size());
         double kalman_scemo = exp(-((double)iter) / 5.);
         // printf("kalman_scemo: %.17g\n", kalman_scemo);
@@ -28,7 +28,7 @@ namespace nikfemm {
         // printf("- (iter + 1) / 100: %.17g\n", - ((double)iter + 1.) / 100.);
         
         for (uint32_t i = 0; i < B.size(); i++) {
-            float Bmag = B[i].norm();
+            double Bmag = B[i].norm();
             if (props[i]->isLinear()) {
                 mu[i] = props[i]->getMu(Bmag);
             } else {
@@ -89,7 +89,7 @@ namespace nikfemm {
     std::vector<double> MagnetostaticSimulation::solve(System<NonLinearExpression>& system) {
         auto A = std::vector<double>(mesh.data.numberofpoints);
         auto B = std::vector<Vector>(mesh.data.numberoftriangles, {0, 0});
-        std::vector<float> mu(mesh.data.numberoftriangles, 0);
+        std::vector<double> mu(mesh.data.numberoftriangles, 0);
         std::vector<const MagnetostaticProp*> props(mesh.data.numberoftriangles);
 
         // fill props

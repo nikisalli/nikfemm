@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
 
     // two long thin rectangles coupled together at the ends
     double length = 1;
-    double width = 0.001;
+    double width = 0.1;
     simulation.meshes[0].drawing.drawRectangle(nikfemm::Vector(0, 0), nikfemm::Vector(length, width));
     simulation.meshes[1].drawing.drawRectangle(nikfemm::Vector(0, 0), nikfemm::Vector(length, width));
 

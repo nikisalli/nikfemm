@@ -15,7 +15,7 @@ double cost_function(double winding_thickness, double height, double iron_thickn
     double iron_radius = iron_thickness / 2;
     double total_current = 1000;
     double winding_area = winding_thickness * height * 2;
-    float current_density = total_current / winding_area;
+    double current_density = total_current / winding_area;
 
     sim.mesh.drawing.drawRectangle({iron_radius, 0}, {winding_radius, height});
     sim.mesh.drawing.drawRectangle({-iron_radius, 0}, {-winding_radius, height});

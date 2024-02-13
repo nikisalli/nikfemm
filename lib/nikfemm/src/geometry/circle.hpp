@@ -12,9 +12,9 @@ namespace nikfemm {
     struct Circle {
         public:
             Vector center;
-            float radius;
+            double radius;
 
-            Circle(Vector center, float radius);
+            Circle(Vector center, double radius);
             Circle();
 
             bool operator==(const Circle& c) const;
@@ -24,14 +24,14 @@ namespace nikfemm {
                 return Vector::distance(center, p) <= radius;
             }
             static inline Circle getCircleFromPoints(Vector p1, Vector p2, Vector p3) {
-                float bx = p2.x - p1.x;
-                float by = p2.y - p1.y;
-                float cx = p3.x - p1.x;
-                float cy = p3.y - p1.y;
+                double bx = p2.x - p1.x;
+                double by = p2.y - p1.y;
+                double cx = p3.x - p1.x;
+                double cy = p3.y - p1.y;
 
-                float B = bx * bx + by * by;
-                float C = cx * cx + cy * cy;
-                float D = bx * cy - by * cx;
+                double B = bx * bx + by * by;
+                double C = cx * cx + cy * cy;
+                double D = bx * cy - by * cx;
                 Vector I = Vector((cy * B - by * C) / (2 * D), (bx * C - cx * B) / (2 * D));
 
                 I.x += p1.x;

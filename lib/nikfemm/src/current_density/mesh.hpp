@@ -14,7 +14,7 @@
 
 namespace nikfemm {
     struct CurrentDensityMesh : Mesh<CurrentDensityProp> {
-        CurrentDensityProp default_prop = {static_cast<float>(current_density_materials::copper)};
+        CurrentDensityProp default_prop = {current_density_materials::copper};
 
         System<double> getFemSystem();  // tent function weights for energy minimization
         System<double> getFemSystemCotangentWeights();  // cotangent laplacian approximation weights

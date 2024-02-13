@@ -7,8 +7,8 @@
 
 namespace nikfemm {
     struct BH_Point {
-        float B;
-        float H;
+        double B;
+        double H;
 
         bool operator==(const BH_Point& p) const;
         bool operator!=(const BH_Point& p) const;
@@ -35,12 +35,12 @@ namespace nikfemm {
     typedef double MaxwellStressTensor[2][2];
 
     struct MagnetostaticProp {
-        float J; // current density
+        double J; // current density
         Vector M; // magnetization
-        float mu; // permeability
+        double mu; // permeability
         BH_Curve bh_curve; // BH curve
 
-        float getMu(float B) const;
+        double getMu(double B) const;
         bool isLinear() const;
 
         bool operator==(const MagnetostaticProp& p) const;
@@ -62,7 +62,7 @@ namespace nikfemm {
 template <>
 struct std::hash<nikfemm::MagnetostaticProp> {
     inline std::size_t operator()(const nikfemm::MagnetostaticProp& p) const {
-        return std::hash<float>()(p.mu) ^ std::hash<float>()(p.J) ^ std::hash<nikfemm::Vector>()(p.M);
+        return std::hash<double>()(p.mu) ^ std::hash<double>()(p.J) ^ std::hash<nikfemm::Vector>()(p.M);
     }
 };
 

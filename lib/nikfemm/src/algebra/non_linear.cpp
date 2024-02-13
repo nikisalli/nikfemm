@@ -3,7 +3,7 @@
 #include "non_linear.hpp"
 
 namespace nikfemm {
-    double NonLinearExpression::evaluate(std::vector<float>& mu) {
+    double NonLinearExpression::evaluate(std::vector<double>& mu) {
         double result = constant;
         for (auto const& term : terms) {
             result += term.linear_coefficient / mu[term.nonlinear_coefficient_element_index];
@@ -60,7 +60,7 @@ namespace nikfemm {
 
     }
 
-    void NonLinearMatCSRSymmetric::evaluate(std::vector<float>& mu) {
+    void NonLinearMatCSRSymmetric::evaluate(std::vector<double>& mu) {
         // diagonal
         for (uint32_t i = 0; i < m; i++) {
             double old_val = diag[i];

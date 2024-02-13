@@ -54,13 +54,12 @@ namespace nikfemm {
         std::vector<DrawingSegment> segments;
         std::vector<Polygon> polygons;
 
-        double epsilon;  // The minimum distance between two points of the drawing
-
         Drawing();
         ~Drawing();
 
         /* drawing */
         public:
+            double getCurrentEpsilon();
             void drawRectangle(Vector p1, Vector p2);
             void drawRectangle(Vector p1, double width, double height);
             void drawCircle(Vector p, double radius, uint32_t n_segments);
@@ -118,15 +117,15 @@ namespace nikfemm {
         double angle_step = 2 * PI / n_segments;
         Vector p1 = Vector(p.x + radius, p.y);
         Vector p2;
-        std::vector<Vector> points;
+        std::vector<Vector> my_points;
         for (uint32_t i = 0; i < n_segments; i++) {
             angle += angle_step;
             p2 = Vector(p.x + radius * cos(angle), p.y + radius * sin(angle));
             drawSegment(p1, p2);
             p1 = p2;
-            points.push_back(p2);
+            my_points.push_back(p2);
         }
-        polygons.push_back(Polygon(points));
+        polygons.push_back(Polygon(my_points));
     }
 
     template <typename Prop>
@@ -136,19 +135,6 @@ namespace nikfemm {
 
     template <typename Prop>
     void Drawing<Prop>::drawPolygon(Vector* points, uint32_t n_points) {
-        // check if the polygon self-intersects
-        for (uint32_t i = 0; i < n_points; i++) {
-            for (uint32_t j = 0; j < n_points; j++) {
-                if (i == j || i == (j + 1) % n_points || (i + 1) % n_points == j) {
-                    continue;
-                }
-                if (Segment::segmentsIntersect(points[i], points[(i + 1) % n_points], points[j], points[(j + 1) % n_points])) {
-                    nloginfo("Error: polygon self-intersects at segments (%d, %d) and (%d, %d) with coordinates (%.17g, %.17g), (%.17g, %.17g) and (%.17g, %.17g), (%.17g, %.17g)", i, (i + 1) % n_points, j, (j + 1) % n_points, points[i].x, points[i].y, points[(i + 1) % n_points].x, points[(i + 1) % n_points].y, points[j].x, points[j].y, points[(j + 1) % n_points].x, points[(j + 1) % n_points].y);
-                    nexit("Error: polygon self-intersects");
-                }
-            }
-        }
-
         for (uint32_t i = 0; i < n_points - 1; i++) {
             drawSegment(points[i], points[i + 1]);
         }
@@ -251,15 +237,30 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Drawing<Prop>::addRefiningPoints() {
-        // find shortest segment first
-        epsilon = std::numeric_limits<double>::max();
-        for (auto it = segments.begin(); it != segments.end(); it++) {
-            double len= Vector::distance(points[it->p1], points[it->p2]);
-            if (len < epsilon) {
-                epsilon = len;
+    double Drawing<Prop>::getCurrentEpsilon() {
+        // find the smallest distance between every vertex and every segment that doesn't contain it
+        double min_dist = std::numeric_limits<double>::max();
+        for (uint32_t i = 0; i < points.size(); i++) {
+            for (uint32_t j = 0; j < segments.size(); j++) {
+                auto point = points[i];
+                auto segment = segments[j];
+
+                if (segment.p1 == i || segment.p2 == i) {
+                    continue;
+                }
+                double dist = Segment::pointSegmentDistance(point, points[segment.p1], points[segment.p2]);
+                if (dist < min_dist) {
+                    min_dist = dist;
+                }
             }
         }
+        return min_dist;
+    }
+
+    template <typename Prop>
+    void Drawing<Prop>::addRefiningPoints() {
+        // find shortest segment first
+        double epsilon = getCurrentEpsilon();
 
         uint32_t n_points = points.size();
 
@@ -407,10 +408,10 @@ namespace nikfemm {
     template <typename Prop>
     void Drawing<Prop>::plotRend(cv::Mat* image, double width, double height) {
         // get mesh enclosing rectangle
-        float max_x = std::numeric_limits<float>::min();
-        float min_x = std::numeric_limits<float>::max();
-        float max_y = std::numeric_limits<float>::min();
-        float min_y = std::numeric_limits<float>::max();
+        double max_x = std::numeric_limits<double>::min();
+        double min_x = std::numeric_limits<double>::max();
+        double max_y = std::numeric_limits<double>::min();
+        double min_y = std::numeric_limits<double>::max();
 
         for (auto p : points) {
             if (p.x > max_x) {
@@ -428,16 +429,16 @@ namespace nikfemm {
         }
 
         // object to window ratio
-        float ratio = 0.9;
+        double ratio = 0.9;
 
         // x scale factor to loosely fit mesh in window (equal in x and y)
-        float x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
+        double x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
         // y scale factor to loosely fit mesh in window
-        float y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
+        double y_scale = ratio * height / std::max(max_x - min_x, max_y - min_y);
         // x offset to center mesh in window
-        float x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
+        double x_offset = 0.5 * width - 0.5 * (max_x + min_x) * x_scale;
         // y offset to center mesh in window
-        float y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
+        double y_offset = 0.5 * height - 0.5 * (max_y + min_y) * y_scale;
 
         // draw the geometry
         // draw the segments

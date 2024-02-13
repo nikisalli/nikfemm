@@ -21,6 +21,10 @@ namespace nikfemm {
 
         // surface integral
         for (uint32_t i = 0; i < data.numberofpoints; i++) {
+            if (adjelems_count[i] == 0) {
+                nlogerror("vertex %d has no adjacent elements", i);
+                nexit("error: vertex has no adjacent elements");
+            }
             for (uint8_t j = 0; j < adjelems_count[i]; j++) {
                 uint32_t v1, v2, v3;
                 v1 = i;

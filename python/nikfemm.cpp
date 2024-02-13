@@ -82,10 +82,10 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_new(PyTypeObject* ty
         if (PyFloat_Check(depth_item)) {
             self->simulation->meshes[i].depth = PyFloat_AsDouble(depth_item);
         } else if (PyLong_Check(depth_item)) {
-            // convert to float
+            // convert to double
             self->simulation->meshes[i].depth = PyLong_AsDouble(depth_item);
         } else {
-            PyErr_SetString(PyExc_TypeError, "depth must be a float");
+            PyErr_SetString(PyExc_TypeError, "depth must be a double");
             Py_XDECREF(self);
             return NULL;
         }
@@ -101,26 +101,26 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_new(PyTypeObject* ty
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_generateSystem(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
-    // generateSystem may have from 0 to 2 arguments which are: bool, float
+    // generateSystem may have from 0 to 2 arguments which are: bool, double
     PyObject* refine = Py_True;
     double max_triangle_area = 1;
     double min_angle = 33;
 
     if (PyTuple_Size(args) > 3) {
-        PyErr_SetString(PyExc_TypeError, "generateSystem must have 0 to 3 arguments: bool, float, float");
+        PyErr_SetString(PyExc_TypeError, "generateSystem must have 0 to 3 arguments: bool, double, double");
         return NULL;
     }
 
     switch (PyTuple_Size(args)) {
         case 3:
             if (!PyFloat_Check(PyTuple_GetItem(args, 2)) && !PyLong_Check(PyTuple_GetItem(args, 2))) {
-                PyErr_SetString(PyExc_TypeError, "min_angle must be a float");
+                PyErr_SetString(PyExc_TypeError, "min_angle must be a double");
                 return NULL;
             }
             min_angle = PyFloat_AsDouble(PyTuple_GetItem(args, 2));
         case 2:
             if (!PyFloat_Check(PyTuple_GetItem(args, 1)) && !PyLong_Check(PyTuple_GetItem(args, 1))) {
-                PyErr_SetString(PyExc_TypeError, "max_triangle_area must be a float");
+                PyErr_SetString(PyExc_TypeError, "max_triangle_area must be a double");
                 return NULL;
             }
             max_triangle_area = PyFloat_AsDouble(PyTuple_GetItem(args, 1));
@@ -134,7 +134,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_generateSystem(nikfe
             break;
     }
     auto system = self->simulation->generateSystem(PyLong_AsLong(refine), max_triangle_area, min_angle);
-    
+
     nikfemm_System* py_system = (nikfemm_System*)PyObject_CallObject((PyObject*)&nikfemm_SystemType, NULL);
 
     if (py_system == NULL) {
@@ -149,7 +149,40 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_generateSystem(nikfe
         return NULL;
     }
 
-    return (PyObject*)py_system;
+    std::vector<uint64_t> layer_offsets;
+    uint64_t layer_offset = 0;
+    for (auto& mesh : self->simulation->meshes) {
+        layer_offsets.push_back(layer_offset);
+        layer_offset += mesh.data.numberofpoints;
+    }
+
+    // return triangles and vertices too
+    PyObject* triangles = PyList_New(self->simulation->meshes.size());
+
+    for (uint64_t i = 0; i < self->simulation->meshes.size(); i++) {
+        PyObject* mytriangles = PyList_New(self->simulation->meshes[i].data.numberoftriangles);
+        for (uint64_t j = 0; j < self->simulation->meshes[i].data.numberoftriangles; j++) {
+            PyObject* triangle = PyTuple_Pack(3, PyLong_FromUnsignedLong(self->simulation->meshes[i].data.trianglelist[j][0] + layer_offsets[i]),
+                                                 PyLong_FromUnsignedLong(self->simulation->meshes[i].data.trianglelist[j][1] + layer_offsets[i]),
+                                                 PyLong_FromUnsignedLong(self->simulation->meshes[i].data.trianglelist[j][2] + layer_offsets[i]));
+            PyList_SetItem(mytriangles, j, triangle);
+        }
+        PyList_SetItem(triangles, i, mytriangles);
+    }
+
+    PyObject* vertices = PyList_New(layer_offset);
+
+    for (uint64_t i = 0; i < self->simulation->meshes.size(); i++) {
+        for (uint64_t j = 0; j < self->simulation->meshes[i].data.numberofpoints; j++) {
+            PyObject* vertex = PyTuple_Pack(2, PyFloat_FromDouble(self->simulation->meshes[i].data.pointlist[j].x),
+                                              PyFloat_FromDouble(self->simulation->meshes[i].data.pointlist[j].y));
+            PyList_SetItem(vertices, j + layer_offsets[i], vertex);
+        }
+    }
+
+    PyObject* result = PyTuple_Pack(3, (PyObject*)py_system, triangles, vertices);
+
+    return (PyObject*)result;
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_solve(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
@@ -166,7 +199,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_solve(nikfemm_MultiL
     nikfemm::System<double>* system = ((nikfemm_System*)PyTuple_GetItem(args, 0))->system;
     std::vector<double> V = self->simulation->solve(*system);
 
-    // create list of tuples like this: [(int, float, float, float), ...]
+    // create list of tuples like this: [(int, double, double, double), ...]
     // where the first element is the layer id, and the next three are the x, y, and voltage
 
     PyObject* voltages = PyList_New(V.size());
@@ -218,7 +251,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_solve(nikfemm_MultiL
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
     if (PyTuple_Size(args) != 4) {
-        PyErr_SetString(PyExc_TypeError, "setVoltage must have 4 arguments: System, [float, float], float, uint64_t");
+        PyErr_SetString(PyExc_TypeError, "setVoltage must have 4 arguments: System, [double, double], double, uint64_t");
         return NULL;
     } else {
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &nikfemm_SystemType)) {
@@ -226,11 +259,11 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_M
             return NULL;
         }
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 1), &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "setVoltage must have the second argument of type [float, float]");
+            PyErr_SetString(PyExc_TypeError, "setVoltage must have the second argument of type [double, double]");
             return NULL;
         }
         if (!PyFloat_Check(PyTuple_GetItem(args, 2)) && !PyLong_Check(PyTuple_GetItem(args, 2))) {
-            PyErr_SetString(PyExc_TypeError, "setVoltage must have the third argument of type float");
+            PyErr_SetString(PyExc_TypeError, "setVoltage must have the third argument of type double");
             return NULL;
         }
         if (!PyLong_Check(PyTuple_GetItem(args, 3))) {
@@ -248,7 +281,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_M
         } else if (PyLong_Check(item)) {
             coords[i] = PyLong_AsDouble(item);
         } else {
-            PyErr_SetString(PyExc_TypeError, "setVoltage must have the second argument of type [float, float]");
+            PyErr_SetString(PyExc_TypeError, "setVoltage must have the second argument of type [double, double]");
             return NULL;
         }
     }
@@ -260,7 +293,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_M
     } else if (PyLong_Check(PyTuple_GetItem(args, 2))) {
         V = PyLong_AsDouble(PyTuple_GetItem(args, 2));
     } else {
-        PyErr_SetString(PyExc_TypeError, "setVoltage must have the third argument of type float");
+        PyErr_SetString(PyExc_TypeError, "setVoltage must have the third argument of type double");
         return NULL;
     }
     uint64_t layer_id = PyLong_AsUnsignedLong(PyTuple_GetItem(args, 3));
@@ -273,18 +306,18 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_M
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_add_interconnection(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
-    // arguments should be [float, float], [float, float], uint64_t, uint64_t, float
-    // the first two arguments are lists of floats
+    // arguments should be [double, double], [double, double], uint64_t, uint64_t, double
+    // the first two arguments are lists of doubles
     if (PyTuple_Size(args) != 5) {
-        PyErr_SetString(PyExc_TypeError, "add_interconnection must have 5 arguments: [float, float], [float, float], uint64_t, uint64_t, float");
+        PyErr_SetString(PyExc_TypeError, "add_interconnection must have 5 arguments: [double, double], [double, double], uint64_t, uint64_t, double");
         return NULL;
     } else {
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "add_interconnection must have the first argument of type [float, float] or [int, int]");
+            PyErr_SetString(PyExc_TypeError, "add_interconnection must have the first argument of type [double, double] or [int, int]");
             return NULL;
         }
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 1), &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "add_interconnection must have the second argument of type [float, float] or [int, int]");
+            PyErr_SetString(PyExc_TypeError, "add_interconnection must have the second argument of type [double, double] or [int, int]");
             return NULL;
         }
         if (!PyLong_Check(PyTuple_GetItem(args, 2))) {
@@ -296,13 +329,13 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_add_interconnection(
             return NULL;
         }
         if (!PyFloat_Check(PyTuple_GetItem(args, 4)) && !PyLong_Check(PyTuple_GetItem(args, 4))) {
-            PyErr_SetString(PyExc_TypeError, "add_interconnection must have the fifth argument of type float");
+            PyErr_SetString(PyExc_TypeError, "add_interconnection must have the fifth argument of type double");
             return NULL;
         }
     }
 
     // extract arguments
-    // the first two arguments are lists of floats, convert them to Vector
+    // the first two arguments are lists of doubles, convert them to Vector
     double coords[2][2];
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 2; j++) {
@@ -312,12 +345,12 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_add_interconnection(
             } else if (PyLong_Check(item)) {
                 coords[i][j] = PyLong_AsDouble(item);
             } else {
-                PyErr_SetString(PyExc_TypeError, "add_interconnection must have the first two arguments of type [float, float]");
+                PyErr_SetString(PyExc_TypeError, "add_interconnection must have the first two arguments of type [double, double]");
                 return NULL;
             }
         }
     }
-    // for each item if it is a long convert it to float, if it is a float use it
+    // for each item if it is a long convert it to double, if it is a double use it
     nikfemm::Vector p1 = nikfemm::Vector(coords[0][0], coords[0][1]);
     nikfemm::Vector p2 = nikfemm::Vector(coords[1][0], coords[1][1]);
     uint64_t layer1_id = PyLong_AsUnsignedLong(PyTuple_GetItem(args, 2));
@@ -328,7 +361,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_add_interconnection(
     } else if (PyLong_Check(PyTuple_GetItem(args, 4))) {
         R = PyLong_AsDouble(PyTuple_GetItem(args, 4));
     } else {
-        PyErr_SetString(PyExc_TypeError, "add_interconnection must have the fifth argument of type float");
+        PyErr_SetString(PyExc_TypeError, "add_interconnection must have the fifth argument of type double");
         return NULL;
     }
 
@@ -341,18 +374,18 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_add_interconnection(
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRectangle(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
-    // arguments should be (float, float), (float, float), uint64_t
-    // the first two arguments are tuples of floats
+    // arguments should be (double, double), (double, double), uint64_t
+    // the first two arguments are tuples of doubles
     if (PyTuple_Size(args) != 3) {
-        PyErr_SetString(PyExc_TypeError, "drawRectangle must have 3 arguments: (float, float), (float, float), uint64_t");
+        PyErr_SetString(PyExc_TypeError, "drawRectangle must have 3 arguments: (double, double), (double, double), uint64_t");
         return NULL;
     } else {
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "drawRectangle must have the first argument of type (float, float)");
+            PyErr_SetString(PyExc_TypeError, "drawRectangle must have the first argument of type (double, double)");
             return NULL;
         }
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 1), &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "drawRectangle must have the second argument of type (float, float)");
+            PyErr_SetString(PyExc_TypeError, "drawRectangle must have the second argument of type (double, double)");
             return NULL;
         }
         if (!PyLong_Check(PyTuple_GetItem(args, 2))) {
@@ -362,7 +395,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRectangle(nikfem
     }
 
     // extract arguments
-    // the first two arguments are tuples of floats, convert them to Vector
+    // the first two arguments are tuples of doubles, convert them to Vector
     double coords[2][2];
     for (int i = 0; i < 2; i++) {
         for (int j = 0; j < 2; j++) {
@@ -372,7 +405,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRectangle(nikfem
             } else if (PyLong_Check(item)) {
                 coords[i][j] = PyLong_AsDouble(item);
             } else {
-                PyErr_SetString(PyExc_TypeError, "drawRectangle must have the first two arguments of type (float, float)");
+                PyErr_SetString(PyExc_TypeError, "drawRectangle must have the first two arguments of type (double, double)");
                 return NULL;
             }
         }
@@ -390,17 +423,17 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRectangle(nikfem
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRegion(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
-    // arguments should be (float, float), float, uint64_t
+    // arguments should be (double, double), double, uint64_t
     if (PyTuple_Size(args) != 3) {
-        PyErr_SetString(PyExc_TypeError, "drawRegion must have 3 arguments: (float, float), float, uint64_t");
+        PyErr_SetString(PyExc_TypeError, "drawRegion must have 3 arguments: (double, double), double, uint64_t");
         return NULL;
     } else {
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "drawRegion must have the first argument of type (float, float)");
+            PyErr_SetString(PyExc_TypeError, "drawRegion must have the first argument of type (double, double)");
             return NULL;
         }
         if (!PyFloat_Check(PyTuple_GetItem(args, 1))) {
-            PyErr_SetString(PyExc_TypeError, "drawRegion must have the second argument of type float");
+            PyErr_SetString(PyExc_TypeError, "drawRegion must have the second argument of type double");
             return NULL;
         }
         if (!PyLong_Check(PyTuple_GetItem(args, 2))) {
@@ -410,7 +443,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRegion(nikfemm_M
     }
 
     // extract arguments
-    // the first argument is a tuple of floats, convert it to Vector
+    // the first argument is a tuple of doubles, convert it to Vector
     double coords[2];
     for (int i = 0; i < 2; i++) {
         PyObject* item = PyList_GetItem(PyTuple_GetItem(args, 0), i);
@@ -419,7 +452,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRegion(nikfemm_M
         } else if (PyLong_Check(item)) {
             coords[i] = PyLong_AsDouble(item);
         } else {
-            PyErr_SetString(PyExc_TypeError, "drawRegion must have the first argument of type (float, float)");
+            PyErr_SetString(PyExc_TypeError, "drawRegion must have the first argument of type (double, double)");
             return NULL;
         }
     }
@@ -428,7 +461,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRegion(nikfemm_M
     uint64_t layer_id = PyLong_AsUnsignedLong(PyTuple_GetItem(args, 2));
 
     // draw region
-    self->simulation->meshes[layer_id].drawing.drawRegion(p, {(float)material});
+    self->simulation->meshes[layer_id].drawing.drawRegion(p, {material});
 
     printf("drawRegion: p = (%f, %f), material = %f, layer_id = %lu\n", p.x, p.y, material, layer_id);
 
@@ -436,13 +469,13 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRegion(nikfemm_M
 }
 
 static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon(nikfemm_MultiLayerCurrentDensitySimulation* self, PyObject* args, PyObject* kwds) {
-    // arguments should be list of (float, float), uint64_t
+    // arguments should be list of (double, double), uint64_t
     if (PyTuple_Size(args) != 2) {
-        PyErr_SetString(PyExc_TypeError, "drawPolygon must have 2 arguments: [[float, float], ...], uint64_t");
+        PyErr_SetString(PyExc_TypeError, "drawPolygon must have 2 arguments: [[double, double], ...], uint64_t");
         return NULL;
     } else {
         if (!PyObject_TypeCheck(PyTuple_GetItem(args, 0), &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[double, double], ...]");
             return NULL;
         }
         if (!PyLong_Check(PyTuple_GetItem(args, 1))) {
@@ -452,16 +485,16 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon(nikfemm_
     }
 
     // extract arguments
-    // the first argument is a list of lists of two floats, convert it to vector of Vector
+    // the first argument is a list of lists of two doubles, convert it to vector of Vector
     std::vector<nikfemm::Vector> points;
     for (int i = 0; i < PyList_Size(PyTuple_GetItem(args, 0)); i++) {
         PyObject* item = PyList_GetItem(PyTuple_GetItem(args, 0), i);
         if (!PyObject_TypeCheck(item, &PyList_Type)) {
-            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[double, double], ...]");
             return NULL;
         }
         if (PyList_Size(item) != 2) {
-            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+            PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[double, double], ...]");
             return NULL;
         }
         double coords[2];
@@ -472,7 +505,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon(nikfemm_
             } else if (PyLong_Check(subitem)) {
                 coords[j] = PyLong_AsDouble(subitem);
             } else {
-                PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[float, float], ...]");
+                PyErr_SetString(PyExc_TypeError, "drawPolygon must have the first argument of type [[double, double], ...]");
                 return NULL;
             }
         }

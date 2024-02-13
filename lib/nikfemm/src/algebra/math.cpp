@@ -242,4 +242,31 @@ namespace nikfemm {
         }
         return result;
     }
+
+    bool isnan(const std::vector<double>& cv) {
+        for (uint32_t i = 0; i < cv.size(); i++) {
+            if (std::isnan(cv[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isnan(const MatCSRSymmetric& mat) {
+        for (uint32_t i = 0; i < mat.val.size(); i++) {
+            if (std::isnan(mat.val[i])) {
+                return true;
+            }
+        }
+        for (uint32_t i = 0; i < mat.diag.size(); i++) {
+            if (std::isnan(mat.diag[i])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool isnan(const double val) {
+        return std::isnan(val);
+    }
 }

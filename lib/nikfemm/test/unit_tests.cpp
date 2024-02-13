@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE( cv_dot )
     y[1] = 5;
     y[2] = 6;
 
-    float z = dot(x, y);
+    double z = dot(x, y);
 
     BOOST_CHECK_EQUAL(z, 32);
 }
@@ -300,7 +300,7 @@ BOOST_AUTO_TEST_CASE( cv_square_sum )
     x[1] = 2;
     x[2] = 3;
 
-    float z = squareSum(x);
+    double z = squareSum(x);
 
     BOOST_CHECK_EQUAL(z, 14);
 }

@@ -10,7 +10,7 @@ namespace nikfemm {
         this->p2 = p2;
     }
 
-    float Segment::length() {
+    double Segment::length() {
         return sqrt(pow(p2.x - p1.x, 2) + pow(p2.y - p1.y, 2));
     }
 
@@ -68,13 +68,13 @@ namespace nikfemm {
     double Segment::pointSegmentDistance(Vector p, Vector p1, Vector p2) {
         /*
         // Return minimum distance between line segment vw and point p
-        const float l2 = Vector::distance_squared(v, w);  // i.e. |w-v|^2 -  avoid a sqrt
+        const double l2 = Vector::distance_squared(v, w);  // i.e. |w-v|^2 -  avoid a sqrt
         if (l2 == 0.0) return Vector::distance(p, v);   // v == w case
         // Consider the line extending the segment, parameterized as v + t (w - v).
         // We find projection of point p onto the line. 
         // It falls where t = [(p-v) . (w-v)] / |w-v|^2
         // We clamp t from [0,1] to handle points outside the segment vw.
-        const float t = std::max(0.f, std::min(1.f, Vector::dot(p - v, w - v) / l2));
+        const double t = std::max(0.f, std::min(1.f, Vector::dot(p - v, w - v) / l2));
         const Vector projection = v + ((w - v) * t);  // Projection falls on the segment
         return Vector::distance(p, projection);
         */

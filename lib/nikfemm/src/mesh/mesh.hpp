@@ -116,8 +116,8 @@ namespace nikfemm {
         double computeMass(Vector p, double density);
         Vector computeBarycenter(Vector p);
         double computeInertiaMoment(Vector p, Vector center, double density);
-        void getMeshBoundingBox(float& min_x, float& max_x, float& min_y, float& max_y, bool clip_to_radius);
-        void getMeshScaleOffset(float width, float height, float& x_scale, float& y_scale, float& x_offset, float& y_offset, bool clip_to_radius);
+        void getMeshBoundingBox(double& min_x, double& max_x, double& min_y, double& max_y, bool clip_to_radius);
+        void getMeshScaleOffset(double width, double height, double& x_scale, double& y_scale, double& x_offset, double& y_offset, bool clip_to_radius);
 #ifdef NIKFEMM_USE_OPENCV
         void ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
         void NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh = false, bool plot_regions = false, bool clip_to_radius = false);
@@ -556,7 +556,7 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Mesh<Prop>::getMeshBoundingBox(float& min_x, float& max_x, float& min_y, float& max_y, bool clip_to_radius) {
+    void Mesh<Prop>::getMeshBoundingBox(double& min_x, double& max_x, double& min_y, double& max_y, bool clip_to_radius) {
         if (!clip_to_radius) {
             nloginfo("clip to bounding box for plotting");
             // find baricenter of all the points
@@ -567,9 +567,9 @@ namespace nikfemm {
             baricenter /= data.numberofpoints;
 
             // find the furthest point from the baricenter
-            float max_distance = 0;
+            double max_distance = 0;
             for (int64_t i = 0; i < data.numberofpoints; i++) {
-                max_distance = std::max(max_distance, (float)(Vector::distance(data.pointlist[i], baricenter)));
+                max_distance = std::max(max_distance, (Vector::distance(data.pointlist[i], baricenter)));
             }
 
             min_x = baricenter.x - max_distance * 1.1;
@@ -586,13 +586,13 @@ namespace nikfemm {
     }
 
     template <typename Prop>
-    void Mesh<Prop>::getMeshScaleOffset(float width, float height, float& x_scale, float& y_scale, float& x_offset, float& y_offset, bool clip_to_radius) {
-        float min_x, max_x, min_y, max_y;
+    void Mesh<Prop>::getMeshScaleOffset(double width, double height, double& x_scale, double& y_scale, double& x_offset, double& y_offset, bool clip_to_radius) {
+        double min_x, max_x, min_y, max_y;
 
         getMeshBoundingBox(min_x, max_x, min_y, max_y, clip_to_radius);
 
         // object to window ratio
-        float ratio = 0.9;
+        double ratio = 0.9;
 
         // x scale factor to loosely fit mesh in window (equal in x and y)
         x_scale = ratio * width / std::max(max_x - min_x, max_y - min_y);
@@ -607,17 +607,17 @@ namespace nikfemm {
     #ifdef NIKFEMM_USE_OPENCV
     template <typename Prop>
     void Mesh<Prop>::NodeScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
-        float x_scale, y_scale, x_offset, y_offset;
+        double x_scale, y_scale, x_offset, y_offset;
 
         getMeshScaleOffset(width, height, x_scale, y_scale, x_offset, y_offset, clip_to_radius);
 
-        std::vector<float> A_sorted(scalar.size());
+        std::vector<double> A_sorted(scalar.size());
         for (uint32_t i = 0; i < scalar.size(); i++) {
             A_sorted[i] = scalar[i];
         }
         std::sort(A_sorted.begin(), A_sorted.end());
-        float max_A = A_sorted[0.9 * A_sorted.size()];
-        float min_A = A_sorted[0.1 * A_sorted.size()];
+        double max_A = A_sorted[0.9 * A_sorted.size()];
+        double min_A = A_sorted[0.1 * A_sorted.size()];
 
         nloginfo("max_A: %f, min_A: %f", max_A, min_A);
 
@@ -667,6 +667,42 @@ namespace nikfemm {
             // draw the polygon
             cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, points), c);
         }
+
+        // draw mesh edges
+        if (plot_mesh) {
+            for (int64_t i = 0; i < data.numberoftriangles; i++) {
+                // get the triangle
+                Elem e = data.trianglelist[i];
+                // get the vertices
+                Vector v1 = data.pointlist[e[0]];
+                Vector v2 = data.pointlist[e[1]];
+                Vector v3 = data.pointlist[e[2]];
+
+                if (Vector::distance(v1, Vector(0, 0)) > radius * 1.5 + epsilon && clip_to_radius ||
+                    Vector::distance(v2, Vector(0, 0)) > radius * 1.5 + epsilon && clip_to_radius ||
+                    Vector::distance(v3, Vector(0, 0)) > radius * 1.5 + epsilon && clip_to_radius) {
+                    continue;
+                }
+
+                // draw lines from v1 to v2
+                cv::line(*image, cv::Point(x_scale * v1.x + x_offset, y_scale * v1.y + y_offset),
+                                cv::Point(x_scale * v2.x + x_offset, y_scale * v2.y + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * v2.x + x_offset, y_scale * v2.y + y_offset),
+                                cv::Point(x_scale * v3.x + x_offset, y_scale * v3.y + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+                cv::line(*image, cv::Point(x_scale * v3.x + x_offset, y_scale * v3.y + y_offset),
+                                cv::Point(x_scale * v1.x + x_offset, y_scale * v1.y + y_offset),
+                                cv::Scalar(0, 0, 0), 1);
+            }
+        }
+
+        // draw regions
+        if (plot_regions) {
+            for (auto region : drawing.regions) {
+                cv::circle(*image, cv::Point(x_scale * region.first.x + x_offset, y_scale * region.first.y + y_offset), 5, cv::Scalar(0, 0, 0), -1);
+            }
+        }
     }
 
     template <typename Prop>
@@ -706,7 +742,7 @@ namespace nikfemm {
 
     template <typename Prop>
     void Mesh<Prop>::ElemScalarPlotRend(cv::Mat* image, double width, double height, std::vector<double>& scalar, bool plot_mesh, bool plot_regions, bool clip_to_radius) {
-        float x_scale, y_scale, x_offset, y_offset;
+        double x_scale, y_scale, x_offset, y_offset;
 
         getMeshScaleOffset(width, height, x_scale, y_scale, x_offset, y_offset, clip_to_radius);
 
@@ -742,22 +778,22 @@ namespace nikfemm {
             cv::Scalar c = val2jet(scalar[i], min_Scalar, max_Scalar);
             // get the vertices in window coordinates
             cv::fillPoly(*image, std::vector<std::vector<cv::Point>>(1, std::vector<cv::Point>({
-                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
-                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
-                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset)
+                cv::Point(x_scale * v1.x + x_offset, y_scale * v1.y + y_offset),
+                cv::Point(x_scale * v2.x + x_offset, y_scale * v2.y + y_offset),
+                cv::Point(x_scale * v3.x + x_offset, y_scale * v3.y + y_offset)
             })), c);
 
             // draw mesh edges
             // draw lines from v1 to v2
             if (plot_mesh) {
-                cv::line(*image, cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
-                                cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
+                cv::line(*image, cv::Point(x_scale * v1.x + x_offset, y_scale * v1.y + y_offset),
+                                cv::Point(x_scale * v2.x + x_offset, y_scale * v2.y + y_offset),
                                 cv::Scalar(0, 0, 0), 1);
-                cv::line(*image, cv::Point(x_scale * static_cast<float>(v2.x) + x_offset, y_scale * static_cast<float>(v2.y) + y_offset),
-                                cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
+                cv::line(*image, cv::Point(x_scale * v2.x + x_offset, y_scale * v2.y + y_offset),
+                                cv::Point(x_scale * v3.x + x_offset, y_scale * v3.y + y_offset),
                                 cv::Scalar(0, 0, 0), 1);
-                cv::line(*image, cv::Point(x_scale * static_cast<float>(v3.x) + x_offset, y_scale * static_cast<float>(v3.y) + y_offset),
-                                cv::Point(x_scale * static_cast<float>(v1.x) + x_offset, y_scale * static_cast<float>(v1.y) + y_offset),
+                cv::line(*image, cv::Point(x_scale * v3.x + x_offset, y_scale * v3.y + y_offset),
+                                cv::Point(x_scale * v1.x + x_offset, y_scale * v1.y + y_offset),
                                 cv::Scalar(0, 0, 0), 1);
             }
         }

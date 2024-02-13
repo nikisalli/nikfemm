@@ -11,10 +11,10 @@ namespace nikfemm {
     };
 
     inline Orientation geomOrientation(Vector p1, Vector p2, Vector p3) {
-        float val = (p2.y - p1.y) * (p3.x - p2.x) -
+        double val = (p2.y - p1.y) * (p3.x - p2.x) -
                      (p2.x - p1.x) * (p3.y - p2.y);
 
-        if (abs(val) < std::numeric_limits<float>::epsilon()) {
+        if (abs(val) < std::numeric_limits<double>::epsilon()) {
             return Orientation::COLLINEAR;
         } else if (val > 0) {
             return Orientation::CLOCKWISE;

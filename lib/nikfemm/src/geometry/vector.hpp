@@ -21,7 +21,7 @@ namespace nikfemm {
 
             // operators
             inline bool operator==(const Vector p) const {
-                return (abs(x - p.x) < EPSILON) && (abs(y - p.y) < EPSILON);
+                return sqrt(pow(x - p.x, 2) + pow(y - p.y, 2)) < EPSILON;
             }
 
             inline bool operator!=(const Vector p) const {
@@ -144,19 +144,19 @@ namespace nikfemm {
                 return Vector((p1.x + p2.x) / 2, (p1.y + p2.y) / 2);
             }
 
-            static inline float absoluteAngle(Vector a, Vector b, Vector c) {
+            static inline double absoluteAngle(Vector a, Vector b, Vector c) {
                 return fabs(orientedAngle(a, b, c));
             }
 
             static inline double orientedAngle(const Vector a, const Vector b, const Vector c) {
                 // safe angle calculation
-                float ax = a.x - b.x;
-                float ay = a.y - b.y;
-                float bx = c.x - b.x;
-                float by = c.y - b.y;
-                float dot = ax * bx + ay * by;
-                float det = ax * by - ay * bx;
-                float angle = atan2(det, dot);
+                double ax = a.x - b.x;
+                double ay = a.y - b.y;
+                double bx = c.x - b.x;
+                double by = c.y - b.y;
+                double dot = ax * bx + ay * by;
+                double det = ax * by - ay * bx;
+                double angle = atan2(det, dot);
                 return angle;
             }
     };

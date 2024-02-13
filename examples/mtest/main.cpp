@@ -150,7 +150,7 @@ void draw_motor(MagnetostaticSimulation& sim, double angle,
 
         // draw winding
         int winding_id = (i / 2) % 3;
-        float current = 0;
+        double current = 0;
         switch (winding_id) {
             case 0:
                 current = currentA;

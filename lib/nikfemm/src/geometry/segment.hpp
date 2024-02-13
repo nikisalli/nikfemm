@@ -10,7 +10,7 @@ namespace nikfemm {
         Vector p2;
 
         Segment(Vector p1, Vector p2);
-        float length();
+        double length();
         static inline bool segmentsIntersect(Segment s1, Segment s2);
         static bool segmentsIntersect(Vector s1p1, Vector s1p2, Vector s2p1, Vector s2p2);
         static bool pointInSegmentBB(Vector p, Segment s);

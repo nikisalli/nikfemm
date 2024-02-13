@@ -2,7 +2,7 @@
 
 namespace nikfemm {
     MagnetostaticMesh::MagnetostaticMesh() {
-        default_prop = {0, {0, 0}, static_cast<float>(magnetostatic_materials::air), {}};
+        default_prop = {0, {0, 0}, magnetostatic_materials::air, {}};
     }
 
     System<NonLinearExpression> MagnetostaticMesh::getFemSystem() {
@@ -278,10 +278,11 @@ namespace nikfemm {
                 Vector p2 = polygon.points[(i + 1) % polygon.points.size()];
                 
                 double multiplier = 10;
-                uint32_t n_points = Vector::distance(p1, p2) / (drawing.epsilon / multiplier);
+                double epsilon = drawing.getCurrentEpsilon();
+                uint32_t n_points = Vector::distance(p1, p2) / (epsilon / multiplier);
                 // multiply by 1.1 to make sure that the points are far enough to not trigger conformity checks
                 // Vector normal = Vector::normal(p1, p2).versor() * (drawing.epsilon / multiplier) * 1.1;
-                Vector normal = (p2 - p1).normal().normalize() * (drawing.epsilon / multiplier) * 1.1;
+                Vector normal = (p2 - p1).normal().normalize() * (epsilon / multiplier) * 1.1;
 
                 for (uint32_t j = 0; j < n_points; j++) {
                     Vector mypoints[2];
@@ -304,8 +305,8 @@ namespace nikfemm {
                                     // check if the point is at least drawing.epsilon away from the edge
                                     Vector p3 = other_polygon.points[l];
                                     Vector p4 = other_polygon.points[(l + 1) % other_polygon.points.size()];
-                                    if (Vector::distance(mypoints[k], p3) < drawing.epsilon / multiplier ||
-                                        Vector::distance(mypoints[k], p4) < drawing.epsilon / multiplier) {
+                                    if (Vector::distance(mypoints[k], p3) < epsilon / multiplier ||
+                                        Vector::distance(mypoints[k], p4) < epsilon / multiplier) {
                                         mypoints_ok[k] = false;
                                         break;
                                     }
@@ -318,7 +319,7 @@ namespace nikfemm {
                         // skip check for failed points
                         if (mypoints_ok[k]) {
                             for (auto point : drawing.points) {
-                                if (Vector::distance(mypoints[k], point) < drawing.epsilon / multiplier) {
+                                if (Vector::distance(mypoints[k], point) < epsilon / multiplier) {
                                     mypoints_ok[k] = false;
                                     break;
                                 }

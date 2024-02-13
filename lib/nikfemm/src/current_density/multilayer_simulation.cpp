@@ -68,6 +68,44 @@ namespace nikfemm {
             meshes[interconnection.layer2_id].drawing.drawPoint(interconnection.p2);
         }
 
+        // refine the mesh
+        for (auto& interconnection : interconnections) {
+            // first we need to compute an adequate epsilon for the ring around the interconnection
+            // to compute it we will use the distance from the nearest segment in the drawing
+            double epsilon1 = std::numeric_limits<double>::max();
+            double epsilon2 = std::numeric_limits<double>::max();
+            auto& drawing1 = meshes[interconnection.layer1_id].drawing;
+            auto& drawing2 = meshes[interconnection.layer2_id].drawing;
+
+            for (uint64_t i = 0; i < drawing1.segments.size(); i++) {
+                double dist = Segment::pointSegmentDistance(interconnection.p1, drawing1.points[drawing1.segments[i].p1], drawing1.points[drawing1.segments[i].p2]);
+                if (dist < epsilon1) {
+                    epsilon1 = dist;
+                }
+            }
+
+            for (uint64_t i = 0; i < drawing2.segments.size(); i++) {
+                double dist = Segment::pointSegmentDistance(interconnection.p2, drawing2.points[drawing2.segments[i].p1], drawing2.points[drawing2.segments[i].p2]);
+                if (dist < epsilon2) {
+                    epsilon2 = dist;
+                }
+            }
+
+            // add points to the mesh all around the interconnection
+            const double num_points = 10;
+            for (uint32_t i = 0; i < num_points; i++) {
+                double angle = 2 * M_PI * i / num_points;
+                Vector p1 = interconnection.p1 + Vector(epsilon1 * cos(angle) * 0.5, epsilon1 * sin(angle) * 0.5);
+                Vector p2 = interconnection.p2 + Vector(epsilon2 * cos(angle) * 0.5, epsilon2 * sin(angle) * 0.5);
+                Vector p1inner = interconnection.p1 + Vector(epsilon1 * cos(angle) * 0.25, epsilon1 * sin(angle) * 0.25);
+                Vector p2inner = interconnection.p2 + Vector(epsilon2 * cos(angle) * 0.25, epsilon2 * sin(angle) * 0.25);
+                meshes[interconnection.layer1_id].drawing.drawPoint(p1);
+                meshes[interconnection.layer2_id].drawing.drawPoint(p2);
+                meshes[interconnection.layer1_id].drawing.drawPoint(p1inner);
+                meshes[interconnection.layer2_id].drawing.drawPoint(p2inner);
+            }
+        }
+
         for (uint64_t i = 0; i < meshes.size(); i++) {
             meshes[i].mesh(max_triangle_area, min_angle);
             meshes[i].computeEpsilon();

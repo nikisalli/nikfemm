@@ -5,7 +5,7 @@
 
 namespace nikfemm {
     struct CurrentDensityProp {
-        float sigma; // conductivity 
+        double sigma; // conductivity 
 
         bool operator==(const CurrentDensityProp& p) const;
         bool operator!=(const CurrentDensityProp& p) const;
@@ -20,7 +20,7 @@ namespace nikfemm {
 template <>
 struct std::hash<nikfemm::CurrentDensityProp> {
     inline std::size_t operator()(const nikfemm::CurrentDensityProp& p) const {
-        return std::hash<float>()(p.sigma);
+        return std::hash<double>()(p.sigma);
     }
 };
 
