@@ -227,7 +227,7 @@ namespace nikfemm {
         }
         
         for (auto s : segments) {
-            if (s.p1 == p1_id && s.p2 == p2_id) {
+            if (s.p1 == p1_id && s.p2 == p2_id || s.p1 == p2_id && s.p2 == p1_id) {
                 return;
             }
             if (Segment::segmentsIntersect(p1, p2, points[s.p1], points[s.p2]) && s.p1 != p1_id && s.p1 != p2_id && s.p2 != p1_id && s.p2 != p2_id) {
