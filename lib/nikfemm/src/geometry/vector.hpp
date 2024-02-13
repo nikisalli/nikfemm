@@ -102,6 +102,10 @@ namespace nikfemm {
                 return *this;
             }
 
+            inline Vector translate(Vector v) const {
+                return *this + v;
+            }
+
             inline Vector rotate(double angle) const {
                 double s = sin(angle);
                 double c = cos(angle);

@@ -289,8 +289,10 @@ void simulate(int num, double angle, double max_B, double min_B,
 
     auto system = simulation.generateSystem();
 
-    simulation.solve(system);
+    auto A = simulation.solve(system);
+    auto B = simulation.mesh.computeCurl(A);
 #ifdef NIKFEMM_USE_OPENCV
+    simulation.mesh.ElemScalarPlot(1000, 1000, B, false, false, true);
     // simulation.AplotToFile(10000, 10000, "Aplot.png");
     // save to file num
     // simulation.BplotToFile(10000, 10000, "Bplot" + std::to_string(num) + ".png", false, true);

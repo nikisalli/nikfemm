@@ -754,8 +754,8 @@ namespace nikfemm {
 
         printf("sortedScalar.size(): %lu, 0.95 * sortedScalar.size(): %f, 0.05 * sortedScalar.size(): %f\n", sortedScalar.size(), sortedScalar.size() * 0.95, sortedScalar.size() * 0.05);
         // 95th percentile
-        double max_Scalar = sortedScalar[sortedScalar.size() * 0.95];
-        double min_Scalar = sortedScalar[sortedScalar.size() * 0.05];
+        double max_Scalar = sortedScalar[sortedScalar.size() * 0.9];
+        double min_Scalar = sortedScalar[sortedScalar.size() * 0.1];
 
         nloginfo("max_Scalar: %.17g, min_Scalar: %.17g", max_Scalar, min_Scalar);
 

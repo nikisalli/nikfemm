@@ -14,38 +14,36 @@ namespace nikfemm {
     NonLinearMatCSRSymmetric::NonLinearMatCSRSymmetric(MatCOOSymmetric<NonLinearExpression>& coo) {
         m = coo.m;
 
-        std::vector<std::pair<uint64_t, NonLinearExpression>> elems;
-        elems.reserve(coo.elems.size());
+        std::vector<uint64_t> keys(coo.elems.size());
 
-        for (auto const& [key, value] : coo.elems) {
-            elems.push_back(std::make_pair(key, value));
-        }
-
-        // sort elems by key
-        std::sort(elems.begin(), elems.end(), [](const auto& a, const auto& b) {
-            return a.first < b.first;
+        std::transform(coo.elems.begin(), coo.elems.end(), keys.begin(), [](const auto& elem) {
+            return elem.first;
         });
 
-        nnz = elems.size() - m;
+        // sort elems by key
+        std::sort(keys.begin(), keys.end());
+
+        nnz = coo.elems.size() - m;
 
         row_ptr = std::vector<uint32_t>(m + 1, 0);
         col_ind = std::vector<uint32_t>(nnz);
         val = std::vector<double>(nnz);
         diag = std::vector<double>(m);
-        expr = std::vector<NonLinearExpression>(nnz);
-        diag_expr = std::vector<NonLinearExpression>(m);
+        expr = std::vector<NonLinearExpression*>(nnz);
+        diag_expr = std::vector<NonLinearExpression*>(m);
 
         uint32_t i = 0;
-        for (auto const& [key, value] : elems) {
+        for (auto const key : keys) {
             uint32_t _m = key >> 32;
             uint32_t _n = key & 0xFFFFFFFF;
             if (_m == _n) {
                 // diag[_m] = value;
-                diag_expr[_m] = value;
+                // move the expression to diag_expr
+                diag_expr[_m] = &coo.elems[key];
             } else {
                 col_ind[i] = _n;
                 // val[i] = value;
-                expr[i] = value;
+                expr[i] = &coo.elems[key];
                 row_ptr[_m + 1]++;
                 i++;
             }
@@ -56,19 +54,15 @@ namespace nikfemm {
         }
     }
 
-    NonLinearMatCSRSymmetric::~NonLinearMatCSRSymmetric() {
-
-    }
-
     void NonLinearMatCSRSymmetric::evaluate(std::vector<double>& mu) {
         // diagonal
         for (uint32_t i = 0; i < m; i++) {
             double old_val = diag[i];
-            diag[i] = diag_expr[i].evaluate(mu);
+            diag[i] = diag_expr[i]->evaluate(mu);
         }
         // off-diagonal
         for (uint32_t i = 0; i < nnz; i++) {
-            val[i] = expr[i].evaluate(mu);
+            val[i] = expr[i]->evaluate(mu);
         }
     }
 }

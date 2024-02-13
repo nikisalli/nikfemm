@@ -55,12 +55,7 @@ namespace nikfemm {
     BaseCSR::BaseCSR(MatCOOSymmetric<double>& coo) {
         m = coo.m;
 
-        std::vector<std::pair<uint64_t, double>> elems;
-        elems.reserve(coo.elems.size());
-
-        for (auto const& [key, value] : coo.elems) {
-            elems.push_back(std::make_pair(key, value));
-        }
+        std::vector<std::pair<uint64_t, double>> elems(coo.elems.begin(), coo.elems.end());
 
         // sort elems by key
         std::sort(elems.begin(), elems.end(), [](const auto& a, const auto& b) {

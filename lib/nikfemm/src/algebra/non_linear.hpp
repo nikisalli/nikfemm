@@ -80,13 +80,12 @@ namespace nikfemm {
     };
 
     struct NonLinearMatCSRSymmetric : virtual MatCSRSymmetric {
-        std::vector<NonLinearExpression> diag_expr;  // these are used to update the stiffness matrix in an efficient way from the magnetic induction
-        std::vector<NonLinearExpression> expr;
+        std::vector<NonLinearExpression*> diag_expr;  // these are used to update the stiffness matrix in an efficient way from the magnetic induction
+        std::vector<NonLinearExpression*> expr;
         // NonLinearExpression* diag_expr;  // these are used to update the stiffness matrix in an efficient way from the magnetic induction
         // NonLinearExpression* expr;
 
         NonLinearMatCSRSymmetric(MatCOOSymmetric<NonLinearExpression>& coo);
-        ~NonLinearMatCSRSymmetric();
 
         void evaluate(std::vector<double>& mu);
     };
