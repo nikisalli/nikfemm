@@ -300,7 +300,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_setVoltage(nikfemm_M
 
     self->simulation->setVoltage(*system, p, V, layer_id);
 
-    printf("setVoltage: p = (%f, %f), V = %f, layer_id = %lu\n", p.x, p.y, V, layer_id);
+    // printf("setVoltage: p = (%f, %f), V = %f, layer_id = %lu\n", p.x, p.y, V, layer_id);
 
     Py_RETURN_NONE;
 }
@@ -365,7 +365,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_add_interconnection(
         return NULL;
     }
 
-    printf("add_interconnection: p1 = (%f, %f), p2 = (%f, %f), layer1_id = %lu, layer2_id = %lu, R = %f\n", p1.x, p1.y, p2.x, p2.y, layer1_id, layer2_id, R);
+    // printf("add_interconnection: p1 = (%f, %f), p2 = (%f, %f), layer1_id = %lu, layer2_id = %lu, R = %f\n", p1.x, p1.y, p2.x, p2.y, layer1_id, layer2_id, R);
 
     // add interconnection
     self->simulation->interconnections.push_back({p1, p2, layer1_id, layer2_id, R});
@@ -417,7 +417,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRectangle(nikfem
     // draw rectangle
     self->simulation->meshes[layer_id].drawing.drawRectangle(p1, p2);
 
-    printf("drawRectangle: p1 = (%f, %f), p2 = (%f, %f), layer_id = %lu\n", p1.x, p1.y, p2.x, p2.y, layer_id);
+    // printf("drawRectangle: p1 = (%f, %f), p2 = (%f, %f), layer_id = %lu\n", p1.x, p1.y, p2.x, p2.y, layer_id);
 
     Py_RETURN_NONE;
 }
@@ -463,7 +463,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawRegion(nikfemm_M
     // draw region
     self->simulation->meshes[layer_id].drawing.drawRegion(p, {material});
 
-    printf("drawRegion: p = (%f, %f), material = %f, layer_id = %lu\n", p.x, p.y, material, layer_id);
+    // printf("drawRegion: p = (%f, %f), material = %f, layer_id = %lu\n", p.x, p.y, material, layer_id);
 
     Py_RETURN_NONE;
 }
@@ -516,7 +516,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_drawPolygon(nikfemm_
     // draw polygon
     self->simulation->meshes[layer_id].drawing.drawPolygon(points);
 
-    printf("drawPolygon: layer_id = %lu\n", layer_id);
+    // printf("drawPolygon: layer_id = %lu\n", layer_id);
 
     Py_RETURN_NONE;
 }

@@ -165,8 +165,8 @@ namespace nikfemm {
                 }
             }
 
-            nloginfo("Nearest node to p1 is %d at x: %f, y: %f", node1_id, meshes[interconnection.layer1_id].data.pointlist[node1_id].x, meshes[interconnection.layer1_id].data.pointlist[node1_id].y);
-            nloginfo("Nearest node to p2 is %d at x: %f, y: %f", node2_id, meshes[interconnection.layer2_id].data.pointlist[node2_id].x, meshes[interconnection.layer2_id].data.pointlist[node2_id].y);
+            // nloginfo("Nearest node to p1 is %d at x: %f, y: %f", node1_id, meshes[interconnection.layer1_id].data.pointlist[node1_id].x, meshes[interconnection.layer1_id].data.pointlist[node1_id].y);
+            // nloginfo("Nearest node to p2 is %d at x: %f, y: %f", node2_id, meshes[interconnection.layer2_id].data.pointlist[node2_id].x, meshes[interconnection.layer2_id].data.pointlist[node2_id].y);
 
             interconnection_indices_list.push_back({interconnection.layer1_id, interconnection.layer2_id, node1_id, node2_id, interconnection.R});
         }
