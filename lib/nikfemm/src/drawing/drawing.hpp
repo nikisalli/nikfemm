@@ -227,10 +227,20 @@ namespace nikfemm {
         }
         
         for (auto s : segments) {
+            // check if the segment is already in the list
             if (s.p1 == p1_id && s.p2 == p2_id || s.p1 == p2_id && s.p2 == p1_id) {
                 return;
             }
-            if (Segment::segmentsIntersect(p1, p2, points[s.p1], points[s.p2]) && s.p1 != p1_id && s.p1 != p2_id && s.p2 != p1_id && s.p2 != p2_id) {
+            // check if the segment is not connected to any of the points of the new segment
+            if (s.p1 == p1_id || s.p1 == p2_id || s.p2 == p1_id || s.p2 == p2_id) {
+                continue;
+            }
+            // before checking for intersection, check if the segments have overlapping bounding boxes to avoid unnecessary intersection checks
+            if (!(Segment::pointInSegmentBB(p1, points[s.p1], points[s.p2]) || Segment::pointInSegmentBB(p2, points[s.p1], points[s.p2]))) {
+                continue;
+            }
+            // check for intersection
+            if (Segment::segmentsIntersect(p1, p2, points[s.p1], points[s.p2])) {
                 printf("Error: segment intersects another segment with coordinates (%.17g, %.17g), (%.17g, %.17g) and (%.17g, %.17g), (%.17g, %.17g)\n", p1.x, p1.y, p2.x, p2.y, points[s.p1].x, points[s.p1].y, points[s.p2].x, points[s.p2].y);
                 nexit("Error: segment intersects another segment");
             }

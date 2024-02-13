@@ -23,6 +23,11 @@ namespace nikfemm {
                 p.y <= std::max(s.p1.y, s.p2.y) && p.y >= std::min(s.p1.y, s.p2.y));
     }
 
+    bool Segment::pointInSegmentBB(Vector p, Vector p1, Vector p2) {
+        return (p.x <= std::max(p1.x, p2.x) && p.x >= std::min(p1.x, p2.x) &&
+                p.y <= std::max(p1.y, p2.y) && p.y >= std::min(p1.y, p2.y));
+    }
+
     double Segment::pointSegmentDistance(Vector p, Segment s) {
         /*
         double x = p.x;
