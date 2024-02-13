@@ -28,29 +28,6 @@ namespace nikfemm {
 
         void print() const;
 
-        inline Polygon& operator+=(const Vector v) {
-            translate(v);
-            return *this;
-        }
-
-        inline Polygon& operator-=(const Vector v) {
-            translate(-v);
-            return *this;
-        }
-
-        inline Polygon operator+(const Vector v) const {
-            Polygon p = *this;
-            p.translate(v);
-            return p;
-        }
-
-
-        inline Polygon operator-(const Vector v) const {
-            Polygon p = *this;
-            p.translate(-v);
-            return p;
-        }
-
         inline Polygon copy() const {
             return Polygon(points);
         }

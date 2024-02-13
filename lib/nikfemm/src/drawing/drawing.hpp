@@ -28,7 +28,19 @@
 #include "../geometry/polygon.hpp"
 
 namespace nikfemm {
-    typedef std::pair<Vector, uint32_t> DrawingRegion;
+    struct DrawingRegion {
+        Vector first;
+        uint32_t second;
+
+        DrawingRegion(Vector first, uint32_t second) {
+            this->first = first;
+            this->second = second;
+        }
+
+        inline void translate(Vector v) {
+            first.translate(v);
+        }
+    };
 
     struct DrawingSegment {
         uint32_t p1;
@@ -337,18 +349,14 @@ namespace nikfemm {
     template <typename Prop>
     void Drawing<Prop>::translate(Vector v) {
         for (uint32_t i = 0; i < points.size(); i++) {
-            points[i] = Vector(points[i].x + v.x, points[i].y + v.y);
+            points[i].translate(v);
         }
         for (uint32_t i = 0; i < polygons.size(); i++) {
-            for (uint32_t j = 0; j < polygons[i].points.size(); j++) {
-                polygons[i].points[j] = Vector(polygons[i].points[j].x + v.x, polygons[i].points[j].y + v.y);
-            }
+            polygons[i].translate(v);
         }
-        std::vector<DrawingRegion> translated_regions;
-        for (DrawingRegion region : regions) {
-            translated_regions.push_back(DrawingRegion(Vector(region.first.x + v.x, region.first.y + v.y), region.second));
+        for (uint32_t i = 0; i < regions.size(); i++) {
+            regions[i].translate(v);
         }
-        regions = translated_regions;
     }
 
     template <typename Prop>
