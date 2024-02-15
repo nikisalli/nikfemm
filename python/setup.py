@@ -18,17 +18,14 @@ class BuildCMakeFirst(build_ext):
         subprocess.check_call(['cmake', debug_flag, '..'], cwd=build_dir)
         # adaptively use the number of cores
         subprocess.check_call(['make', '-j'], cwd=build_dir)
-        # copy the library to the package directory
-        subprocess.check_call(['cp', '../lib/nikfemm/build/libnikfemm.so', '.'])
 
 # Define Python extension
 nikfemm_module = Extension(
     'nikfemm',
     sources=['nikfemm.cpp'],
     include_dirs=['../lib/nikfemm/include'],
-    libraries=['nikfemm'],
-    library_dirs=['../lib/nikfemm/build'],
-    extra_link_args=['-Wl,-rpath,$ORIGIN'],
+    extra_objects=['../lib/nikfemm/build/libnikfemm_static.a'],  # static library
+    extra_link_args=['-Wl,-Bstatic', '-lnikfemm', '-Wl,-Bdynamic'],
 )
 
 # link libnikfemm.so to the extension
@@ -38,8 +35,5 @@ setup(
     description='Python bindings for nikfemm',
     ext_modules=[nikfemm_module],
     cmdclass={'build_ext': BuildCMakeFirst},
-    packages=[''],
-    package_data={'': ['libnikfemm.so']},
     include_package_data=True,
-    debug=True,
 )

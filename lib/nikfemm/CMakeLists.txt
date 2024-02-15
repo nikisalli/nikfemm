@@ -18,6 +18,7 @@ include_directories("${NIKFEMM_SOURCE_DIR}")
 include_directories("${NIKFEMM_INCLUDE_DIR}")
 
 add_library(nikfemm SHARED ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
+add_library(nikfemm_static STATIC ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 
 set(NIKFEMM_USE_OPENCV ON)
 
