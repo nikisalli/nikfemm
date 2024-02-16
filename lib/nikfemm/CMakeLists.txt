@@ -20,11 +20,11 @@ include_directories("${NIKFEMM_INCLUDE_DIR}")
 add_library(nikfemm SHARED ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 add_library(nikfemm_static STATIC ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 
+# add opencv if NIKFEMM_USE_OPENCV option is set
 if(NOT DEFINED NIKFEMM_USE_OPENCV)
     set(NIKFEMM_USE_OPENCV ON)
 endif()
 
-# add opencv if NIKFEMM_USE_OPENCV option is set
 if (NIKFEMM_USE_OPENCV)
     find_package(OpenCV REQUIRED)
     target_link_libraries(nikfemm ${OpenCV_LIBS})
