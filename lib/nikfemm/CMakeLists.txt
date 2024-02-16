@@ -20,7 +20,7 @@ include_directories("${NIKFEMM_INCLUDE_DIR}")
 add_library(nikfemm SHARED ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 add_library(nikfemm_static STATIC ${NIKFEMM_SRCS} ${NIKFEMM_INCLUDE_DIR})
 
-if(NOT NIKFEMM_USE_OPENCV)
+if(NOT DEFINED NIKFEMM_USE_OPENCV)
     set(NIKFEMM_USE_OPENCV ON)
 endif()
 
@@ -33,5 +33,12 @@ endif()
 
 target_include_directories (nikfemm PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# tests
-add_subdirectory(test)
+# add tests for make test
+if (NOT DEFINED NIKFEMM_BUILD_TESTS)
+    set(NIKFEMM_BUILD_TESTS ON)
+endif()
+
+if (NIKFEMM_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(test)
+endif()
