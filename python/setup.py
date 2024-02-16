@@ -15,9 +15,14 @@ class BuildCMakeFirst(build_ext):
         build_dir = os.path.abspath('../lib/nikfemm/build')
         os.makedirs(build_dir, exist_ok=True)
         debug_flag = '-DCMAKE_BUILD_TYPE=Debug' if self.debug else '-DCMAKE_BUILD_TYPE=Release'
-        subprocess.check_call(['cmake', debug_flag, '..'], cwd=build_dir)
-        # adaptively use the number of cores
-        subprocess.check_call(['make', '-j'], cwd=build_dir)
+        # specific build commands for windows and linux
+        if os.name == 'nt':
+            subprocess.check_call(['cmake', debug_flag, '-G', 'MinGW Makefiles', '..'], cwd=build_dir)
+            subprocess.check_call(['mingw32-make'], cwd=build_dir)
+        else:
+            subprocess.check_call(['cmake', debug_flag, '..'], cwd=build_dir)
+            # adaptively use the number of cores
+            subprocess.check_call(['make', '-j'], cwd=build_dir)
 
 # Define Python extension
 nikfemm_module = Extension(
