@@ -17,10 +17,10 @@ class BuildCMakeFirst(build_ext):
         debug_flag = '-DCMAKE_BUILD_TYPE=Debug' if self.debug else '-DCMAKE_BUILD_TYPE=Release'
         # specific build commands for windows and linux
         if os.name == 'nt':
-            subprocess.check_call(['cmake', debug_flag, '-G', 'MinGW Makefiles', '..'], cwd=build_dir)
+            subprocess.check_call(['cmake', debug_flag, '-DNIKFEMM_USE_OPENCV=OFF', '-G', 'MinGW Makefiles', '..'], cwd=build_dir)
             subprocess.check_call(['mingw32-make'], cwd=build_dir)
         else:
-            subprocess.check_call(['cmake', debug_flag, '..'], cwd=build_dir)
+            subprocess.check_call(['cmake', debug_flag, '-DNIKFEMM_USE_OPENCV=OFF', '..'], cwd=build_dir)
             # adaptively use the number of cores
             subprocess.check_call(['make', '-j'], cwd=build_dir)
 
