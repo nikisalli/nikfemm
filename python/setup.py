@@ -33,7 +33,7 @@ nikfemm_module = Extension(
     sources=['nikfemm.cpp'],
     include_dirs=['../lib/nikfemm/include', sysconfig.get_paths()['include']],
     extra_objects=['../lib/nikfemm/build/libnikfemm_static.a'],  # static library
-    extra_link_args=['-Wl,-Bstatic', '-lnikfemm', '-Wl,-Bdynamic'],
+    extra_link_args=['-Wl,-Bstatic', '-Wl,-Bdynamic'],
 )
 
 # link libnikfemm.so to the extension
