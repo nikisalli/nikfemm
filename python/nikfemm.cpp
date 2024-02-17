@@ -198,6 +198,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_solve(nikfemm_MultiL
 
     nikfemm::System<double>* system = ((nikfemm_System*)PyTuple_GetItem(args, 0))->system;
     std::vector<double> V = self->simulation->solve(*system);
+    std::vector<double> P = self->simulation->computePowerDensity(V);
 
     // create list of tuples like this: [(int, double, double, double), ...]
     // where the first element is the layer id, and the next three are the x, y, and voltage
@@ -219,6 +220,16 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_solve(nikfemm_MultiL
                                                 PyFloat_FromDouble(V[j + layer_offsets[i]]));
             PyList_SetItem(voltages, j + layer_offsets[i], voltage);
         }
+    }
+
+    // create list of tuples like this: [(int, double), ...]
+    // where the first element is the layer id, and the next is the power density
+
+    PyObject* power_densities = PyList_New(P.size());
+
+    for (uint64_t i = 0; i < P.size(); i++) {
+        PyObject* power_density = PyTuple_Pack(2, PyLong_FromUnsignedLong(i), PyFloat_FromDouble(P[i]));
+        PyList_SetItem(power_densities, i, power_density);
     }
 
     // create list of tuples like this with the triangles: [(int, int, int, int), ...]
@@ -244,7 +255,7 @@ static PyObject* nikfemm_MultiLayerCurrentDensitySimulation_solve(nikfemm_MultiL
         }
     }
 
-    PyObject* result = PyTuple_Pack(2, voltages, triangles);
+    PyObject* result = PyTuple_Pack(3, voltages, triangles, power_densities);
 
     return result;
 }

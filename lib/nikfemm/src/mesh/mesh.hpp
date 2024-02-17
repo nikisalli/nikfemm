@@ -217,7 +217,7 @@ namespace nikfemm {
         }
         // printf("----------------------\n");
         char switches[42];
-        sprintf(switches, "pzq%dAQa%.17g", min_angle, max_triangle_area);
+        sprintf(switches, "pzq%dAQa%.17f", min_angle, max_triangle_area);
         
 
         /* Make necessary initializations so that Triangle can return a */
@@ -752,7 +752,6 @@ namespace nikfemm {
         std::vector<double> sortedScalar = scalar;
         std::sort(sortedScalar.begin(), sortedScalar.end());
 
-        printf("sortedScalar.size(): %lu, 0.95 * sortedScalar.size(): %f, 0.05 * sortedScalar.size(): %f\n", sortedScalar.size(), sortedScalar.size() * 0.95, sortedScalar.size() * 0.05);
         // 95th percentile
         double max_Scalar = sortedScalar[sortedScalar.size() * 0.9];
         double min_Scalar = sortedScalar[sortedScalar.size() * 0.1];
@@ -768,9 +767,9 @@ namespace nikfemm {
             Vector v2 = data.pointlist[e[1]];
             Vector v3 = data.pointlist[e[2]];
 
-            if (Vector::distance(v1, Vector(0, 0)) > radius * 1.5 + epsilon ||
-                Vector::distance(v2, Vector(0, 0)) > radius * 1.5 + epsilon || 
-                Vector::distance(v3, Vector(0, 0)) > radius * 1.5 + epsilon && clip_to_radius) {
+            if ((Vector::distance(v1, Vector(0, 0)) > radius * 1.5 + epsilon ||
+                 Vector::distance(v2, Vector(0, 0)) > radius * 1.5 + epsilon || 
+                 Vector::distance(v3, Vector(0, 0)) > radius * 1.5 + epsilon) && clip_to_radius) {
                 continue;
             }
 

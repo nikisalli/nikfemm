@@ -284,4 +284,45 @@ namespace nikfemm {
 
         return V;
     }
+
+    std::vector<double> MultiLayerCurrentDensitySimulation::computePowerDensity(std::vector<double>& V) {
+        // compute useful offsets
+        std::vector<uint64_t> node_layer_offsets;
+        std::vector<uint64_t> element_layer_offsets;
+        uint64_t total_numberofpoints = 0;
+        uint64_t total_numberoftriangles = 0;
+
+        uint64_t offset = 0;
+        for (auto& mesh : meshes) {
+            node_layer_offsets.push_back(offset);
+            offset += mesh.data.numberofpoints;
+        }
+        total_numberofpoints = offset;
+
+        offset = 0;
+        for (auto& mesh : meshes) {
+            element_layer_offsets.push_back(offset);
+            offset += mesh.data.numberoftriangles;
+        }
+        total_numberoftriangles = offset;
+
+        // current density is defined as J = -sigma * grad(V)
+        // so it is intrinsically associated with triangles instead of nodes like the voltage
+        std::vector<double> P(total_numberoftriangles, 0);
+
+        for (uint64_t i = 0; i < meshes.size(); i++) {
+            // give a slice of the voltage vector to the mesh
+            std::vector<double> V_slice(V.begin() + node_layer_offsets[i], V.begin() + node_layer_offsets[i] + meshes[i].data.numberofpoints);
+            auto E = meshes[i].computeGrad(V_slice);
+
+            for (uint64_t j = 0; j < meshes[i].data.numberoftriangles; j++) {
+                // compute the power density σ∣E∣^2
+                const CurrentDensityProp* prop = meshes[i].drawing.getRegionPtrFromId(meshes[i].data.triangleattributelist[j]);
+                double sigma = prop->sigma; // conductivity
+                P[j + element_layer_offsets[i]] = E[j].norm() * E[j].norm() * sigma;
+            }
+        }
+
+        return P;
+    }
 }

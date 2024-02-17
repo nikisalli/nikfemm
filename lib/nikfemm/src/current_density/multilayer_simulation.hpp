@@ -26,6 +26,7 @@ namespace nikfemm {
             System<double> generateSystem(bool refine = true, double max_triangle_area = 1, int min_angle = 33);
             std::vector<double> solve(System<double>& system);
             void setVoltage(System<double>& system, Vector p, double V, uint64_t layer_id);
+            std::vector<double> computePowerDensity(std::vector<double>& V);
     };
 }
 
